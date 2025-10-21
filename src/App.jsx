@@ -17,6 +17,7 @@ import ParentHome from "./pages/parent/ParentHome";
 import Result from "./pages/parent/Result";
 import ViewAttendance from "./pages/parent/ViewAttendance";
 import ParentMessages from "./pages/parent/ParentMessages";
+import SubjectManagement from "./pages/admin/subject/SubjectManagement";
 
 const App = () => {
   return (
@@ -30,6 +31,7 @@ const App = () => {
         <Route path="pin-management" element={<PinManagement />} />
         <Route path="settings" element={<Settings />} />
         <Route path="message" element={<AdminMessage />} />
+        <Route path="subject-management" element={<SubjectManagement />} />
       </Route>
 
       <Route path="/teacher/dashboard" element={<TeacherDashboardLayout />}>

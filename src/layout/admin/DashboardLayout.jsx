@@ -7,7 +7,8 @@ import {
   SettingOutlined,
   KeyOutlined,
   LogoutOutlined,
-  MessageOutlined
+  MessageOutlined,
+  ReadOutlined
 } from "@ant-design/icons";
 import {
   Layout,
@@ -45,6 +46,7 @@ const items = [
   getItem("Students", "/admin/dashboard/students", <UserOutlined />),
   getItem("Teachers", "/admin/dashboard/teachers", <TeamOutlined />),
   getItem("Classes", "/admin/dashboard/class-management", <BookOutlined />),
+  getItem("Subjects", "/admin/dashboard/subject-management", <ReadOutlined />),
   getItem("Message", "/admin/dashboard/message", <MessageOutlined />),
   // getItem("Parents", "/admin/parents", <SolutionOutlined />),
   // getItem("Results", "/admin/results", <FileTextOutlined />),
@@ -57,6 +59,7 @@ const routeTitles = {
   "/admin/dashboard/students": "Student Management",
   "/admin/dashboard/teachers": "Teacher Management",
   "/admin/dashboard/class-management": "Class Management",
+  "/admin/dashboard/subject-management": "Subject Management",
   "/admin/dashboard/message": "Message",
   // "/admin/parents": "Parents",
   // "/admin/results": "Results",

@@ -18,6 +18,8 @@ import Result from "./pages/parent/Result";
 import ViewAttendance from "./pages/parent/ViewAttendance";
 import ParentMessages from "./pages/parent/ParentMessages";
 import SubjectManagement from "./pages/admin/subject/SubjectManagement";
+import SubAdminLayout from "./layout/sub_admin/SubAdminLayout";
+import SubAdminHome from "./pages/sub_admin/dashboard/SubAdminHome";
 
 const App = () => {
   return (
@@ -40,6 +42,10 @@ const App = () => {
         <Route path="settings" element={<Setting />} />
         <Route path="profile" element={<TeacherProfile />} />
       </Route>
+
+       <Route path="/sub-admin/dashboard" element={<SubAdminLayout />}>
+        <Route path="" element={<SubAdminHome />} />
+       </Route>
 
       <Route path="/home" element={<ParentHome />} />
       <Route path="/parent/result" element={<Result />} />

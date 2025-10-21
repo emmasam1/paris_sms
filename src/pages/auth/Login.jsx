@@ -22,7 +22,10 @@ const Login = () => {
       } else if (values.username === "teacher" && values.password === "1234") {
         message.success("Teacher login successful!");
         navigate("/teacher/dashboard");
-      } else {
+      } else if (values.username === "subadmin" && values.password === "1234") {
+        message.success("Admin login successful!");
+        navigate("/sub-admin/dashboard");
+      }else {
         message.error("Invalid credentials");
       }
     }

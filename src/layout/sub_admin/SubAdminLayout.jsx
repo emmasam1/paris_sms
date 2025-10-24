@@ -37,24 +37,24 @@ function getItem(label, key, icon, children) {
 // 📌 SubAdmin Sidebar Items
 // ============================
 const items = [
-  getItem("Dashboard", "/subadmin/dashboard", <DashboardOutlined />),
-  getItem("Students", "/subadmin/dashboard/students", <UserOutlined />),
-  getItem("Subjects", "/subadmin/dashboard/subjects", <ReadOutlined />),
-  getItem("Results", "/subadmin/dashboard/results", <BookOutlined />),
-  getItem("Messages", "/subadmin/dashboard/messages", <MessageOutlined />),
-  getItem("Attendance", "/subadmin/dashboard/attendance", <TeamOutlined />),
-  getItem("Settings", "/subadmin/dashboard/settings", <SettingOutlined />),
+  getItem("Dashboard", "/sub-admin/dashboard", <DashboardOutlined />),
+  // getItem("Students", "/sub-admin/dashboard/students", <UserOutlined />),
+//   getItem("Subjects", "/sub-admin/dashboard/subjects", <ReadOutlined />),
+  getItem("Results", "/sub-admin/dashboard/results", <BookOutlined />),
+//   getItem("Messages", "/sub-admin/dashboard/messages", <MessageOutlined />),
+  getItem("Attendance", "/sub-admin/dashboard/attendance", <TeamOutlined />),
+  // getItem("Settings", "/sub-admin/dashboard/settings", <SettingOutlined />),
 ];
 
 // Titles for header
 const routeTitles = {
-  "/subadmin/dashboard": "Dashboard",
-  "/subadmin/dashboard/students": "Student Management",
-  "/subadmin/dashboard/subjects": "Subject Management",
-  "/subadmin/dashboard/results": "Results",
-  "/subadmin/dashboard/messages": "Messages",
-  "/subadmin/dashboard/attendance": "Attendance",
-  "/subadmin/dashboard/settings": "Settings",
+  "/sub-admin/dashboard": "Dashboard",
+  // "/sub-admin/dashboard/students": "Student Management",
+//   "/sub-admin/dashboard/subjects": "Subject Management",
+  "/sub-admin/dashboard/results": "Results",
+//   "/sub-admin/dashboard/messages": "Messages",
+  "/sub-admin/dashboard/attendance": "Attendance",
+  // "/sub-admin/dashboard/settings": "Settings",
 };
 
 const SubAdminLayout = () => {

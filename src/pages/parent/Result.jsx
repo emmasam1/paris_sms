@@ -1,19 +1,33 @@
+// ParentResult.jsx
 import React, { useRef } from "react";
-import { Card, Table, Button } from "antd";
+import { Card, Table, Button, Space } from "antd";
 import {
   FilePdfOutlined,
   PrinterOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
+import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { useNavigate } from "react-router";
-import logo from "../../assets/logo.jpeg";
+import logo from "../../assets/logo.jpeg"; // adjust path if needed
 
-const subjectsData = [
+// Grading helper (keeps original grading boundaries you provided)
+function computeGradeAndRemark(total) {
+  if (total >= 80) return { grade: "A1", remark: "EXCELLENT" };
+  if (total >= 70) return { grade: "B2", remark: "BRILLIANT" };
+  if (total >= 65) return { grade: "B3", remark: "MERIT" };
+  if (total >= 60) return { grade: "C4", remark: "VERY GOOD" };
+  if (total >= 50) return { grade: "C5", remark: "CREDIT" };
+  if (total >= 45) return { grade: "C6", remark: "PASS" };
+  if (total >= 40) return { grade: "D7", remark: "FAIR" };
+  if (total >= 30) return { grade: "E8", remark: "FAIL" };
+  return { grade: "F9", remark: "FAIL" };
+}
+
+/* Example subjects and scores (you can pass real data via props) */
+const pdfSubjects = [
   "MATHEMATICS",
   "ENGLISH LANGUAGE",
-  "BASIC SCIENCE",
   "DIGITAL TECHNOLOGIES",
   "INTERMEDIATE SCIENCE",
   "SOCIAL AND CITIZENSHIP STUDIES (SCS)",
@@ -22,46 +36,19 @@ const subjectsData = [
   "PHYSICAL AND HEALTH EDUCATION (PHE)",
   "HAUSA",
   "RELIGIOUS STUDIES (IRS/CRS)",
-  "CIVIC EDUCATION",
-  "AGRICULTURAL SCIENCE",
-  "FRENCH",
-  "YORUBA",
-  "IGBO",
-  "COMPUTER STUDIES",
-  "HOME ECONOMICS",
+  "TRADE",
   "BUSINESS STUDIES",
-  "COMMERCE",
+  "FRENCH",
 ];
 
-function computeGrade(total) {
-  if (total >= 75) return "A";
-  if (total >= 65) return "B";
-  if (total >= 50) return "C";
-  if (total >= 40) return "D";
-  return "F";
-}
-function computeRemark(grade) {
-  switch (grade) {
-    case "A":
-      return "Excellent";
-    case "B":
-      return "Very Good";
-    case "C":
-      return "Good";
-    case "D":
-      return "Fair";
-    default:
-      return "Poor";
-  }
-}
-
-const exampleScores = subjectsData.map((s, i) => {
-  const ass1 = [8, 7, 9, 6, 8, 7, 7, 8, 9, 10][i % 10];
-  const ass2 = [9, 8, 8, 7, 9, 8, 8, 9, 8, 9][i % 10];
-  const test1 = [18, 16, 19, 15, 17, 16, 17, 18, 19, 18][i % 10];
-  const test2 = [19, 17, 20, 16, 18, 17, 18, 19, 20, 19][i % 10];
-  const exam = [35, 36, 38, 34, 37, 36, 35, 36, 38, 37][i % 10];
+const exampleScores = pdfSubjects.map((s, i) => {
+  const ass1 = [9, 8, 9, 7, 8, 9, 8, 9, 7, 10, 8, 9, 9][i % 13];
+  const ass2 = [9, 9, 8, 8, 7, 9, 9, 8, 9, 9, 8, 9, 9][i % 13];
+  const test1 = [18, 17, 19, 16, 17, 18, 17, 19, 18, 20, 17, 18, 18][i % 13];
+  const test2 = [19, 18, 20, 17, 18, 19, 18, 20, 19, 20, 18, 19, 19][i % 13];
+  const exam = [38, 36, 39, 35, 36, 37, 36, 38, 37, 40, 35, 38, 38][i % 13];
   const total = ass1 + ass2 + test1 + test2 + exam;
+  const { grade, remark } = computeGradeAndRemark(total);
   return {
     key: `${i + 1}`,
     subject: s,
@@ -71,10 +58,48 @@ const exampleScores = subjectsData.map((s, i) => {
     test2,
     exam,
     total,
-    grade: computeGrade(total),
-    remarks: computeRemark(computeGrade(total)),
+    grade,
+    remarks: remark,
   };
 });
+
+const affectiveDomainData = [
+  { key: "1", domain: "ATTENTIVENESS", rating: "A+", score: 5 },
+  { key: "2", domain: "HONESTY", rating: "A+", score: 5 },
+  { key: "3", domain: "NEATNESS", rating: "A+", score: 5 },
+  { key: "4", domain: "PUNCTUALITY", rating: "A+", score: 5 },
+  { key: "5", domain: "RELATIONSHIP WITH OTHERS", rating: "A", score: 4 },
+  { key: "6", domain: "LEADERSHIP TRAITS", rating: "A+", score: 5 },
+];
+
+const psychomotorDomainData = [
+  { key: "1", domain: "CLUB INTEREST/GAMES AND SPORTS", rating: "A", score: 4 },
+  { key: "2", domain: "HAND WRITING", rating: "A", score: 4 },
+  { key: "3", domain: "AGILITY", rating: "A+", score: 5 },
+  { key: "4", domain: "ORATORY SKILLS", rating: "A+", score: 5 },
+  { key: "5", domain: "SELF CARE", rating: "A+", score: 5 },
+  { key: "6", domain: "ORGANISATIONAL SKILLS", rating: "A+", score: 5 },
+];
+
+const gradeLegendData = [
+  { key: "1", grade: "A1", rate: '80-100 "EXCELLENT"' },
+  { key: "2", grade: "B2", rate: '70-79 "BRILLIANT"' },
+  { key: "3", grade: "B3", rate: '65-69 "MERIT"' },
+  { key: "4", grade: "C4", rate: '60-64 "VERY GOOD"' },
+  { key: "5", grade: "C5", rate: '50-59 "CREDIT"' },
+  { key: "6", grade: "C6", rate: '45-49 "PASS"' },
+  { key: "7", grade: "D7", rate: '40-44 "FAIR"' },
+  { key: "8", grade: "F9", rate: '0-39 "FAIL"' },
+];
+
+const ratingKeyData = [
+  { key: "1", rating: "5=A+", remark: "EXCELLENT" },
+  { key: "2", rating: "4=A", remark: "BRILLIANT" },
+  { key: "3", rating: "3=B", remark: "V. GOOD" },
+  { key: "4", rating: "2=C", remark: "GOOD" },
+  { key: "5", rating: "1=D", remark: "FAIR" },
+  { key: "6", rating: "0=E", remark: "POOR" },
+];
 
 const ParentResult = ({ scores = exampleScores }) => {
   const navigate = useNavigate();
@@ -82,12 +107,12 @@ const ParentResult = ({ scores = exampleScores }) => {
 
   const columns = [
     {
-      title: "Subject",
+      title: "SUBJECTS",
       dataIndex: "subject",
       key: "subject",
       align: "left",
-      width: 185,
-      render: (text) => <span className="font-medium">{text}</span>,
+      width: 200,
+      render: (t) => <span className="font-medium">{t}</span>,
     },
     {
       title: "1st Ass. 10%",
@@ -118,140 +143,323 @@ const ParentResult = ({ scores = exampleScores }) => {
       width: 70,
     },
     {
-      title: "Exam 40%",
+      title: "EXAM 40%",
       dataIndex: "exam",
       key: "exam",
       align: "center",
       width: 70,
     },
     {
-      title: "Total 100%",
+      title: "TOTAL 100%",
       dataIndex: "total",
       key: "total",
       align: "center",
-      render: (val) => <span className="font-semibold">{val}</span>,
-      width: 70
+      width: 70,
+      render: (v) => <span className="font-semibold">{v}</span>,
     },
-    { title: "Grade", dataIndex: "grade", key: "grade", align: "center", width: 40 },
-    { title: "Remarks", dataIndex: "remarks", key: "remarks", align: "center", width: 40},
+    {
+      title: "GRADE",
+      dataIndex: "grade",
+      key: "grade",
+      align: "center",
+      width: 40,
+    },
+    {
+      title: "REMARKS",
+      dataIndex: "remarks",
+      key: "remarks",
+      align: "center",
+      width: 80,
+    },
+  ];
+
+  const domainColumns = [
+    {
+      title: "DOMAIN",
+      dataIndex: "domain",
+      key: "domain",
+      align: "left",
+      width: 200,
+    },
+    {
+      title: "RATING",
+      dataIndex: "rating",
+      key: "rating",
+      align: "center",
+      width: 100,
+    },
   ];
 
   const totalScore = scores.reduce((acc, r) => acc + (Number(r.total) || 0), 0);
-  const average = scores.length
+  const totalScoreObtainable = scores.length * 100;
+  const finalAverage = scores.length
     ? (totalScore / scores.length).toFixed(2)
     : "0.00";
+  const totalGrade = scores.filter((r) => r.grade).length;
 
-  const handlePrint = () => {
-    if (!printRef.current) return;
-    const content = printRef.current.innerHTML;
-    const win = window.open("", "", "width=900,height=650");
-    win.document.write(`
-      <html>
-        <head>
-          <title>Student Result</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 18px; color: #000; }
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { border: 1px solid #000; padding: 6px; text-align: center; font-size: 12px; }
-            th { background: #f9f9f9; font-weight: bold; }
-            .header { text-align: center; margin-bottom: 10px; }
-            .header img { width: 80px; height: 80px; border-radius: 50%; }
-          </style>
-        </head>
-        <body>${content}</body>
-      </html>
-    `);
-    win.document.close();
-    win.onload = () => win.print();
+  const studentInfo = {
+    name: "JOHN DOE",
+    admissionNo: "ST/001/JSS2",
+    className: "JSS 2A",
+    gender: "Male",
+    termStarted: "15TH SEPT., 2025",
+    termEnded: "13TH DEC., 2024",
+    nextTermBegins: "13TH JAN., 2025",
+    schoolOpened: "60",
+    present: "58",
+    absent: "2",
+    noOfSubjects: pdfSubjects.length,
+    totalNoInClass: "35",
+    noOfArm: "A",
+    classAverage: "55.50",
+    formTeacher: "Mrs. Ngozi Okoro",
   };
+
+  // Print (opens new window and prints)
+  // const handlePrint = () => {
+  //   if (!printRef.current) return;
+  //   const content = printRef.current.innerHTML;
+  //   const win = window.open("", "", "width=900,height=650");
+  //   win.document.write(`
+  //   <html>
+  //     <head>
+  //       <title>Student Result</title>
+  //       <style>
+  //         @page {
+  //           size: A4 portrait;
+  //           margin: 10mm;
+  //         }
+  //         @media print {
+  //           html, body {
+  //             width: 210mm;
+  //             height: 297mm;
+  //             margin: 0;
+  //             padding: 0;
+  //             font-family: Arial, sans-serif;
+  //             -webkit-print-color-adjust: exact !important;
+  //             print-color-adjust: exact !important;
+  //           }
+  //           body {
+  //             display: flex;
+  //             justify-content: center;
+  //             align-items: flex-start;
+  //             padding: 10mm;
+  //             box-sizing: border-box;
+  //           }
+  //           .print-container {
+  //             width: 190mm;
+  //             min-height: 277mm;
+  //             background: white;
+  //             border: 1px solid #000;
+  //             box-sizing: border-box;
+  //             zoom: 1;
+  //           }
+  //           table {
+  //             width: 100%;
+  //             border-collapse: collapse;
+  //             font-size: 10px;
+  //           }
+  //           th, td {
+  //             border: 1px solid #000;
+  //             padding: 3px;
+  //             text-align: center;
+  //           }
+  //           th {
+  //             font-weight: 700;
+  //             background: #fff;
+  //           }
+  //           .no-border td, .no-border th {
+  //             border: none !important;
+  //             padding: 1px 4px;
+  //             text-align: left;
+  //           }
+  //         }
+  //       </style>
+  //     </head>
+  //     <body>
+  //       <div class="print-container">${content}</div>
+  //     </body>
+  //   </html>
+  // `);
+  //   win.document.close();
+  //   win.focus();
+  //   setTimeout(() => win.print(), 400);
+  // };
+
+  // Save as PDF using html-to-image + jspdf (avoids html2canvas oklch error)
 
   const handlePDF = async () => {
     if (!printRef.current) return;
-    const canvas = await html2canvas(printRef.current, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`student_result.pdf`);
+    try {
+      const dataUrl = await toPng(printRef.current, {
+        cacheBust: true,
+        backgroundColor: "#FFFFFF",
+        pixelRatio: 3,
+        quality: 1,
+      });
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      const img = new Image();
+      img.src = dataUrl;
+      img.onload = () => {
+        const imgAspect = img.height / img.width;
+        const pdfAspect = pdfHeight / pdfWidth;
+
+        let renderWidth, renderHeight;
+        if (imgAspect > pdfAspect) {
+          renderHeight = pdfHeight;
+          renderWidth = pdfHeight / imgAspect;
+        } else {
+          renderWidth = pdfWidth;
+          renderHeight = pdfWidth * imgAspect;
+        }
+
+        const x = (pdfWidth - renderWidth) / 2;
+        const y = 0; // Start at top
+
+        pdf.addImage(dataUrl, "PNG", x, y, renderWidth, renderHeight);
+        pdf.save("student_result.pdf");
+      };
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("Failed to generate PDF. Check console for details.");
+    }
   };
 
-  const studentInfo = {
-    name: "John Doe",
-    admissionNo: "ST/001",
-    className: "JSS 2A",
-    term: "2nd Term",
-    session: "2025/2026",
-  };
+  // small Tailwind/Ant classes for Ant Table adjustments (if you use Tailwind)
+  const customTableStyle =
+    "[&_.ant-table-cell]:text-[15px] [&_.ant-table-cell]:p-1 [&_.ant-table-thead>tr>th]:font-bold [&_.ant-table-thead>tr>th]:text-[13px] [&_.ant-table]:border-black [&_.ant-table-tbody>tr>td]:border-black [&_.ant-table-thead>tr>th]:border-black [&_.ant-table-cell]:text-[13px]";
 
   return (
     <div className="p-6">
       <Card
         title={
           <div className="flex items-center justify-between w-full">
-            <h2 className="text-2xl font-bold uppercase">Student Result</h2>
+            <h2 className="text-2xl font-bold uppercase">
+              Student Result Sheet
+            </h2>
             <div className="flex gap-2">
-              <Button
-                danger
-                icon={<CloseOutlined />}
-                onClick={() => navigate("/home")}
-              >
-                Close
-              </Button>
-              <Button icon={<PrinterOutlined />} onClick={handlePrint}>
-                Print
-              </Button>
-              <Button
-                type="primary"
-                icon={<FilePdfOutlined />}
-                onClick={handlePDF}
-              >
-                Save PDF
-              </Button>
+              <Space>
+                <Button
+                  danger
+                  icon={<CloseOutlined />}
+                  onClick={() => navigate("/home")}
+                >
+                  Close
+                </Button>
+                {/* <Button icon={<PrinterOutlined />} onClick={handlePrint}>
+                  Print
+                </Button> */}
+                <Button
+                  type="primary"
+                  icon={<FilePdfOutlined />}
+                  onClick={handlePDF}
+                >
+                  Save PDF
+                </Button>
+              </Space>
             </div>
           </div>
         }
         className="rounded-2xl shadow-md"
       >
-        <div ref={printRef} className="bg-white px-6 py-4">
+        <div
+          ref={printRef}
+          className="bg-white p-4 mx-auto"
+          // style={{ width: "210mm", minHeight: "297mm" }}
+        >
           {/* Header */}
           <div className="flex items-center gap-4 mb-4">
-            <img
-              src={logo}
-              alt="School logo"
-              className="w-20 h-20 rounded-full object-cover"
-            />
+            <div className="w-[150px] h-[150px] flex-shrink-0">
+              <img
+                src={logo}
+                alt="School logo"
+                className="w-full h-full object-contain header-logo"
+                crossOrigin="anonymous"
+              />
+            </div>
+
             <div className="flex-1 text-center">
-              <h1 className="text-3xl font-extrabold uppercase">
-                Paris Africana International School
+              <h1 className="text-3xl font-extrabold uppercase leading-tight">
+                PARIS AFRICANA INTERNATIONAL SCHOOL
               </h1>
-              <p className="font-semibold mt-1 text-sm">
-                No. 5 Paris Africana Road, Off Tanko-Almakura Road, Via Sani
-                Abacha Road, Mararaba.
+              <p className="font-bold mt-1 text-[14px] leading-tight">
+                NO: 5 PARIS AFRICANA ROAD OFF TANKO-ALMAKURA ROAD VIA SANI
+                ABACHA ROAD, MARARABA
               </p>
-              <p className="text-base font-bold text-purple-700 uppercase">
-                Motto: Knowledge and Discipline
+              <p className="text-xl font-extrabold text-[#990099] uppercase leading-tight">
+                MOTTO: KNOWLEDGE AND DISCIPLINE
               </p>
-              <p className="font-bold mt-1 text-base">
-                Junior Secondary School
+              <p className="font-extrabold mt-1 text-xl leading-tight">
+                JUNIOR SECONDARY SCHOOL
               </p>
-              <p className="font-bold mt-1 text-base">
-                End of First Term Result for 2025/2026 Academic Session
+              <p className="font-bold mt-1 text-xl leading-tight">
+                END OF FIRST TERM RESULT FOR 2025/2026 ACADEMIC SESSION
               </p>
             </div>
           </div>
 
-          {/* Student Info */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3 text-sm font-semibold">
-            <div>Name: {studentInfo.name}</div>
-            <div>Admission No: {studentInfo.admissionNo}</div>
-            <div>Class: {studentInfo.className}</div>
-            <div>Term: {studentInfo.term}</div>
-            <div>Session: {studentInfo.session}</div>
-            <div>Average: {average}</div>
+          {/* Student Info and Attendance */}
+          <div className="grid grid-cols-12 gap-y-1 mb-3 text-xs font-semibold border border-black p-1">
+            <div className="col-span-8 grid grid-cols-2 gap-y-1">
+              <div className="text-xl">
+                NAME: <span className="font-bold">{studentInfo.name}</span>
+              </div>
+              <div className="text-xl">
+                ADMISSION NO:{" "}
+                <span className="font-bold">{studentInfo.admissionNo}</span>
+              </div>
+              <div className="text-xl">
+                GENDER: <span className="font-bold">{studentInfo.gender}</span>
+              </div>
+              <div className="text-xl">
+                CLASS:{" "}
+                <span className="font-bold">{studentInfo.className}</span>
+              </div>
+            </div>
+
+            <div className="col-span-4 grid grid-cols-1 gap-y-1 text-[10px] border-l border-black pl-2">
+              <div className="font-bold text-xl">ATTENDANCE</div>
+              <div className="text-[12px]">
+                NO. OF TIMES SCHOOL OPENED:{" "}
+                <span className="font-extrabold">
+                  {studentInfo.schoolOpened}
+                </span>
+              </div>
+              <div className="text-[12px]">
+                NO. OF TIMES PRESENT:{" "}
+                <span className="font-extrabold">{studentInfo.present}</span>
+              </div>
+              <div className="text-[12px]">
+                NO. OF TIMES ABSENT:{" "}
+                <span className="font-extrabold">{studentInfo.absent}</span>
+              </div>
+            </div>
+
+            <div className="col-span-12 grid grid-cols-3 gap-x-2 border-t border-black pt-1 text-[12px]">
+              <div>
+                TERM STARTED:{" "}
+                <span className="font-extrabold">
+                  {studentInfo.termStarted}
+                </span>
+              </div>
+              <div>
+                TERM ENDED:{" "}
+                <span className="font-extrabold">{studentInfo.termEnded}</span>
+              </div>
+              <div>
+                NEXT TERM BEGINS:{" "}
+                <span className="font-extrabold">
+                  {studentInfo.nextTermBegins}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Table */}
+          {/* Subject Table */}
           <Table
             columns={columns}
             dataSource={scores}
@@ -259,14 +467,135 @@ const ParentResult = ({ scores = exampleScores }) => {
             bordered
             size="small"
             rowKey="key"
-            className="[&_.ant-table-cell]:text-xs [&_.ant-table-cell]:p-1 [&_.ant-table-thead>tr>th]:font-semibold [&_.ant-table-thead>tr>th]:text-[13px] [&_.ant-table]:border-black"
-            scroll={{ x: 1000 }}
+            className={`${customTableStyle} !text-[12px]`}
           />
 
-          {/* Footer */}
-          <div className="mt-4 text-sm font-semibold">
-            <p>Teacher's Comment: Keep up the good work.</p>
-            <p>Principal's Remark: ____________________________</p>
+          {/* Summary and Grading/Rating */}
+          <div className="grid grid-cols-12 gap-x-4 mt-2 text-xs">
+            <div className="col-span-5 grid grid-cols-2 gap-y-1">
+              <div className="col-span-2 font-bold underline">SUMMARY</div>
+              <div>NO. OF SUBJECTS OFFERED:</div>
+              <div className="font-bold">{studentInfo.noOfSubjects}</div>
+
+              <div>TOTAL SCORE OBTAINED:</div>
+              <div className="font-bold">{totalScore}</div>
+
+              <div>TOTAL SCORE OBTAINABLE:</div>
+              <div className="font-bold">{totalScoreObtainable}</div>
+
+              <div>FINAL AVERAGE:</div>
+              <div className="font-bold">{finalAverage}</div>
+
+              <div>CLASS AVERAGE:</div>
+              <div className="font-bold">{studentInfo.classAverage}</div>
+
+              <div>TOTAL GRADE:</div>
+              <div className="font-bold">{totalGrade}</div>
+
+              <div>NO. OF ARM:</div>
+              <div className="font-bold">{studentInfo.noOfArm}</div>
+
+              <div>TOTAL NO. IN CLASS:</div>
+              <div className="font-bold">{studentInfo.totalNoInClass}</div>
+
+              <div className="col-span-2 mt-2">
+                <Table
+                  columns={[
+                    {
+                      title: "GRADE",
+                      dataIndex: "grade",
+                      key: "grade",
+                      align: "center",
+                      width: 60,
+                      render: (g) => <b>{g}</b>,
+                    },
+                    {
+                      title: "RATE",
+                      dataIndex: "rate",
+                      key: "rate",
+                      align: "center",
+                    },
+                  ]}
+                  dataSource={gradeLegendData}
+                  pagination={false}
+                  bordered
+                  size="small"
+                  rowKey="key"
+                />
+              </div>
+            </div>
+
+            <div className="col-span-7 grid grid-cols-2 gap-x-2">
+              <div>
+                <Table
+                  columns={domainColumns}
+                  dataSource={affectiveDomainData}
+                  pagination={false}
+                  bordered
+                  size="small"
+                  rowKey="key"
+                />
+              </div>
+              <div>
+                <Table
+                  columns={domainColumns}
+                  dataSource={psychomotorDomainData}
+                  pagination={false}
+                  bordered
+                  size="small"
+                  rowKey="key"
+                />
+              </div>
+
+              <div className="col-span-2 mt-2">
+                <Table
+                  columns={[
+                    {
+                      title: "RATING",
+                      dataIndex: "rating",
+                      key: "rating",
+                      align: "center",
+                      width: 80,
+                      render: (t) => <b>{t}</b>,
+                    },
+                    {
+                      title: "REMARK",
+                      dataIndex: "remark",
+                      key: "remark",
+                      align: "center",
+                    },
+                  ]}
+                  dataSource={ratingKeyData.map((r) => ({
+                    key: r.key,
+                    rating: r.rating,
+                    remark: r.remark,
+                  }))}
+                  pagination={false}
+                  bordered
+                  size="small"
+                  rowKey="key"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Signatures */}
+          <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8">
+            <div>
+              <p>FORM TEACHER'S COMMENT: Keep up the good work.</p>
+              <p>
+                FORM TEACHER'S NAME:{" "}
+                <span className="underline">{studentInfo.formTeacher}</span>
+              </p>
+              <p>
+                DATE: <span className="underline">13TH DEC., 2024</span>
+              </p>
+            </div>
+            <div>
+              <p>PRINCIPAL'S COMMENT: ____________________________</p>
+              <p>PRINCIPAL'S SIGNATURE: ____________________________</p>
+              <p>DATE: ____________________________</p>
+            </div>
           </div>
         </div>
       </Card>
@@ -275,309 +604,3 @@ const ParentResult = ({ scores = exampleScores }) => {
 };
 
 export default ParentResult;
-
-// import React from 'react';
-// import { Typography } from 'antd';
-// // Using Tailwind CSS classes heavily for styling
-
-// const { Title, Text } = Typography;
-
-// const ParentResult = () => {
-//   // --- Data Definitions (Same as before, used for iteration) ---
-//   const academicData = [
-//     { subject: 'MATHEMATICS', scores: ['', '', '', '', '', '', '', ''] }, // 8 cells for 10%x2, 20%x2, 40%, Total, Grade, Remarks
-//     { subject: 'ENGLISH LANGUAGE', scores: ['', '', '', '', '', '', '', ''] },
-//     { subject: 'DIGITAL TECHNOLOGY', scores: ['', '', '', '', '', '', '', ''] },
-//     { subject: 'INTERMEDIATE TECHNOLOGY', scores: ['', '', '', '', '', '', '', ''] },
-//     { subject: 'CREATIVE AND CULTURAL ARTS', scores: ['', '', '', '', '', '', '', ''] }, // Adjusted text to match image exactly
-//     { subject: 'HISTORY', scores: ['', '', '', '', '', '', '', ''] },
-//     { subject: 'GEOGRAPHY', scores: ['', '', '', '', '', '', '', ''] },
-//     { subject: 'HEALTH EDUCATION', scores: ['', '', '', '', '', '', '', ''] },
-//     { subject: 'HAUSA', scores: ['', '', '', '', '', '', '', ''] },
-//     { subject: 'RELIGIOUS STUDIES', scores: ['', '', '', '', '', '', '', ''] },
-//     { subject: 'VOCATIONAL', scores: ['', '', '', '', '', '', '', ''] },
-//     { subject: 'TRADE', scores: ['', '', '', '', '', '', '', ''] },
-//     { subject: 'BUSINESS STUDIES', scores: ['', '', '', '', '', '', '', ''] },
-//     { subject: 'FRENCH', scores: ['', '', '', '', '', '', '', ''] },
-//   ];
-
-//   const gradeList = ['A1', 'B2', 'B3', 'C4', 'C5', 'C6', 'D7', 'E8', 'F9'];
-
-//   const affectiveData = [
-//     { domain: 'HONESTY', rating: 5, grade: 'A+' },
-//     { domain: 'ATTENTIVENESS', rating: 5, grade: 'A+' },
-//     { domain: 'NEATNESS', rating: 5, grade: 'A+' },
-//     { domain: 'PUNCTUALITY', rating: 5, grade: 'A+' },
-//     { domain: 'RELATIONSHIP WITH OTHERS', rating: 4, grade: 'A' },
-//     { domain: 'LEADERSHIP TRAITS', rating: 5, grade: 'A+' },
-//   ];
-
-//   const psychomotorData = [
-//     { domain: 'HANDLING TOOLS', rating: 4, grade: 'A' },
-//     { domain: 'INTEREST, GAMES AND SPORTS', rating: 4, grade: 'A' },
-//     { domain: 'HAND WRITING', rating: 4, grade: 'A' },
-//     { domain: 'AGILITY', rating: 5, grade: 'A+' },
-//     { domain: 'ORATORY SKILLS', rating: 5, grade: 'A+' },
-//     { domain: 'SELF CARE', rating: 5, grade: 'A+' },
-//     { domain: 'ORGANISATIONAL SKILLS', rating: 5, grade: 'A+' },
-//   ];
-//   // --- End Data Definitions ---
-
-
-//   // Tailwind color variables for easier adjustment
-//   const PURPLE_HEADER = 'bg-purple-950'; // Very dark, almost black-purple
-
-//   return (
-//     <div className="p-1 mx-auto max-w-5xl shadow-2xl border-2 border-black font-serif bg-white text-[10px]">
-//       {/* HEADER SECTION - Adjusted text sizes and layout */}
-//       <div className="text-center border-b-2 border-black pb-1 mb-1">
-//         <div className="flex justify-between items-start">
-//           <div className="w-[10%] h-16 border border-gray-500 flex items-center justify-center text-[8px] font-sans">
-//             [LOGO]
-//           </div>
-//           <div className="w-[80%]">
-//             <Title level={4} className="!mb-0 !text-sm !font-extrabold !text-black leading-tight">
-//               PARIS AFRICANA INTERNATIONAL SCHOOL
-//             </Title>
-//             <Text className="!text-[8px] block !font-normal">
-//               NO: 6 PARIS AFRICANA ROAD OFF TARKO-OLUWASOLA ROAD VIA SORII ADECHA ROAD, NABARADA
-//             </Text>
-//             <Text className="!text-[10px] block !font-extrabold !mt-1">
-//               MOTTO: KNOWLEDGE AND DISCIPLINE
-//             </Text>
-//             <Text className="!text-[10px] block !font-bold">JUNIOR SECONDARY SCHOOL</Text>
-//             <Text className="!text-[10px] block !font-extrabold !mt-1">
-//               END OF FIRST TERM RESULT FOR 2025/2026 ACADEMIC SESSION
-//             </Text>
-//           </div>
-//           <div className="w-[10%]">
-//             <div className="border border-black p-[1px] mb-1 text-left text-[8px] font-bold leading-none">
-//               <Text strong className="!text-[8px] leading-none">ADMISSION NO:</Text>
-//             </div>
-//             <div className="h-16 border border-gray-500 flex items-center justify-center text-[8px] font-sans">
-//               [PHOTO]
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* STUDENT DETAILS BLOCK - Adjusted font and border */}
-//       <div className="grid grid-cols-4 gap-x-[3px] text-[10px] mb-1">
-//         <div className="border border-black p-[1px] flex-1">
-//           <Text strong>NAME:</Text>
-//         </div>
-//         <div className="border border-black p-[1px] flex-1">
-//           <Text strong>GENDER:</Text>
-//         </div>
-//         <div className="border border-black p-[1px] flex-1">
-//           <Text strong>CLASS:</Text>
-//         </div>
-//         <div className="border border-black p-[1px] flex-1">
-//           <Text strong>TERM STARTED:</Text> 15TH SEPT., 2025. <Text strong>TERM ENDED:</Text> 13TH DEC., 2024. <Text strong>NEXT TERM BEGINS:</Text> 13TH JAN., 2025.
-//         </div>
-//       </div>
-
-//       {/* --- ACADEMIC ATTENDANCE & SCORES HEADER --- */}
-//       <div className="border-2 border-black font-bold text-center">
-//         {/* Row 1: ATTENDANCE / NO. OF TIMES (Combined) */}
-//         <div className="grid grid-cols-12 text-[10px] border-b border-black">
-//           <div className={`col-span-3 border-r-2 border-black py-[2px] ${PURPLE_HEADER} text-white`}>
-//             ATTENDANCE
-//           </div>
-//           <div className="col-span-9 grid grid-cols-9">
-//             <div className={`col-span-4 border-r border-black py-[2px] ${PURPLE_HEADER} text-white`}>
-//               NO. OF TIMES
-//             </div>
-//             <div className={`col-span-3 border-r border-black py-[2px] ${PURPLE_HEADER} text-white`}>
-//               NO. OF TIMES
-//             </div>
-//             <div className={`col-span-2 py-[2px] ${PURPLE_HEADER} text-white`}>
-//               NO. OF TIMES
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Row 2: Attendance Sub-Headers / Score Headers */}
-//         <div className="grid grid-cols-12 text-[10px] border-b-2 border-black">
-//           {/* Attendance Sub-Headers */}
-//           <div className={`col-span-3 grid grid-cols-3 border-r-2 border-black ${PURPLE_HEADER} text-white`}>
-//             <div className="col-span-1 border-r border-white py-[1px]">SCHOOL OPENED</div>
-//             <div className="col-span-1 border-r border-white py-[1px]">PRESENT</div>
-//             <div className="col-span-1 py-[1px]">ABSENT</div>
-//           </div>
-
-//           {/* Score Headers */}
-//           <div className="col-span-9 grid grid-cols-9">
-//             <div className={`col-span-2 border-r border-white py-[1px] ${PURPLE_HEADER} text-white`}>SUBJECTS</div>
-//             <div className={`col-span-1 border-r border-white py-[1px] ${PURPLE_HEADER} text-white`}>1st Ass. 10%</div>
-//             <div className={`col-span-1 border-r border-white py-[1px] ${PURPLE_HEADER} text-white`}>2nd Ass. 10%</div>
-//             <div className={`col-span-1 border-r border-white py-[1px] ${PURPLE_HEADER} text-white`}>1st Test 20%</div>
-//             <div className={`col-span-1 border-r border-white py-[1px] ${PURPLE_HEADER} text-white`}>2nd Test 20%</div>
-//             <div className={`col-span-1 border-r border-white py-[1px] ${PURPLE_HEADER} text-white`}>EXAM 40%</div>
-//             <div className={`col-span-1 border-r border-white py-[1px] ${PURPLE_HEADER} text-white`}>TOTAL 100%</div>
-//             <div className={`col-span-1 border-r border-white py-[1px] ${PURPLE_HEADER} text-white`}>GRADE</div>
-//             <div className={`col-span-1 py-[1px] ${PURPLE_HEADER} text-white`}>REMARKS</div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* --- ACADEMIC SUBJECTS ROWS --- */}
-//       <div className="border-x-2 border-black border-b-2">
-//         {academicData.map((item, index) => (
-//           <div key={index} className="grid grid-cols-12 text-[10px] font-normal text-center border-b border-gray-400">
-//             {/* Attendance Data Row - Empty in image, but borders match */}
-//             <div className="col-span-3 grid grid-cols-3 border-r-2 border-black">
-//               <div className="py-[1px] border-r border-black"></div>
-//               <div className="py-[1px] border-r border-black"></div>
-//               <div className="py-[1px]"></div>
-//             </div>
-
-//             {/* Subject and Score Data */}
-//             <div className="col-span-9 grid grid-cols-9">
-//               <div className="col-span-2 text-left pl-1 py-[1px] border-r border-black font-bold">
-//                 {item.subject}
-//               </div>
-//               {/* Scores (10% x 2, 20% x 2, 40%, TOTAL, GRADE, REMARKS) */}
-//               <div className="col-span-1 py-[1px] border-r border-black">{item.scores[0]}</div>
-//               <div className="col-span-1 py-[1px] border-r border-black">{item.scores[1]}</div>
-//               <div className="col-span-1 py-[1px] border-r border-black">{item.scores[2]}</div>
-//               <div className="col-span-1 py-[1px] border-r border-black">{item.scores[3]}</div>
-//               <div className="col-span-1 py-[1px] border-r border-black">{item.scores[4]}</div>
-//               <div className="col-span-1 py-[1px] border-r border-black">{item.scores[5]}</div>
-//               <div className="col-span-1 py-[1px] border-r border-black">{item.scores[6]}</div>
-//               <div className="col-span-1 py-[1px]">{item.scores[7]}</div>
-//             </div>
-//           </div>
-//         ))}
-//       </div>
-
-//       {/* --- TOTALS / AVERAGES / GRADE LIST SECTION --- */}
-//       <div className="grid grid-cols-12 text-[10px] font-bold border-x-2 border-black border-b-2">
-//         {/* Left Column (No. of Subjects & Arm details) */}
-//         <div className="col-span-3 grid grid-rows-[30px_30px_20px_20px] border-r-2 border-black">
-//           <div className="p-[2px] border-b border-gray-400">
-//             NO. OF SUBJECTS OFFERED
-//           </div>
-//           <div className="p-[2px] border-b border-gray-400">
-//             NO. OF ARM
-//           </div>
-//           <div className="p-[2px] border-b border-gray-400">
-//             TOTAL NO. IN CLASS
-//           </div>
-//           <div className="p-[2px]">
-//             RATE
-//           </div>
-//         </div>
-//         {/* Score Column 1 (13 & Empty) */}
-//         <div className="col-span-1 grid grid-rows-[30px_30px_20px_20px] border-r-2 border-black text-center">
-//           <div className="p-[2px] border-b border-gray-400 flex items-center justify-center">13</div>
-//           <div className="p-[2px] border-b border-gray-400"></div>
-//           <div className="p-[2px] border-b border-gray-400"></div>
-//           <div className="p-[2px]"></div>
-//         </div>
-//         {/* Score Column 2 (Total Score, Final/Class Avg) */}
-//         <div className="col-span-4 grid grid-rows-[15px_15px_30px_20px_20px] border-r-2 border-black">
-//           <div className="p-[2px] border-b border-gray-400">TOTAL SCORE OBTAINED</div>
-//           <div className="p-[2px] border-b-2 border-black">TOTAL SCORE</div>
-//           <div className="p-[2px] border-b border-gray-400"></div>
-//           <div className="p-[2px] border-b border-gray-400 text-center">FINAL AVERAGE</div>
-//           <div className="p-[2px] text-center">CLASS AVERAGE</div>
-//         </div>
-//         {/* Score Column 3 (1300 & Empty) */}
-//         <div className="col-span-2 grid grid-rows-[15px_15px_30px_20px_20px] border-r-2 border-black text-right pr-2">
-//           <div className="p-[2px] border-b border-gray-400"></div>
-//           <div className="p-[2px] border-b-2 border-black">1300</div>
-//           <div className="p-[2px] border-b border-gray-400"></div>
-//           <div className="p-[2px] border-b border-gray-400"></div>
-//           <div className="p-[2px]"></div>
-//         </div>
-//         {/* Grade List Column */}
-//         <div className="col-span-2 grid grid-rows-[15px_15px_10px_10px_10px_10px_10px_10px_10px_10px_10px] text-[10px] font-normal">
-//           <div className="py-[1px] border-b border-gray-400 font-bold text-center">GRADE</div>
-//           {gradeList.map((grade, index) => (
-//             <div key={grade} className={`py-[1px] text-right pr-2 ${index < gradeList.length - 1 ? 'border-b border-gray-400' : ''}`}>
-//               {grade}
-//             </div>
-//           ))}
-//         </div>
-//       </div>
-
-//       {/* --- GRADE INTERPRETATION --- */}
-//       <div className="border-x-2 border-b-2 border-black p-1 text-center text-[9px] font-semibold bg-gray-100 leading-tight">
-//         <Text>
-//           90-100 - "<Text strong>EXCELLENT</Text>", 75-89 - "<Text strong>BRILLIANT</Text>", 65-74 - "<Text strong>MERIT</Text>", 60-64 - "<Text strong>CR</Text>", 55-59 - "<Text strong>GOOD</Text>", 50-54 - "<Text strong>CR</Text>", 45-49 - "<Text strong>PASS</Text>", 40-44 - "<Text strong>FAIR</Text>", 35- - "<Text strong>POOR</Text>"
-//         </Text>
-//       </div>
-
-//       {/* --- AFFECTIVE AND PSYCHOMOTOR DOMAINS --- */}
-//       <div className="grid grid-cols-2 text-[10px] border-x-2 border-b-2 border-black">
-//         {/* Affective Domain */}
-//         <div className="border-r-2 border-black">
-//           <div className={`font-bold grid grid-cols-5 text-center p-[2px] ${PURPLE_HEADER} text-white`}>
-//             <div className="col-span-3 border-r border-white">AFFECTIVE DOMAIN</div>
-//             <div className="col-span-1 border-r border-white">RATING</div>
-//             <div className="col-span-1">GRADE</div>
-//           </div>
-//           {affectiveData.map((item, index) => (
-//             <div key={index} className={`grid grid-cols-5 text-center border-b border-gray-300`}>
-//               <div className="col-span-3 text-left pl-1 py-[1px] border-r border-black">{item.domain}</div>
-//               <div className="col-span-1 py-[1px] border-r border-black">{item.rating}</div>
-//               <div className="col-span-1 py-[1px]">{item.grade}</div>
-//             </div>
-//           ))}
-//         </div>
-
-//         {/* Psychomotor Domain */}
-//         <div>
-//           <div className={`font-bold grid grid-cols-5 text-center p-[2px] ${PURPLE_HEADER} text-white`}>
-//             <div className="col-span-3 border-r border-white">PSYCHOMOTOR DOMAIN</div>
-//             <div className="col-span-1 border-r border-white">RATING</div>
-//             <div className="col-span-1">GRADE</div>
-//           </div>
-//           {psychomotorData.map((item, index) => (
-//             <div key={index} className={`grid grid-cols-5 text-center border-b border-gray-300`}>
-//               <div className="col-span-3 text-left pl-1 py-[1px] border-r border-black">{item.domain}</div>
-//               <div className="col-span-1 py-[1px] border-r border-black">{item.rating}</div>
-//               <div className="col-span-1 py-[1px]">{item.grade}</div>
-//             </div>
-//           ))}
-//         </div>
-//       </div>
-
-//       {/* RATING KEY */}
-//       <div className="border-x-2 border-b-2 border-black p-1 text-center text-[9px] font-semibold bg-gray-100">
-//         <Text>
-//           5-A+ (EXCELLENT). 4-A (BRILLIANT). 3-B (V. GOOD). 2-C (GOOD). 1-D (FAIR). 0-E (POOR)
-//         </Text>
-//       </div>
-
-//       {/* FOOTER SIGNATURES */}
-//       <div className="grid grid-cols-2 text-[10px] border-x-2 border-b-2 border-black">
-//         {/* Left Half (Form Teacher & Principal Signatures) */}
-//         <div className="border-r-2 border-black grid grid-rows-3">
-//           <div className="p-1 border-b border-gray-400">
-//             <Text strong>FORM TEACHER'S COMMENTS:</Text>
-//           </div>
-//           <div className="p-1 border-b border-gray-400 flex justify-between items-end">
-//             <Text strong>FORM TEACHER'S NAME:</Text>
-//             <Text strong>DATE:</Text>
-//           </div>
-//           <div className="p-1 flex justify-between items-end">
-//             <Text strong>PRINCIPAL'S SIGNATURI:</Text>
-//             <Text strong>DATE:</Text>
-//           </div>
-//         </div>
-//         {/* Right Half (Principal Comments) */}
-//         <div className="grid grid-rows-3">
-//           <div className="p-1 border-b border-gray-400">
-//             <Text strong>PRINCIPAL'S COMMENTS:</Text>
-//           </div>
-//           <div className="p-1 border-b border-gray-400"></div>
-//           <div className="p-1"></div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default ParentResult;

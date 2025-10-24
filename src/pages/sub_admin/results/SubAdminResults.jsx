@@ -91,8 +91,8 @@ const SubAdminResults = () => {
   ];
 
   return (
-    <div className="p-4">
-      <Card title="Manage Class Results" className="shadow-md rounded-xl mb-6">
+    <div className="">
+      <Card title="Manage Class Results" className="rounded-xl mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:space-x-4">
           <p className="mb-2 md:mb-0 font-medium">Select Class:</p>
           <Select
@@ -112,7 +112,7 @@ const SubAdminResults = () => {
 
       {/* Table */}
       {selectedClass && (
-        <Card className="shadow-md rounded-xl">
+        <Card className="!mt-6 rounded-xl">
           <h2 className="text-lg font-semibold mb-4">
             Students in {classList.find((c) => c.id === selectedClass)?.name}
           </h2>

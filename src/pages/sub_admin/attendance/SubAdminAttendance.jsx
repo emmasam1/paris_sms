@@ -119,8 +119,8 @@ const SubAdminAttendance = () => {
   ];
 
   return (
-    <div className="p-4">
-      <Card className="shadow-md rounded-xl">
+    <div className="">
+      <Card className="rounded-xl">
         <Tabs defaultActiveKey="1">
           {/* MARK ATTENDANCE */}
           <TabPane tab="Mark Attendance" key="1">

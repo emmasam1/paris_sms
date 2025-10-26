@@ -22,6 +22,7 @@ import {
   BarChartOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
+import { motion } from "framer-motion";
 
 import UploadResult from "../../../components/uploadresult/UploadResult";
 import GeneratePin from "../../../components/generatepin/GeneratePin";
@@ -91,7 +92,7 @@ const Dashboard = () => {
   ];
 
   // Handlers
-  const  handleManageTeachers = () => message.info("Opening message center...");
+  const handleManageTeachers = () => message.info("Opening message center...");
   const handleViewReports = () => message.info("Generating reports...");
 
   // Modals
@@ -139,15 +140,23 @@ const Dashboard = () => {
           },
         ].map((item, i) => (
           <Col xs={24} sm={12} md={6} key={i}>
-            <Card className="shadow-md rounded-xl hover:shadow-lg transition">
-              <div className="flex items-center space-x-4">
-                {item.icon}
-                <div>
-                  <p className="text-gray-500">{item.label}</p>
-                  <p className="text-xl font-bold">{item.value}</p>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.15, duration: 0.5, ease: "easeOut" }}
+              whileHover={{ scale: 1.05 }}
+              className="h-full"
+            >
+              <Card className="shadow-md rounded-xl hover:shadow-lg transition">
+                <div className="flex items-center space-x-4">
+                  {item.icon}
+                  <div>
+                    <p className="text-gray-500">{item.label}</p>
+                    <p className="text-xl font-bold">{item.value}</p>
+                  </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
+            </motion.div>
           </Col>
         ))}
       </Row>
@@ -236,7 +245,10 @@ const Dashboard = () => {
       </Card>
 
       {/* Modals */}
-      <UploadResult open={isUploadModalVisible} onClose={handleCloseUploadModal}/>
+      <UploadResult
+        open={isUploadModalVisible}
+        onClose={handleCloseUploadModal}
+      />
       <GeneratePin open={isPinModalVisible} onClose={handleClosePinModal} />
       <CreateClass open={isCreateClassOpen} onClose={handleCloseCreateClass} />
       <CreateMessage open={sendMessage} onClose={handleCloseMessageModal} />

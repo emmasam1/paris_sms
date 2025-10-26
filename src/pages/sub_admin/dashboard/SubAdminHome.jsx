@@ -122,7 +122,7 @@ const SubAdminHome = () => {
               <Card
                 hoverable
                 onClick={() => navigate(item.path)}
-                className={`cursor-pointer rounded-xl shadow-sm border ${item.color} transition-transform hover:scale-[1.02]`}
+                className={`cursor-pointer rounded-xl h-30 shadow-sm border ${item.color} transition-transform hover:scale-[1.02]`}
               >
                 <div className="flex items-center justify-between">
                   <div>

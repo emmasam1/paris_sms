@@ -141,7 +141,7 @@ const TeacherDashboardLayout = () => {
           </Dropdown>
         </Header>
 
-        <Content style={{ margin: "80px 5px 0" }}>
+         <Content style={{ margin: "60px 0 0 0" }}>
           <div
             style={{
               padding: 24,

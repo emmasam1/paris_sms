@@ -157,7 +157,7 @@ const SubAdminLayout = () => {
         {/* Content Area */}
         <Content
           style={{
-            margin: "80px 10px 0",
+            margin: "60px 0 0 0",
             padding: 20,
             background: colorBgContainer,
             minHeight: "calc(100vh - 80px)",

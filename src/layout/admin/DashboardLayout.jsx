@@ -159,7 +159,7 @@ const DashboardLayout = () => {
         </Header>
 
         {/* Content */}
-        <Content style={{ margin: "80px 5px 0" }}>
+        <Content style={{ margin: "60px 0 0 0" }}>
           {/* <Breadcrumb
             style={{ margin: "16px 0" }}
             items={[{ title: "Admin" }, { title: pageTitle }]}

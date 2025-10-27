@@ -39,9 +39,9 @@ function getItem(label, key, icon, children) {
 const items = [
   getItem("Dashboard", "/sub-admin/dashboard", <DashboardOutlined />),
   // getItem("Students", "/sub-admin/dashboard/students", <UserOutlined />),
-//   getItem("Subjects", "/sub-admin/dashboard/subjects", <ReadOutlined />),
+  //   getItem("Subjects", "/sub-admin/dashboard/subjects", <ReadOutlined />),
   getItem("Results", "/sub-admin/dashboard/results", <BookOutlined />),
-//   getItem("Messages", "/sub-admin/dashboard/messages", <MessageOutlined />),
+  //   getItem("Messages", "/sub-admin/dashboard/messages", <MessageOutlined />),
   getItem("Attendance", "/sub-admin/dashboard/attendance", <TeamOutlined />),
   // getItem("Settings", "/sub-admin/dashboard/settings", <SettingOutlined />),
 ];
@@ -50,9 +50,9 @@ const items = [
 const routeTitles = {
   "/sub-admin/dashboard": "Dashboard",
   // "/sub-admin/dashboard/students": "Student Management",
-//   "/sub-admin/dashboard/subjects": "Subject Management",
+  //   "/sub-admin/dashboard/subjects": "Subject Management",
   "/sub-admin/dashboard/results": "Results",
-//   "/sub-admin/dashboard/messages": "Messages",
+  //   "/sub-admin/dashboard/messages": "Messages",
   "/sub-admin/dashboard/attendance": "Attendance",
   // "/sub-admin/dashboard/settings": "Settings",
 };
@@ -131,7 +131,7 @@ const SubAdminLayout = () => {
         <Header
           className="!bg-slate-900 !text-white"
           style={{
-            padding: "0 20px",
+            padding: "0 16px",
             position: "fixed",
             top: 0,
             left: collapsed ? 80 : 200,
@@ -143,14 +143,20 @@ const SubAdminLayout = () => {
             justifyContent: "space-between",
           }}
         >
-          <h1 className="m-0 text-lg font-semibold">{pageTitle}</h1>
+          {/* Page Title */}
+          <h1 className="text-lg font-bold text-white m-0">{pageTitle}</h1>
 
+          {/* User Info */}
           <Dropdown menu={{ items: menu_items, onClick: handleMenuClick }}>
-            <a onClick={(e) => e.preventDefault()}>
-              <Space>
-                <Avatar size="large" icon={<UserOutlined />} />
-              </Space>
-            </a>
+            <div
+              className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-slate-800 cursor-pointer transition"
+              onClick={(e) => e.preventDefault()}
+            >
+              <Avatar size="large" icon={<UserOutlined />} />
+              <span className="text-sm font-medium text-gray-200">
+                John Doe
+              </span>
+            </div>
           </Dropdown>
         </Header>
 

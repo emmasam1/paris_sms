@@ -6,15 +6,7 @@ import {
   LogoutOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import {
-  Layout,
-  Menu,
-  theme,
-  Grid,
-  Dropdown,
-  Space,
-  Avatar,
-} from "antd";
+import { Layout, Menu, theme, Grid, Dropdown, Space, Avatar } from "antd";
 import { Outlet, useLocation, useNavigate } from "react-router";
 
 const menu_items = [
@@ -110,10 +102,9 @@ const TeacherDashboardLayout = () => {
         style={{ marginLeft: collapsed ? 80 : 200, transition: "all 0.2s" }}
       >
         <Header
-        className="!bg-slate-900 !text-white"
+          className="!bg-slate-900 !text-white"
           style={{
             padding: "0 16px",
-            // background: colorBgContainer,
             position: "fixed",
             top: 0,
             left: collapsed ? 80 : 200,
@@ -125,23 +116,24 @@ const TeacherDashboardLayout = () => {
             justifyContent: "space-between",
           }}
         >
-          <h1 style={{ margin: 0, fontSize: "18px", fontWeight: "bold" }}>
-            {pageTitle}
-          </h1>
+          {/* Page Title */}
+          <h1 className="text-lg font-bold text-white m-0">{pageTitle}</h1>
 
-          <Dropdown
-            menu={{ items: menu_items, onClick: handleMenuClick }}
-            placement="bottomRight"
-          >
-            <a onClick={(e) => e.preventDefault()}>
-              <Space>
-                <Avatar size="large" icon={<UserOutlined />} />
-              </Space>
-            </a>
+          {/* User Info */}
+          <Dropdown menu={{ items: menu_items, onClick: handleMenuClick }}>
+            <div
+              className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-slate-800 cursor-pointer transition"
+              onClick={(e) => e.preventDefault()}
+            >
+              <Avatar size="large" icon={<UserOutlined />} />
+              <span className="text-sm font-medium text-gray-200">
+                John Doe
+              </span>
+            </div>
           </Dropdown>
         </Header>
 
-         <Content style={{ margin: "60px 0 0 0" }}>
+        <Content style={{ margin: "60px 0 0 0" }}>
           <div
             style={{
               padding: 24,

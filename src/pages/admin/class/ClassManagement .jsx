@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Button,
   Table,
@@ -10,6 +10,8 @@ import {
   message,
   Popconfirm,
   Descriptions,
+  Dropdown,
+  Menu,
 } from "antd";
 import {
   PlusOutlined,
@@ -17,9 +19,12 @@ import {
   EyeOutlined,
   DeleteOutlined,
   UserAddOutlined,
+  MoreOutlined,
+  SwapOutlined,
 } from "@ant-design/icons";
 import MigrateClassModal from "../../../components/migrate/MigrateClassModal";
-
+import { useApp } from "../../../context/AppContext";
+import axios from "axios";
 
 const { Option } = Select;
 
@@ -31,12 +36,18 @@ const ClassManagement = () => {
   const [editingClass, setEditingClass] = useState(null);
   const [viewClass, setViewClass] = useState(null);
   const [assignClass, setAssignClass] = useState(null);
+  const [classes, setClasses] = useState([]);
+  const [teachers, setTeachers] = useState([]);
+  const [isFetching, setIsFetching] = useState(false);
+
+  const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const [form] = Form.useForm();
   const [assignForm] = Form.useForm();
 
   // --- move these to your top-level state declarations ---
- const [isMigrateOpen, setIsMigrateOpen] = useState(false);
+  const [isMigrateOpen, setIsMigrateOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState("JSS1A");
 
   const students = [
@@ -50,22 +61,54 @@ const ClassManagement = () => {
     console.log("Not Promoted:", notPromoted);
   };
 
-  const [classes, setClasses] = useState([
-    {
-      key: "1",
-      name: "JSS1",
-      section: "Junior",
-      teacher: null,
-      students: 35,
-    },
-    {
-      key: "2",
-      name: "SS1",
-      section: "Senior",
-      teacher: null,
-      students: 42,
-    },
-  ]);
+  const getClass = async () => {
+    if (!token) return;
+    setLoading(true);
+
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/class-management/classes`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setClasses(res?.data?.data);
+      // messageApi.success(res?.data?.message);
+      // console.log(res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  // ✅ Fetch teachers (fixed)
+  const getTeachers = async () => {
+    if (!token) return;
+    setIsFetching(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/management/staff/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const result = res?.data?.data || [];
+      console.log("teachers ", result);
+      setTeachers(result);
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  // ✅ Ensure token ready before fetching
+  useEffect(() => {
+    if (initialized && token) {
+      getTeachers();
+    }
+  }, [initialized, token]);
+
+  useEffect(() => {
+    getClass();
+  }, [initialized, token]);
 
   // Open create or edit modal
   const openModal = (record = null) => {
@@ -119,8 +162,25 @@ const ClassManagement = () => {
 
   // Columns for class table
   const columns = [
-    { title: "Class Name", dataIndex: "name", key: "name" },
-    { title: "Section", dataIndex: "section", key: "section" },
+    {
+      title: "Class Name",
+      dataIndex: "name",
+      key: "name",
+    },
+    {
+      title: "Section",
+      dataIndex: "section",
+      key: "section",
+      render: (_, record) => {
+        if (record.name?.toLowerCase().includes("jss")) {
+          return <span className="">Junior</span>;
+        } else if (record.name?.toLowerCase().includes("sss")) {
+          return <span className="">Senior</span>;
+        } else {
+          return <span className="text-gray-500">N/A</span>;
+        }
+      },
+    },
     {
       title: "Teacher Assigned",
       dataIndex: "teacher",
@@ -128,67 +188,90 @@ const ClassManagement = () => {
       render: (teacher) =>
         teacher || <span className="text-gray-400">Not Assigned</span>,
     },
-    { title: "Students", dataIndex: "students", key: "students" },
+    {
+      title: "Students",
+      dataIndex: "students",
+      key: "students",
+    },
     {
       title: "Actions",
       key: "actions",
       width: 320,
-      render: (_, record) => (
-        <Space>
-          <Button
-            icon={<EyeOutlined />}
-            size="small"
-            onClick={() => {
-              setViewClass(record);
-              setIsViewOpen(true);
-            }}
-          >
-            View
-          </Button>
-          <Button
-            icon={<EditOutlined />}
-            size="small"
-            type="default"
-            onClick={() => openModal(record)}
-          >
-            Edit
-          </Button>
-          <Button
-            icon={<UserAddOutlined />}
-            size="small"
-            type="dashed"
-            onClick={() => {
-              setAssignClass(record);
-              setIsAssignOpen(true);
-              assignForm.setFieldsValue({ teacher: record.teacher });
-            }}
-          >
-            Assign Teacher
-          </Button>
-          <Button
-            size="small"
-            type="dashed"
-            className="border-blue-500 text-blue-600 hover:!bg-blue-50"
-            onClick={() => setIsMigrateOpen(true)}
-          >
-            Migrate Class
-          </Button>
+      render: (_, record) => {
+        const menu = (
+          <Menu>
+            <Menu.Item
+              icon={<EyeOutlined />}
+              size="small"
+              onClick={() => {
+                setViewClass(record);
+                setIsViewOpen(true);
+              }}
+            >
+              View
+            </Menu.Item>
+            <Menu.Item
+              icon={<EditOutlined />}
+              size="small"
+              type="default"
+              onClick={() => openModal(record)}
+            >
+              Edit
+            </Menu.Item>
+            <Menu.Item
+              icon={<UserAddOutlined />}
+              size="small"
+              type="dashed"
+              onClick={() => {
+                setAssignClass(record);
+                setIsAssignOpen(true);
+                assignForm.setFieldsValue({ teacher: record.teacher });
+              }}
+            >
+              Assign Teacher
+            </Menu.Item>
+            <Menu.Item
+              icon={<SwapOutlined />}
+              size="small"
+              type="dashed"
+              className="border-blue-500 text-blue-600 hover:!bg-blue-50"
+              onClick={() => setIsMigrateOpen(true)}
+            >
+              Migrate Class
+            </Menu.Item>
+            <Menu.Item key="delete" danger>
+              <Popconfirm
+                title="Are you sure you want to delete this class?"
+                onConfirm={() => handleDelete(record.key)}
+              >
+                <Button
+                  size="small"
+                  type="text"
+                  danger
+                  icon={<DeleteOutlined />}
+                  className="!p-0"
+                >
+                  Delete
+                </Button>
+              </Popconfirm>
+            </Menu.Item>
+          </Menu>
+        );
 
-          <Popconfirm
-            title="Are you sure you want to delete this class?"
-            onConfirm={() => handleDelete(record.key)}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />}>
-              Delete
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
+        return (
+          <Button>
+            <Dropdown overlay={menu} trigger={["click"]}>
+              <MoreOutlined />
+            </Dropdown>
+          </Button>
+        );
+      },
     },
   ];
 
   return (
     <div className="">
+      {contextHolder}
       <div className="flex justify-end items-center mb-4">
         <Button
           type="primary"
@@ -200,7 +283,6 @@ const ClassManagement = () => {
       </div>
 
       <Table
-        // bordered
         columns={columns}
         dataSource={classes}
         rowKey="key"
@@ -252,7 +334,7 @@ const ClassManagement = () => {
         </Form>
       </Modal>
 
-      {/* Assign Teacher Modal */}
+      {/* ✅ Assign Teacher Modal (dynamic teachers) */}
       <Modal
         title={`Assign Teacher to ${assignClass?.name}`}
         open={isAssignOpen}
@@ -270,10 +352,22 @@ const ClassManagement = () => {
             name="teacher"
             rules={[{ required: true, message: "Please select a teacher" }]}
           >
-            <Select placeholder="Select teacher">
-              <Option value="Mr. Adams">Mr. Adams</Option>
-              <Option value="Mrs. Bello">Mrs. Bello</Option>
-              <Option value="Mr. Okafor">Mr. Okafor</Option>
+            <Select
+              placeholder="Select teacher"
+              loading={isFetching}
+              showSearch
+              optionFilterProp="children"
+            >
+              {teachers.map((teacher) => {
+                const fullName = `${teacher.title || ""} ${teacher.firstName} ${
+                  teacher.lastName
+                }`;
+                return (
+                  <Option key={teacher._id} value={fullName.trim()}>
+                    {fullName.trim()}
+                  </Option>
+                );
+              })}
             </Select>
           </Form.Item>
 
@@ -322,7 +416,6 @@ const ClassManagement = () => {
         onMigrate={handleMigrate}
         className={selectedClass}
       />
-
     </div>
   );
 };

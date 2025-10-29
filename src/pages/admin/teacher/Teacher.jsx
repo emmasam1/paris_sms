@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Input,
   Select,
@@ -13,6 +13,9 @@ import {
   Col,
   Descriptions,
   Upload,
+  Empty,
+  Skeleton,
+  Avatar,
 } from "antd";
 import {
   SearchOutlined,
@@ -24,6 +27,8 @@ import {
   UploadOutlined,
 } from "@ant-design/icons";
 import teacher_img from "../../../assets/teacher.jpg";
+import { useApp } from "../../../context/AppContext";
+import axios from "axios";
 
 const { Option } = Select;
 
@@ -44,37 +49,159 @@ const Teacher = () => {
   const [form] = Form.useForm();
   const [imageUrl, setImageUrl] = useState(null);
   const [role, setRole] = useState("Teacher");
+  const [messageApi, contextHolder] = message.useMessage();
+  const [teachers, setTeachers] = useState([]);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const [teachers, setTeachers] = useState([
-    {
-      key: "1",
-      name: "Mr. Adams",
-      subject: "Mathematics",
-      phone: "08012345678",
-      email: "adams@example.com",
-      username: "adams",
-      address: "12 Broad Street, Lagos",
-      role: "Admin",
-      adminOver: ["JSS1", "JSS2"],
-      status: "active",
-      profileImg: teacher_img,
-      dateJoined: "2023-09-01",
-    },
-    {
-      key: "2",
-      name: "Mrs. Johnson",
-      subject: "English Language",
-      phone: "08087654321",
-      email: "johnson@example.com",
-      username: "johnson",
-      address: "5 Unity Close, Abuja",
-      role: "Teacher",
-      adminOver: [],
-      status: "blocked",
-      profileImg: teacher_img,
-      dateJoined: "2022-01-15",
-    },
-  ]);
+  const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
+
+  const [staff, setStaff] = useState([]);
+  const [isFetching, setIsFetching] = useState(true);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+
+  // ✅ Fetch teachers
+  const getTeachers = async (page = 1, limit = 10, search = "") => {
+    if (!token) return;
+    setIsFetching(true);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/management/staff/all?page=${page}&limit=${limit}${
+          search ? `&search=${search}` : ""
+        }`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const result = res.data.data || [];
+
+      console.log(result);
+      setStaff(result);
+      setPagination({
+        current: res.data.pagination?.page || 1,
+        pageSize: res.data.pagination?.limit || 10,
+        total: res.data.pagination?.total || result.length,
+      });
+    } catch (error) {
+      console.error(error);
+      messageApi.error("Failed to load staff");
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  // ✅ Ensure token ready before fetching
+  useEffect(() => {
+    if (initialized && token) {
+      getTeachers(pagination.current, pagination.pageSize, searchText);
+    }
+  }, [initialized, token]);
+
+  // ✅ Debounced search
+  useEffect(() => {
+    if (!initialized || !token) return;
+    const timeout = setTimeout(() => {
+      getTeachers(1, pagination.pageSize, searchText);
+    }, 600);
+    return () => clearTimeout(timeout);
+  }, [searchText]);
+
+  // ✅ Avatar fallback
+  const renderAvatar = (record) => {
+    if (record.profileImg) {
+      return (
+        <img
+          src={record.profileImg}
+          alt="teacher"
+          className="w-10 h-10 rounded-full object-cover"
+        />
+      );
+    }
+    const initials = `${record.firstName?.[0] || ""}${
+      record.lastName?.[0] || ""
+    }`;
+    return (
+      <Avatar style={{ backgroundColor: "#1677ff", color: "#fff" }}>
+        {initials.toUpperCase()}
+      </Avatar>
+    );
+  };
+
+  const handleCancelsuccess = () => {
+    setIsSuccessModalOpen(false);
+  };
+
+  // ✅ Create or Update Staff
+  const createStaff = async () => {
+    try {
+      const values = await form.validateFields();
+      setLoading(true);
+
+      let res;
+
+      if (selectedTeacher) {
+        // 🔄 Update existing staff
+        res = await axios.put(
+          `${API_BASE_URL}/api/management/staff/update/${selectedTeacher._id}`,
+          values,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        messageApi.success(res?.data?.message || "Staff updated successfully");
+      } else {
+        // 🆕 Create new staff
+        res = await axios.post(`${API_BASE_URL}/api/auth/register`, values, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        // messageApi.success(res?.data?.message || "Staff added successfully");
+      }
+
+      setSuccessMessage(res?.data?.message);
+
+      // ✅ Close modal and refresh table
+      setIsModalOpen(false);
+      setIsSuccessModalOpen(true);
+      form.resetFields();
+      setSelectedTeacher(null);
+      getTeachers(pagination.current, pagination.pageSize, searchText);
+    } catch (error) {
+      console.error("Staff creation/update failed:", error);
+
+      // ✅ Smart error handling
+      if (error.response?.data?.message) {
+        messageApi.error(error.response.data.message);
+      } else if (Array.isArray(error.response?.data?.errors)) {
+        messageApi.error(
+          error.response.data.errors[0]?.msg || "Validation error"
+        );
+      } else {
+        messageApi.error("Something went wrong. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addTeacher = async (values) => {
+    setLoading(true);
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/api/teachers`,
+        {
+          // teacher data here
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      messageApi.success(res?.data?.message || "Teacher added successfully");
+      // Optionally refresh teacher list here
+    } catch (error) {}
+  };
 
   const filteredTeachers = teachers.filter((teacher) =>
     teacher.name.toLowerCase().includes(searchText.toLowerCase())
@@ -133,23 +260,20 @@ const Teacher = () => {
   };
 
   const columns = [
+    { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     {
       title: "Profile",
-      dataIndex: "profileImg",
       key: "profileImg",
-      render: (img) => (
-        <img
-          src={img}
-          alt="teacher"
-          className="w-10 h-10 rounded-full object-cover"
-        />
-      ),
+      render: (_, record) => renderAvatar(record),
     },
-    { title: "Name", dataIndex: "name", key: "name" },
+    {
+      title: "Full Name",
+      key: "name",
+      render: (_, record) => `${record.title} ${record.firstName} ${record.lastName}`,
+    },
     { title: "Subject", dataIndex: "subject", key: "subject" },
     { title: "Role", dataIndex: "role", key: "role" },
     { title: "Phone", dataIndex: "phone", key: "phone" },
-    { title: "Username", dataIndex: "username", key: "username" },
     {
       title: "Admin Over Classes",
       dataIndex: "adminOver",
@@ -229,8 +353,14 @@ const Teacher = () => {
     },
   ];
 
+  // ✅ Pagination handler
+  const handleTableChange = (paginationInfo) => {
+    getTeachers(paginationInfo.current, paginationInfo.pageSize, searchText);
+  };
+
   return (
     <div className="space-y-6">
+      {contextHolder}
       <div className="flex items-center justify-between">
         <Input
           placeholder="Search by teacher name"
@@ -255,214 +385,159 @@ const Teacher = () => {
         </Button>
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={filteredTeachers}
-        bordered
-        size="small"
-        pagination={{
-          pageSize: 7,
-          position: ["bottomCenter"],
-          className: "custom-pagination",
-        }}
-        className="custom-table"
-        scroll={{ x: "max-content" }}
-      />
+      {/* Table with Skeleton Loader */}
+      {loading ? (
+        <div className="p-6 bg-white rounded-md shadow">
+          <Skeleton active paragraph={{ rows: 6 }} />
+        </div>
+      ) : staff.length === 0 ? (
+        <Empty description="No teachers found" />
+      ) : (
+        <Table
+          columns={columns}
+          dataSource={staff}
+          rowKey="_id"
+          bordered
+          size="small"
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            position: ["bottomCenter"],
+            className: "custom-pagination",
+          }}
+          onChange={handleTableChange}
+          className="custom-table"
+          scroll={{ x: "max-content" }}
+        />
+      )}
 
       {/* Add/Edit Modal */}
       <Modal
-      title={editingTeacher ? "Edit Teacher" : "Register Teacher"}
-      open={isModalOpen}
-      onCancel={handleCancel}
-      footer={null}
-      destroyOnClose
-      width={500}
-    >
-      <Form layout="vertical" form={form} onFinish={handleSave}>
-        <Row gutter={16}>
-          {/* Title */}
-          <Col xs={24} md={12}>
-            <Form.Item
-              label="Title"
-              name="title"
-              rules={[{ required: true, message: "Please select title" }]}
-            >
-              <Select placeholder="Select title">
-                <Option value="Mr">Mr</Option>
-                <Option value="Mrs">Mrs</Option>
-                <Option value="Miss">Miss</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-
-          {/* First Name */}
-          <Col xs={24} md={12}>
-            <Form.Item
-              label="First Name"
-              name="firstName"
-              rules={[{ required: true, message: "Please enter first name" }]}
-            >
-              <Input placeholder="Enter first name" />
-            </Form.Item>
-          </Col>
-
-          {/* Last Name */}
-          <Col xs={24} md={12}>
-            <Form.Item
-              label="Last Name"
-              name="lastName"
-              rules={[{ required: true, message: "Please enter last name" }]}
-            >
-              <Input placeholder="Enter last name" />
-            </Form.Item>
-          </Col>
-
-          {/* Phone */}
-          <Col xs={24} md={12}>
-            <Form.Item
-              label="Phone"
-              name="phone"
-              rules={[{ required: true, message: "Please enter phone number" }]}
-            >
-              <Input placeholder="Enter phone number" />
-            </Form.Item>
-          </Col>
-
-          {/* Email */}
-          <Col xs={24} md={12}>
-            <Form.Item
-              label="Email"
-              name="email"
-              rules={[{ type: "email", message: "Enter a valid email" }]}
-            >
-              <Input placeholder="Enter email" />
-            </Form.Item>
-          </Col>
-
-          {/* Username */}
-          <Col xs={24} md={12}>
-            <Form.Item
-              label="Username"
-              name="username"
-              rules={[{ required: true, message: "Please enter username" }]}
-            >
-              <Input placeholder="Enter username" />
-            </Form.Item>
-          </Col>
-
-          {/* Password */}
-          <Col xs={24} md={12}>
-            <Form.Item
-              label="Password"
-              name="password"
-              rules={[{ required: true, message: "Please enter password" }]}
-            >
-              <Input.Password placeholder="Enter password" />
-            </Form.Item>
-          </Col>
-
-          {/* Role */}
-          <Col xs={24} md={12}>
-            <Form.Item
-              label="Role"
-              name="role"
-              rules={[{ required: true, message: "Please select role" }]}
-            >
-              <Select
-                placeholder="Select role"
-                onChange={(val) => setRole(val)}
-              >
-                <Option value="Teacher">Teacher</Option>
-                <Option value="Admin">Admin</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-
-          {/* Admin Over Class (if Admin) */}
-          {role === "Admin" && (
+        title={editingTeacher ? "Edit Staff" : "Register Staff"}
+        open={isModalOpen}
+        onCancel={handleCancel}
+        footer={null}
+        destroyOnClose
+        width={500}
+      >
+        <Form layout="vertical" form={form} onFinish={createStaff}>
+          <Row gutter={16}>
+            {/* Role */}
             <Col xs={24} md={12}>
               <Form.Item
-                label="Admin Over Class"
-                name="adminOver"
-                rules={[
-                  { required: true, message: "Please select at least one class" },
-                ]}
+                label="Title"
+                name="title"
+                rules={[{ required: true, message: "Please select a title" }]}
               >
-                <Select
-                  mode="multiple"
-                  allowClear
-                  placeholder="Select class(es)"
-                >
-                  <Option value="JSS1">JSS1</Option>
-                  <Option value="JSS2">JSS2</Option>
-                  <Option value="JSS3">JSS3</Option>
-                  <Option value="SS1">SS1</Option>
-                  <Option value="SS2">SS2</Option>
-                  <Option value="SS3">SS3</Option>
+                <Select placeholder="Select title">
+                  {["Mr", "Mrs", "Miss", "Dr", "Prof", "Ms", "Engr"].map(
+                    (title) => (
+                      <Select.Option key={title} value={title}>
+                        {title}
+                      </Select.Option>
+                    )
+                  )}
                 </Select>
               </Form.Item>
             </Col>
-          )}
 
-          {/* Subject */}
-          <Col xs={24} md={12}>
-            <Form.Item
-              label="Subject"
-              name="subject"
-              rules={[{ required: true, message: "Please select subject" }]}
-            >
-              <Select placeholder="Select subject">
-                <Option value="Mathematics">Mathematics</Option>
-                <Option value="English Language">English Language</Option>
-                <Option value="Biology">Biology</Option>
-                <Option value="Physics">Physics</Option>
-                <Option value="Chemistry">Chemistry</Option>
-                <Option value="Economics">Economics</Option>
-                <Option value="Government">Government</Option>
-                <Option value="Computer Science">Computer Science</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-
-          {/* Image Upload */}
-          <Col xs={24} md={12}>
-            <Form.Item label="Profile Image" name="image">
-              <Upload
-                listType="picture"
-                maxCount={1}
-                beforeUpload={() => false}
-                onChange={handleImageChange}
-                showUploadList={false}
+            {/* First Name */}
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="First Name"
+                name="firstName"
+                rules={[{ required: true, message: "Please enter first name" }]}
               >
-                <Button icon={<UploadOutlined />}>Upload Image</Button>
-              </Upload>
-              {imageUrl && (
-                <img
-                  src={imageUrl}
-                  alt="Preview"
-                  className="mt-2 w-24 h-24 object-cover rounded-md border"
-                />
-              )}
-            </Form.Item>
-          </Col>
+                <Input placeholder="Enter first name" />
+              </Form.Item>
+            </Col>
 
-          {/* Address (Full width at bottom) */}
-          <Col span={24}>
-            <Form.Item label="Address" name="address">
-              <Input.TextArea rows={2} placeholder="Enter address" />
-            </Form.Item>
-          </Col>
-        </Row>
+            {/* Last Name */}
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Last Name"
+                name="lastName"
+                rules={[{ required: true, message: "Please enter last name" }]}
+              >
+                <Input placeholder="Enter last name" />
+              </Form.Item>
+            </Col>
 
-        {/* Buttons */}
-        <div className="flex justify-end gap-3 mt-4">
-          <Button onClick={handleCancel}>Cancel</Button>
-          <Button type="primary" htmlType="submit">
-            {editingTeacher ? "Update" : "Register"}
-          </Button>
-        </div>
-      </Form>
-    </Modal>
+            {/* Phone */}
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Phone"
+                name="phone"
+                rules={[
+                  { required: true, message: "Please enter phone number" },
+                ]}
+              >
+                <Input placeholder="Enter phone number" />
+              </Form.Item>
+            </Col>
+
+            {/* Email */}
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Email"
+                name="email"
+                rules={[{ type: "email", message: "Enter a valid email" }]}
+              >
+                <Input placeholder="Enter email" />
+              </Form.Item>
+            </Col>
+
+            {/* Image Upload */}
+            <Col xs={24} md={12}>
+              <Form.Item label="Profile Image" name="image">
+                <Upload
+                  listType="picture"
+                  maxCount={1}
+                  beforeUpload={() => false}
+                  onChange={handleImageChange}
+                  showUploadList={false}
+                >
+                  <Button icon={<UploadOutlined />}>Upload Image</Button>
+                </Upload>
+                {imageUrl && (
+                  <img
+                    src={imageUrl}
+                    alt="Preview"
+                    className="mt-2 w-24 h-24 object-cover rounded-md border"
+                  />
+                )}
+              </Form.Item>
+            </Col>
+
+            {/* Address (Full width) */}
+            <Col span={24}>
+              <Form.Item label="Address" name="address">
+                <Input.TextArea rows={2} placeholder="Enter address" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-3 mt-4">
+            <Button onClick={handleCancel}>Cancel</Button>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              {editingTeacher ? "Update" : "Register"}
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/*Success Modal */}
+      <Modal
+        title="Success"
+        closable={{ "aria-label": "Custom Close Button" }}
+        open={isSuccessModalOpen}
+        footer={null}
+        onCancel={handleCancelsuccess}
+      >
+        {successMessage}
+      </Modal>
 
       {/* Teacher Details */}
       <Modal
@@ -487,7 +562,7 @@ const Teacher = () => {
         {selectedTeacher && (
           <Descriptions bordered column={1} size="small">
             <Descriptions.Item label="Name">
-              {selectedTeacher.name}
+              {selectedTeacher.firstName} {selectedTeacher.lastName}
             </Descriptions.Item>
             <Descriptions.Item label="Role">
               {selectedTeacher.role}
@@ -500,9 +575,6 @@ const Teacher = () => {
             </Descriptions.Item>
             <Descriptions.Item label="Email">
               {selectedTeacher.email || "—"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Username">
-              {selectedTeacher.username}
             </Descriptions.Item>
             <Descriptions.Item label="Address">
               {selectedTeacher.address || "—"}

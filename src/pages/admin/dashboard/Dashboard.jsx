@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   Row,
@@ -9,6 +9,7 @@ import {
   Tag,
   Tooltip,
   message,
+  Skeleton,
 } from "antd";
 import {
   UserOutlined,
@@ -21,8 +22,11 @@ import {
   MessageOutlined,
   BarChartOutlined,
   UploadOutlined,
+  IdcardOutlined 
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
+import { useApp } from "../../../context/AppContext";
+import axios from "axios";
 
 import UploadResult from "../../../components/uploadresult/UploadResult";
 import GeneratePin from "../../../components/generatepin/GeneratePin";
@@ -32,14 +36,15 @@ import CreateMessage from "../../../components/message/CreateMessage";
 const { Title } = Typography;
 
 const Dashboard = () => {
-  const totalPins = 1240;
-  const revenue = 356000;
-
-  // Modal states
+  const [loading, setLoading] = useState(true);
   const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
   const [isPinModalVisible, setIsPinModalVisible] = useState(false);
   const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
   const [sendMessage, setSendMessage] = useState(false);
+  const [analytics, setAnalytics] = useState(null);
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const { API_BASE_URL, token } = useApp();
 
   const recentActivities = [
     {
@@ -91,54 +96,72 @@ const Dashboard = () => {
     },
   ];
 
-  // Handlers
-  const handleManageTeachers = () => message.info("Opening message center...");
-  const handleViewReports = () => message.info("Generating reports...");
+  // ===== API CALL: Fetch Analytics =====
+  const getAnalyticsData = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/analytics/dashboard`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setAnalytics(res.data.data.totals);
+      messageApi.success(res?.data?.message || "Dashboard data loaded successfully.");
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      messageApi.error("Failed to load dashboard data.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Modals
-  const handleUploadResult = () => setIsUploadModalVisible(true);
-  const handleCloseUploadModal = () => setIsUploadModalVisible(false);
+  useEffect(() => {
+    getAnalyticsData();
+  }, [token]);
 
-  const handleGeneratePIN = () => setIsPinModalVisible(true);
-  const handleClosePinModal = () => setIsPinModalVisible(false);
+  const statCards = [
+  {
+    icon: <UserOutlined className="text-3xl !text-blue-500" />,
+    label: "Students",
+    value: analytics?.students ?? 0,
+  },
+  {
+    icon: <TeamOutlined className="text-3xl !text-green-500" />,
+    label: "Teachers",
+    value: analytics?.teachers ?? 0,
+  },
+  {
+    icon: <IdcardOutlined className="text-3xl !text-orange-500" />,
+    label: "Total Staff",
+    value: analytics?.staff ?? 0, // <-- make sure backend returns analytics.staff
+  },
+  {
+    icon: <BookOutlined className="text-3xl !text-purple-500" />,
+    label: "Classes",
+    value: analytics?.classes ?? 0,
+  },
+  {
+    icon: <KeyOutlined className="text-3xl !text-yellow-500" />,
+    label: "Total PINs",
+    value: analytics?.pinsGenerated ?? 0,
+  },
+  {
+    icon: <DollarOutlined className="text-3xl !text-emerald-500" />,
+    label: "Revenue",
+    value: analytics?.totalRevenue
+      ? `₦${analytics.totalRevenue.toLocaleString()}`
+      : "₦0",
+  },
+];
 
-  const handleCreateClass = () => setIsCreateClassOpen(true);
-  const handleCloseCreateClass = () => setIsCreateClassOpen(false);
-
-  const handleViewMessages = () => setSendMessage(true);
-  const handleCloseMessageModal = () => setSendMessage(false);
 
   return (
     <div className="space-y-6">
-      {/* Stats Section */}
+      {contextHolder}
+      {/* ===== Stats Section ===== */}
       <Row gutter={[16, 16]}>
-        {[
-          {
-            icon: <UserOutlined className="text-3xl !text-blue-500" />,
-            label: "Students",
-            value: "1,245",
-          },
-          {
-            icon: <TeamOutlined className="text-3xl !text-green-500" />,
-            label: "Teachers",
-            value: "58",
-          },
-          {
-            icon: <BookOutlined className="text-3xl !text-purple-500" />,
-            label: "Classes",
-            value: "36",
-          },
-          {
-            icon: <KeyOutlined className="text-3xl !text-yellow-500" />,
-            label: "Total PINs",
-            value: totalPins,
-          },
-          {
-            icon: <DollarOutlined className="text-3xl !text-emerald-500" />,
-            label: "Revenue",
-            value: `₦${revenue.toLocaleString()}`,
-          },
-        ].map((item, i) => (
+        {statCards.map((item, i) => (
           <Col xs={24} sm={12} md={6} key={i}>
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -148,110 +171,145 @@ const Dashboard = () => {
               className="h-full"
             >
               <Card className="shadow-md rounded-xl hover:shadow-lg transition">
-                <div className="flex items-center space-x-4">
-                  {item.icon}
-                  <div>
-                    <p className="text-gray-500">{item.label}</p>
-                    <p className="text-xl font-bold">{item.value}</p>
+                {loading ? (
+                  <Skeleton active paragraph={{ rows: 1 }} />
+                ) : (
+                  <div className="flex items-center space-x-4">
+                    {item.icon}
+                    <div>
+                      <p className="text-gray-500">{item.label}</p>
+                      <p className="text-xl font-bold">{item.value}</p>
+                    </div>
                   </div>
-                </div>
+                )}
               </Card>
             </motion.div>
           </Col>
         ))}
       </Row>
 
-      {/* Quick Actions */}
+      {/* ===== Quick Actions ===== */}
       <Card className="shadow-sm rounded-xl !mb-3">
-        <Title level={4}>Quick Actions</Title>
-        <div className="flex flex-wrap gap-3 mt-3">
-          <Tooltip title="Upload student results">
-            <Button
-              icon={<UploadOutlined />}
-              onClick={handleUploadResult}
-              className="!bg-blue-500 hover:!bg-blue-600 !text-white !border-none"
-            >
-              Upload Result
-            </Button>
-          </Tooltip>
+        <Title level={4}>
+          {loading ? (
+            <Skeleton.Input active size="small" style={{ width: 150 }} />
+          ) : (
+            "Quick Actions"
+          )}
+        </Title>
 
-          <Tooltip title="Generate parent access PINs">
-            <Button
-              icon={<KeyOutlined />}
-              onClick={handleGeneratePIN}
-              className="!bg-yellow-500 hover:!bg-yellow-600 !text-white !border-none"
-            >
-              Generate PIN
-            </Button>
-          </Tooltip>
+        {loading ? (
+          <div className="flex flex-wrap gap-3 mt-3">
+            {Array(5)
+              .fill()
+              .map((_, i) => (
+                <Skeleton.Button
+                  key={i}
+                  active
+                  size="large"
+                  style={{ width: 150 }}
+                />
+              ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-3 mt-3">
+            <Tooltip title="Upload student results">
+              <Button
+                icon={<UploadOutlined />}
+                onClick={() => setIsUploadModalVisible(true)}
+                className="!bg-blue-500 hover:!bg-blue-600 !text-white !border-none"
+              >
+                Upload Result
+              </Button>
+            </Tooltip>
 
-          <Tooltip title="Create a new class">
-            <Button
-              icon={<PlusCircleOutlined />}
-              onClick={handleCreateClass}
-              className="!bg-green-500 hover:!bg-green-600 !text-white !border-none"
-            >
-              Create Class
-            </Button>
-          </Tooltip>
+            <Tooltip title="Generate parent access PINs">
+              <Button
+                icon={<KeyOutlined />}
+                onClick={() => setIsPinModalVisible(true)}
+                className="!bg-yellow-500 hover:!bg-yellow-600 !text-white !border-none"
+              >
+                Generate PIN
+              </Button>
+            </Tooltip>
 
-          <Tooltip title="messages and announcements">
-            <Button
-              icon={<MessageOutlined />}
-              onClick={handleViewMessages}
-              className="!bg-indigo-500 hover:!bg-indigo-600 !text-white !border-none"
-            >
-              Messages
-            </Button>
-          </Tooltip>
+            <Tooltip title="Create a new class">
+              <Button
+                icon={<PlusCircleOutlined />}
+                onClick={() => setIsCreateClassOpen(true)}
+                className="!bg-green-500 hover:!bg-green-600 !text-white !border-none"
+              >
+                Create Class
+              </Button>
+            </Tooltip>
 
-          <Tooltip title="Manage teacher accounts">
-            <Button
-              icon={<SolutionOutlined />}
-              onClick={handleManageTeachers}
-              className="!bg-orange-500 hover:!bg-orange-600 !text-white !border-none"
-            >
-              Manage Teachers
-            </Button>
-          </Tooltip>
+            <Tooltip title="Messages and announcements">
+              <Button
+                icon={<MessageOutlined />}
+                onClick={() => setSendMessage(true)}
+                className="!bg-indigo-500 hover:!bg-indigo-600 !text-white !border-none"
+              >
+                Messages
+              </Button>
+            </Tooltip>
 
-          <Tooltip title="View school reports">
-            <Button
-              icon={<BarChartOutlined />}
-              onClick={handleViewReports}
-              className="!bg-gray-600 hover:!bg-gray-700 !text-white !border-none"
-            >
-              Reports
-            </Button>
-          </Tooltip>
-        </div>
+            <Tooltip title="Manage teacher accounts">
+              <Button
+                icon={<SolutionOutlined />}
+                onClick={() => message.info("Opening message center...")}
+                className="!bg-orange-500 hover:!bg-orange-600 !text-white !border-none"
+              >
+                Manage Teachers
+              </Button>
+            </Tooltip>
+
+            <Tooltip title="View school reports">
+              <Button
+                icon={<BarChartOutlined />}
+                onClick={() => message.info("Generating reports...")}
+                className="!bg-gray-600 hover:!bg-gray-700 !text-white !border-none"
+              >
+                Reports
+              </Button>
+            </Tooltip>
+          </div>
+        )}
       </Card>
 
-      {/* Recent Activity */}
+      {/* ===== Recent Activity ===== */}
       <Card className="shadow-md rounded-xl">
         <Title level={4}>Recent Activity</Title>
-        <Table
-          columns={columns}
-          dataSource={recentActivities}
-          bordered
-          size="small"
-          pagination={{
-            pageSize: 7,
-            position: ["bottomCenter"],
-            className: "custom-pagination",
-          }}
-          scroll={{ x: "max-content" }}
-        />
+        {loading ? (
+          <Skeleton active paragraph={{ rows: 6 }} />
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={recentActivities}
+            bordered
+            size="small"
+            pagination={{
+              pageSize: 7,
+              position: ["bottomCenter"],
+            }}
+            scroll={{ x: "max-content" }}
+          />
+        )}
       </Card>
 
-      {/* Modals */}
+      {/* ===== Modals ===== */}
       <UploadResult
         open={isUploadModalVisible}
-        onClose={handleCloseUploadModal}
+        onClose={() => setIsUploadModalVisible(false)}
       />
-      <GeneratePin open={isPinModalVisible} onClose={handleClosePinModal} />
-      <CreateClass open={isCreateClassOpen} onClose={handleCloseCreateClass} />
-      <CreateMessage open={sendMessage} onClose={handleCloseMessageModal} />
+      <GeneratePin
+        open={isPinModalVisible}
+        onClose={() => setIsPinModalVisible(false)}
+      />
+      <CreateClass
+        open={isCreateClassOpen}
+        onClose={() => setIsCreateClassOpen(false)}
+      />
+      <CreateMessage open={sendMessage} onClose={() => setSendMessage(false)} />
     </div>
   );
 };

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Table,
-  Checkbox,
   Card,
   Button,
   Select,
@@ -9,6 +8,7 @@ import {
   Tabs,
   Tag,
   Collapse,
+  Radio,
 } from "antd";
 import dayjs from "dayjs";
 
@@ -55,10 +55,10 @@ const SubAdminAttendance = () => {
   }, [selectedClass]);
 
   // Handle attendance change
-  const handleAttendanceChange = (studentId, checked) => {
+  const handleAttendanceChange = (studentId, status) => {
     setAttendance((prev) => ({
       ...prev,
-      [studentId]: checked,
+      [studentId]: status,
     }));
   };
 
@@ -72,7 +72,7 @@ const SubAdminAttendance = () => {
       id: stu.id,
       regNo: stu.regNo,
       name: stu.name,
-      status: attendance[stu.id] ? "Present" : "Absent",
+      status: attendance[stu.id] || "Absent",
       date: today,
       className: selectedClass,
     }));
@@ -92,14 +92,27 @@ const SubAdminAttendance = () => {
     { title: "Reg No", dataIndex: "regNo", key: "regNo" },
     { title: "Name", dataIndex: "name", key: "name" },
     {
-      title: "Present",
-      key: "present",
+      title: "Status",
+      key: "status",
       render: (_, record) => (
-        <Checkbox
-          checked={attendance[record.id] || false}
-          onChange={(e) => handleAttendanceChange(record.id, e.target.checked)}
+        <Radio.Group
+          onChange={(e) => handleAttendanceChange(record.id, e.target.value)}
+          value={attendance[record.id] || ""}
           disabled={submitted}
-        />
+        >
+          <Radio value="Present">
+            <Tag color="green">Present</Tag>
+          </Radio>
+          <Radio value="Absent">
+            <Tag color="red">Absent</Tag>
+          </Radio>
+          <Radio value="Late">
+            <Tag color="orange">Late</Tag>
+          </Radio>
+          <Radio value="Excused">
+            <Tag color="blue">Excused</Tag>
+          </Radio>
+        </Radio.Group>
       ),
     },
   ];
@@ -112,14 +125,22 @@ const SubAdminAttendance = () => {
     {
       title: "Status",
       dataIndex: "status",
-      render: (status) => (
-        <Tag color={status === "Present" ? "green" : "red"}>{status}</Tag>
-      ),
+      render: (status) => {
+        let color =
+          status === "Present"
+            ? "green"
+            : status === "Late"
+            ? "orange"
+            : status === "Excused"
+            ? "blue"
+            : "red";
+        return <Tag color={color}>{status}</Tag>;
+      },
     },
   ];
 
   return (
-    <div className="">
+    <div>
       <Card className="rounded-xl">
         <Tabs defaultActiveKey="1">
           {/* MARK ATTENDANCE */}
@@ -145,7 +166,7 @@ const SubAdminAttendance = () => {
 
               <div className="flex-1">
                 <label className="text-gray-700 font-medium">Date</label>
-                <div className="border border-gray-200 rounded-md p-2 bg-gray-50">
+                <div className="border border-gray-200 rounded-md p-1 bg-gray-50">
                   {today}
                 </div>
               </div>
@@ -203,7 +224,6 @@ const SubAdminAttendance = () => {
                         position: ["bottomCenter"],
                         className: "custom-pagination",
                       }}
-                      className="custom-table"
                       scroll={{ x: "max-content" }}
                     />
                   </Panel>

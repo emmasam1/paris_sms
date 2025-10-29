@@ -22,6 +22,7 @@ import SubAdminLayout from "./layout/sub_admin/SubAdminLayout";
 import SubAdminHome from "./pages/sub_admin/dashboard/SubAdminHome";
 import SubAdminResults from "./pages/sub_admin/results/SubAdminResults";
 import SubAdminAttendance from "./pages/sub_admin/attendance/SubAdminAttendance";
+import AdminProfile from "./pages/admin/profile/AdminProfile";
 
 const App = () => {
   return (
@@ -34,6 +35,7 @@ const App = () => {
         <Route path="class-management" element={<ClassManagement />} />
         <Route path="pin-management" element={<PinManagement />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="profile" element={<AdminProfile />} />
         <Route path="message" element={<AdminMessage />} />
         <Route path="subject-management" element={<SubjectManagement />} />
       </Route>

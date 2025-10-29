@@ -16,6 +16,8 @@ import {
   Empty,
   Skeleton,
   Avatar,
+  Dropdown,
+  Menu,
 } from "antd";
 import {
   SearchOutlined,
@@ -25,6 +27,8 @@ import {
   StopOutlined,
   CheckCircleOutlined,
   UploadOutlined,
+  SettingOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
 import teacher_img from "../../../assets/teacher.jpg";
 import { useApp } from "../../../context/AppContext";
@@ -48,12 +52,10 @@ const Teacher = () => {
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [form] = Form.useForm();
   const [imageUrl, setImageUrl] = useState(null);
-  const [role, setRole] = useState("Teacher");
   const [messageApi, contextHolder] = message.useMessage();
   const [teachers, setTeachers] = useState([]);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
 
   const [staff, setStaff] = useState([]);
@@ -77,8 +79,7 @@ const Teacher = () => {
       );
 
       const result = res.data.data || [];
-
-      console.log(result);
+      console.log(result)
       setStaff(result);
       setPagination({
         current: res.data.pagination?.page || 1,
@@ -111,10 +112,10 @@ const Teacher = () => {
 
   // ✅ Avatar fallback
   const renderAvatar = (record) => {
-    if (record.profileImg) {
+    if (record.avatar) {
       return (
         <img
-          src={record.profileImg}
+          src={record.avatar}
           alt="teacher"
           className="w-10 h-10 rounded-full object-cover"
         />
@@ -139,13 +140,12 @@ const Teacher = () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
-
       let res;
 
-      if (selectedTeacher) {
+      if (editingTeacher) {
         // 🔄 Update existing staff
         res = await axios.put(
-          `${API_BASE_URL}/api/management/staff/update/${selectedTeacher._id}`,
+          `${API_BASE_URL}/api/management/staff/update/${editingTeacher._id}`,
           values,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -155,80 +155,25 @@ const Teacher = () => {
         res = await axios.post(`${API_BASE_URL}/api/auth/register`, values, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        // messageApi.success(res?.data?.message || "Staff added successfully");
+        messageApi.success(res?.data?.message || "Staff added successfully");
       }
 
       setSuccessMessage(res?.data?.message);
-
-      // ✅ Close modal and refresh table
       setIsModalOpen(false);
       setIsSuccessModalOpen(true);
       form.resetFields();
-      setSelectedTeacher(null);
+      setEditingTeacher(null);
       getTeachers(pagination.current, pagination.pageSize, searchText);
     } catch (error) {
       console.error("Staff creation/update failed:", error);
-
-      // ✅ Smart error handling
-      if (error.response?.data?.message) {
-        messageApi.error(error.response.data.message);
-      } else if (Array.isArray(error.response?.data?.errors)) {
-        messageApi.error(
-          error.response.data.errors[0]?.msg || "Validation error"
-        );
-      } else {
-        messageApi.error("Something went wrong. Please try again.");
-      }
+      messageApi.error(
+        error.response?.data?.message ||
+          error.response?.data?.errors?.[0]?.msg ||
+          "Something went wrong. Please try again."
+      );
     } finally {
       setLoading(false);
     }
-  };
-
-  const addTeacher = async (values) => {
-    setLoading(true);
-    try {
-      const res = await axios.post(
-        `${API_BASE_URL}/api/teachers`,
-        {
-          // teacher data here
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      messageApi.success(res?.data?.message || "Teacher added successfully");
-      // Optionally refresh teacher list here
-    } catch (error) {}
-  };
-
-  const filteredTeachers = teachers.filter((teacher) =>
-    teacher.name.toLowerCase().includes(searchText.toLowerCase())
-  );
-
-  const handleSave = (values) => {
-    const newTeacher = {
-      ...values,
-      key: editingTeacher ? editingTeacher.key : Date.now().toString(),
-      profileImg: imageUrl || teacher_img,
-      status: editingTeacher ? editingTeacher.status : "active",
-    };
-
-    if (editingTeacher) {
-      setTeachers((prev) =>
-        prev.map((t) => (t.key === editingTeacher.key ? newTeacher : t))
-      );
-      message.success("Teacher updated");
-    } else {
-      setTeachers((prev) => [...prev, newTeacher]);
-      message.success("Teacher registered");
-    }
-
-    form.resetFields();
-    setImageUrl(null);
-    setEditingTeacher(null);
-    setIsModalOpen(false);
   };
 
   const toggleBlock = (record) => {
@@ -255,42 +200,34 @@ const Teacher = () => {
 
   const handleCancel = () => {
     setIsModalOpen(false);
+    setEditingTeacher(null);
     form.resetFields();
     setImageUrl(null);
+  };
+
+  const handleManageStaff = (record) => {
+    message.info(`Manage staff: ${record.firstName} ${record.lastName}`);
   };
 
   const columns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     {
       title: "Profile",
-      key: "profileImg",
+      key: "avatar",
       render: (_, record) => renderAvatar(record),
     },
     {
       title: "Full Name",
       key: "name",
-      render: (_, record) => `${record.title} ${record.firstName} ${record.lastName}`,
+      render: (_, record) =>
+        `${record.title || ""} ${record.firstName || ""} ${
+          record.lastName || ""
+        }`.trim(),
     },
     { title: "Subject", dataIndex: "subject", key: "subject" },
     { title: "Role", dataIndex: "role", key: "role" },
     { title: "Phone", dataIndex: "phone", key: "phone" },
-    {
-      title: "Admin Over Classes",
-      dataIndex: "adminOver",
-      key: "adminOver",
-      render: (classes) =>
-        classes?.length ? (
-          <>
-            {classes.map((cls) => (
-              <Tag color="blue" key={cls}>
-                {cls}
-              </Tag>
-            ))}
-          </>
-        ) : (
-          <span>—</span>
-        ),
-    },
+    { title: "Email", dataIndex: "email", key: "email" },
     {
       title: "Status",
       dataIndex: "status",
@@ -305,58 +242,69 @@ const Teacher = () => {
     {
       title: "Action",
       key: "action",
-      render: (_, record) => (
-        <Space>
-          <Button
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => {
-              setSelectedTeacher(record);
-              setIsDetailsOpen(true);
-            }}
-          >
-            View
-          </Button>
+      render: (_, record) => {
+        const menu = (
+          <Menu>
+            <Menu.Item
+              key="view"
+              icon={<EyeOutlined />}
+              onClick={() => {
+                setSelectedTeacher(record);
+                setIsDetailsOpen(true);
+              }}
+            >
+              View Details
+            </Menu.Item>
 
-          <Button
-            type="primary"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingTeacher(record);
-              setRole(record.role);
-              setImageUrl(record.profileImg);
-              form.setFieldsValue(record);
-              setIsModalOpen(true);
-            }}
-          >
-            Edit
-          </Button>
+            <Menu.Item
+              key="edit"
+              icon={<EditOutlined />}
+              onClick={() => {
+                setEditingTeacher(record);
+                form.setFieldsValue(record);
+                setImageUrl(record.profileImg);
+                setIsModalOpen(true);
+              }}
+            >
+              Edit Staff
+            </Menu.Item>
 
-          <Button
-            type={record.status === "active" ? "default" : "dashed"}
-            size="small"
-            danger={record.status === "active"}
-            icon={
-              record.status === "active" ? (
-                <StopOutlined />
-              ) : (
-                <CheckCircleOutlined />
-              )
-            }
-            onClick={() => toggleBlock(record)}
-          >
-            {record.status === "active" ? "Block" : "Unblock"}
+            <Menu.Item
+              key="manage"
+              icon={<SettingOutlined />}
+              onClick={() => handleManageStaff(record)}
+            >
+              Manage Staff
+            </Menu.Item>
+
+            <Menu.Divider />
+
+            <Menu.Item
+              key="toggle"
+              icon={
+                record.status === "active" ? (
+                  <StopOutlined style={{ color: "red" }} />
+                ) : (
+                  <CheckCircleOutlined style={{ color: "green" }} />
+                )
+              }
+              onClick={() => toggleBlock(record)}
+            >
+              {record.status === "active" ? "Block" : "Unblock"}
+            </Menu.Item>
+          </Menu>
+        );
+
+        return (
+          <Button>
+            <Dropdown overlay={menu} trigger={["click"]}>
+            <MoreOutlined />
+          </Dropdown>
           </Button>
-        </Space>
-      ),
+        );
+      },
     },
   ];
-
-  // ✅ Pagination handler
-  const handleTableChange = (paginationInfo) => {
-    getTeachers(paginationInfo.current, paginationInfo.pageSize, searchText);
-  };
 
   return (
     <div className="space-y-6">
@@ -377,7 +325,6 @@ const Teacher = () => {
             setEditingTeacher(null);
             form.resetFields();
             setImageUrl(null);
-            setRole("Teacher");
             setIsModalOpen(true);
           }}
         >
@@ -385,9 +332,8 @@ const Teacher = () => {
         </Button>
       </div>
 
-      {/* Table with Skeleton Loader */}
-      {loading ? (
-        <div className="p-6 bg-white rounded-md shadow">
+      {isFetching ? (
+        <div className="p-6 bg-white">
           <Skeleton active paragraph={{ rows: 6 }} />
         </div>
       ) : staff.length === 0 ? (
@@ -406,7 +352,6 @@ const Teacher = () => {
             position: ["bottomCenter"],
             className: "custom-pagination",
           }}
-          onChange={handleTableChange}
           className="custom-table"
           scroll={{ x: "max-content" }}
         />
@@ -423,7 +368,6 @@ const Teacher = () => {
       >
         <Form layout="vertical" form={form} onFinish={createStaff}>
           <Row gutter={16}>
-            {/* Role */}
             <Col xs={24} md={12}>
               <Form.Item
                 label="Title"
@@ -433,16 +377,15 @@ const Teacher = () => {
                 <Select placeholder="Select title">
                   {["Mr", "Mrs", "Miss", "Dr", "Prof", "Ms", "Engr"].map(
                     (title) => (
-                      <Select.Option key={title} value={title}>
+                      <Option key={title} value={title}>
                         {title}
-                      </Select.Option>
+                      </Option>
                     )
                   )}
                 </Select>
               </Form.Item>
             </Col>
 
-            {/* First Name */}
             <Col xs={24} md={12}>
               <Form.Item
                 label="First Name"
@@ -453,7 +396,6 @@ const Teacher = () => {
               </Form.Item>
             </Col>
 
-            {/* Last Name */}
             <Col xs={24} md={12}>
               <Form.Item
                 label="Last Name"
@@ -464,7 +406,6 @@ const Teacher = () => {
               </Form.Item>
             </Col>
 
-            {/* Phone */}
             <Col xs={24} md={12}>
               <Form.Item
                 label="Phone"
@@ -477,7 +418,6 @@ const Teacher = () => {
               </Form.Item>
             </Col>
 
-            {/* Email */}
             <Col xs={24} md={12}>
               <Form.Item
                 label="Email"
@@ -488,7 +428,6 @@ const Teacher = () => {
               </Form.Item>
             </Col>
 
-            {/* Image Upload */}
             <Col xs={24} md={12}>
               <Form.Item label="Profile Image" name="image">
                 <Upload
@@ -510,7 +449,6 @@ const Teacher = () => {
               </Form.Item>
             </Col>
 
-            {/* Address (Full width) */}
             <Col span={24}>
               <Form.Item label="Address" name="address">
                 <Input.TextArea rows={2} placeholder="Enter address" />
@@ -518,7 +456,6 @@ const Teacher = () => {
             </Col>
           </Row>
 
-          {/* Buttons */}
           <div className="flex justify-end gap-3 mt-4">
             <Button onClick={handleCancel}>Cancel</Button>
             <Button type="primary" htmlType="submit" loading={loading}>
@@ -528,13 +465,16 @@ const Teacher = () => {
         </Form>
       </Modal>
 
-      {/*Success Modal */}
+      {/* Success Modal */}
       <Modal
         title="Success"
-        closable={{ "aria-label": "Custom Close Button" }}
         open={isSuccessModalOpen}
-        footer={null}
         onCancel={handleCancelsuccess}
+        footer={[
+          <Button key="close" onClick={handleCancelsuccess}>
+            OK
+          </Button>,
+        ]}
       >
         {successMessage}
       </Modal>
@@ -553,7 +493,7 @@ const Teacher = () => {
       >
         <div className="w-40 h-40 mb-3">
           <img
-            src={selectedTeacher?.profileImg || teacher_img}
+            src={selectedTeacher?.avatar || teacher_img}
             alt="Teacher"
             className="object-cover w-full h-full rounded-md"
           />
@@ -579,13 +519,6 @@ const Teacher = () => {
             <Descriptions.Item label="Address">
               {selectedTeacher.address || "—"}
             </Descriptions.Item>
-            {selectedTeacher.role === "Admin" && (
-              <Descriptions.Item label="Admin Over Classes">
-                {selectedTeacher.adminOver?.length
-                  ? selectedTeacher.adminOver.join(", ")
-                  : "—"}
-              </Descriptions.Item>
-            )}
             <Descriptions.Item label="Status">
               {selectedTeacher.status === "active" ? "Active" : "Blocked"}
             </Descriptions.Item>

@@ -13,7 +13,6 @@ import {
 } from "antd";
 import {
   UserOutlined,
-  TeamOutlined,
   BookOutlined,
   SolutionOutlined,
   PlusCircleOutlined,
@@ -125,11 +124,6 @@ const Dashboard = () => {
     icon: <UserOutlined className="text-3xl !text-blue-500" />,
     label: "Students",
     value: analytics?.students ?? 0,
-  },
-  {
-    icon: <TeamOutlined className="text-3xl !text-green-500" />,
-    label: "Teachers",
-    value: analytics?.teachers ?? 0,
   },
   {
     icon: <IdcardOutlined className="text-3xl !text-orange-500" />,

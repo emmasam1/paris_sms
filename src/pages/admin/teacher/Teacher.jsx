@@ -226,6 +226,7 @@ const Teacher = () => {
     },
     { title: "Subject", dataIndex: "subject", key: "subject" },
     { title: "Role", dataIndex: "role", key: "role" },
+    { title: "Admin Over", dataIndex: "levelName", key: "levelName" },
     { title: "Phone", dataIndex: "phone", key: "phone" },
     { title: "Email", dataIndex: "email", key: "email" },
     {

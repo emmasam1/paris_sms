@@ -23,40 +23,62 @@ import SubAdminHome from "./pages/sub_admin/dashboard/SubAdminHome";
 import SubAdminResults from "./pages/sub_admin/results/SubAdminResults";
 import SubAdminAttendance from "./pages/sub_admin/attendance/SubAdminAttendance";
 import Profile from "./components/profile/Profile";
+import PrivateRoute from "./privateRoute/PrivateRoute";
+import NotFound from "./components/notfound/NotFound";
 
 const App = () => {
   return (
     <Routes>
+      <Route path="*" element={<NotFound />} />
       <Route path="/" element={<Login />} />
-      <Route path="/admin/dashboard" element={<DashboardLayout />}>
-        <Route path="" element={<Dashboard />} />
-        <Route path="students" element={<Student />} />
-        <Route path="teachers" element={<Teacher />} />
-        <Route path="class-management" element={<ClassManagement />} />
-        <Route path="pin-management" element={<PinManagement />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="message" element={<AdminMessage />} />
-        <Route path="subject-management" element={<SubjectManagement />} />
+
+      {/* ===== Admin Routes ===== */}
+      <Route
+        element={
+          <PrivateRoute
+            allowedRoles={["super_admin", "school_admin", "principal"]}
+          />
+        }
+      >
+        <Route path="/admin/dashboard" element={<DashboardLayout />}>
+          <Route path="" element={<Dashboard />} />
+          <Route path="students" element={<Student />} />
+          <Route path="teachers" element={<Teacher />} />
+          <Route path="class-management" element={<ClassManagement />} />
+          <Route path="pin-management" element={<PinManagement />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="message" element={<AdminMessage />} />
+          <Route path="subject-management" element={<SubjectManagement />} />
+        </Route>
       </Route>
 
-      <Route path="/teacher/dashboard" element={<TeacherDashboardLayout />}>
-        <Route path="" element={<TeacherDashboard />} />
-        <Route path="classes" element={<MyClasses />} />
-        <Route path="settings" element={<Setting />} />
-        <Route path="profile" element={<Profile />} />
+      {/* ===== Teacher Routes ===== */}
+      <Route element={<PrivateRoute allowedRoles={["teacher"]} />}>
+        <Route path="/teacher/dashboard" element={<TeacherDashboardLayout />}>
+          <Route path="" element={<TeacherDashboard />} />
+          <Route path="classes" element={<MyClasses />} />
+          <Route path="settings" element={<Setting />} />
+          <Route path="profile" element={<Profile />} />
+        </Route>
       </Route>
 
-      <Route path="/sub-admin/dashboard" element={<SubAdminLayout />}>
-        <Route path="" element={<SubAdminHome />} />
-        <Route path="results" element={<SubAdminResults />} />
-        <Route path="attendance" element={<SubAdminAttendance />} />
+      {/* ===== Sub-Admin Routes ===== */}
+      <Route element={<PrivateRoute allowedRoles={["sub_admin"]} />}>
+        <Route path="/sub-admin/dashboard" element={<SubAdminLayout />}>
+          <Route path="" element={<SubAdminHome />} />
+          <Route path="results" element={<SubAdminResults />} />
+          <Route path="attendance" element={<SubAdminAttendance />} />
+        </Route>
       </Route>
 
-      <Route path="/home" element={<ParentHome />} />
-      <Route path="/parent/result" element={<Result />} />
-      <Route path="/parent/attendance" element={<ViewAttendance />} />
-      <Route path="/parent/messages" element={<ParentMessages />} />
+      {/* ===== Parent Routes ===== */}
+      <Route element={<PrivateRoute allowedRoles={["parent"]} />}>
+        <Route path="/home" element={<ParentHome />} />
+        <Route path="/parent/result" element={<Result />} />
+        <Route path="/parent/attendance" element={<ViewAttendance />} />
+        <Route path="/parent/messages" element={<ParentMessages />} />
+      </Route>
     </Routes>
   );
 };

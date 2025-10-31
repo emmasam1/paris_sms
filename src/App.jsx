@@ -11,7 +11,7 @@ import TeacherDashboardLayout from "./layout/teacher/TeacherDashboardLayout";
 import TeacherDashboard from "./pages/teacher/dashboard/TeacherDashboard";
 import MyClasses from "./pages/teacher/class/MyClasses";
 import Setting from "./pages/teacher/settings/Setting";
-import TeacherProfile from "./pages/teacher/profile/TeacherProfile";
+// import TeacherProfile from "./pages/teacher/profile/TeacherProfile";
 import AdminMessage from "./pages/admin/message/AdminMessage ";
 import ParentHome from "./pages/parent/ParentHome";
 import Result from "./pages/parent/Result";
@@ -22,7 +22,7 @@ import SubAdminLayout from "./layout/sub_admin/SubAdminLayout";
 import SubAdminHome from "./pages/sub_admin/dashboard/SubAdminHome";
 import SubAdminResults from "./pages/sub_admin/results/SubAdminResults";
 import SubAdminAttendance from "./pages/sub_admin/attendance/SubAdminAttendance";
-import AdminProfile from "./pages/admin/profile/AdminProfile";
+import Profile from "./components/profile/Profile";
 
 const App = () => {
   return (
@@ -35,7 +35,7 @@ const App = () => {
         <Route path="class-management" element={<ClassManagement />} />
         <Route path="pin-management" element={<PinManagement />} />
         <Route path="settings" element={<Settings />} />
-        <Route path="profile" element={<AdminProfile />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="message" element={<AdminMessage />} />
         <Route path="subject-management" element={<SubjectManagement />} />
       </Route>
@@ -44,14 +44,14 @@ const App = () => {
         <Route path="" element={<TeacherDashboard />} />
         <Route path="classes" element={<MyClasses />} />
         <Route path="settings" element={<Setting />} />
-        <Route path="profile" element={<TeacherProfile />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
 
-       <Route path="/sub-admin/dashboard" element={<SubAdminLayout />}>
+      <Route path="/sub-admin/dashboard" element={<SubAdminLayout />}>
         <Route path="" element={<SubAdminHome />} />
         <Route path="results" element={<SubAdminResults />} />
         <Route path="attendance" element={<SubAdminAttendance />} />
-       </Route>
+      </Route>
 
       <Route path="/home" element={<ParentHome />} />
       <Route path="/parent/result" element={<Result />} />

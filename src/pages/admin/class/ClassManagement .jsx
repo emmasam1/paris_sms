@@ -12,6 +12,8 @@ import {
   Descriptions,
   Dropdown,
   Menu,
+  Tabs,
+  Skeleton,
 } from "antd";
 import {
   PlusOutlined,
@@ -21,12 +23,14 @@ import {
   UserAddOutlined,
   MoreOutlined,
   SwapOutlined,
+  MinusCircleOutlined,
 } from "@ant-design/icons";
 import MigrateClassModal from "../../../components/migrate/MigrateClassModal";
 import { useApp } from "../../../context/AppContext";
 import axios from "axios";
 
 const { Option } = Select;
+const { TabPane } = Tabs;
 
 const ClassManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,6 +43,8 @@ const ClassManagement = () => {
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
+  const [isClassLoading, setIsClassLoading] = useState(false);
+  const [isLoadingClasses, setIsLoadingClasses] = useState(true);
 
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
@@ -46,7 +52,6 @@ const ClassManagement = () => {
   const [form] = Form.useForm();
   const [assignForm] = Form.useForm();
 
-  // --- move these to your top-level state declarations ---
   const [isMigrateOpen, setIsMigrateOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState("JSS1A");
 
@@ -61,8 +66,10 @@ const ClassManagement = () => {
     console.log("Not Promoted:", notPromoted);
   };
 
+  // Fetch classes
   const getClass = async () => {
     if (!token) return;
+    setIsLoadingClasses(true);
     setLoading(true);
 
     try {
@@ -72,15 +79,20 @@ const ClassManagement = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setClasses(res?.data?.data);
-      // messageApi.success(res?.data?.message);
-      // console.log(res);
+      setClasses(res?.data?.data || []);
+      messageApi.success(res?.data?.message || "Classes fetched successfully");
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      messageApi.error(
+        error?.response?.data?.message || "Failed to fetch classes"
+      );
+    } finally {
+      setIsLoadingClasses(false);
+      setLoading(false);
     }
   };
 
-  // ✅ Fetch teachers (fixed)
+  // Fetch teachers
   const getTeachers = async () => {
     if (!token) return;
     setIsFetching(true);
@@ -88,10 +100,7 @@ const ClassManagement = () => {
       const res = await axios.get(`${API_BASE_URL}/api/management/staff/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      const result = res?.data?.data || [];
-      console.log("teachers ", result);
-      setTeachers(result);
+      setTeachers(res?.data?.data || []);
     } catch (error) {
       console.error("Error fetching teachers:", error);
     } finally {
@@ -99,54 +108,96 @@ const ClassManagement = () => {
     }
   };
 
-  // ✅ Ensure token ready before fetching
   useEffect(() => {
     if (initialized && token) {
       getTeachers();
+      getClass();
     }
   }, [initialized, token]);
 
-  useEffect(() => {
-    getClass();
-  }, [initialized, token]);
-
-  // Open create or edit modal
+  // Open create/edit modal
   const openModal = (record = null) => {
     setEditingClass(record);
     if (record) {
-      form.setFieldsValue(record);
+      form.setFieldsValue({
+        name: record.name,
+        arm: record.arm,
+      });
     } else {
       form.resetFields();
     }
     setIsModalOpen(true);
   };
 
-  // Save class (create or edit)
-  const handleSave = (values) => {
-    if (editingClass) {
-      setClasses((prev) =>
-        prev.map((cls) =>
-          cls.key === editingClass.key ? { ...editingClass, ...values } : cls
-        )
+  // Save single or bulk class
+  const handleSave = async (values) => {
+    setIsClassLoading(true);
+    try {
+      if (editingClass) {
+        // Update single class
+        const res = await axios.put(
+          `${API_BASE_URL}/api/class-management/classes/${editingClass._id}`,
+          { name: values.name, arm: values.arm },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        messageApi.success(res?.data?.message || "Class updated successfully!");
+      } else if (values.bulkName && values.arms?.length) {
+        const res = await axios.post(
+          `${API_BASE_URL}/api/class-management/classes/bulk`,
+          {
+            name: values.bulkName, // <-- match the input
+            arms: values.arms, // <-- array of strings
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        messageApi.success(
+          res?.data?.message || "Bulk class uploaded successfully!"
+        );
+      } else {
+        // Single create
+        const res = await axios.post(
+          `${API_BASE_URL}/api/class-management/classes`,
+          { name: values.name, arm: values.arm },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        messageApi.success(res?.data?.message || "Class created successfully!");
+      }
+
+      setIsModalOpen(false);
+      form.resetFields();
+      setEditingClass(null);
+      getClass();
+    } catch (error) {
+      console.error(error);
+      messageApi.error(
+        error?.response?.data?.message || "Something went wrong!"
       );
-      message.success("Class updated successfully");
-    } else {
-      const newClass = {
-        key: Date.now().toString(),
-        students: 0,
-        teacher: null,
-        ...values,
-      };
-      setClasses((prev) => [...prev, newClass]);
-      message.success("Class created successfully");
+    } finally {
+      setIsClassLoading(false);
     }
-    setIsModalOpen(false);
   };
 
   // Delete class
-  const handleDelete = (key) => {
-    setClasses((prev) => prev.filter((cls) => cls.key !== key));
-    message.success("Class deleted successfully");
+  const handleDelete = async (record) => {
+    setLoading(true);
+    try {
+      const res = await axios.delete(
+        `${API_BASE_URL}/api/class-management/classes/${record?._id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      messageApi.success(res?.data?.message || "Class deleted successfully");
+      // Optionally remove from local state without refetching
+      setClasses((prev) => prev.filter((cls) => cls._id !== record._id));
+    } catch (error) {
+      console.error(error);
+      messageApi.error(
+        error?.response?.data?.message || "Failed to delete class"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Assign teacher
@@ -160,26 +211,23 @@ const ClassManagement = () => {
     setIsAssignOpen(false);
   };
 
-  // Columns for class table
+  // Table columns
   const columns = [
-    {
-      title: "Class Name",
-      dataIndex: "name",
-      key: "name",
-    },
+    { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
+    { title: "Class Name", dataIndex: "name", key: "name" },
+    { title: "Arm", dataIndex: "arm", key: "arm" },
     {
       title: "Section",
       dataIndex: "section",
       key: "section",
-      render: (_, record) => {
-        if (record.name?.toLowerCase().includes("jss")) {
-          return <span className="">Junior</span>;
-        } else if (record.name?.toLowerCase().includes("sss")) {
-          return <span className="">Senior</span>;
-        } else {
-          return <span className="text-gray-500">N/A</span>;
-        }
-      },
+      render: (_, record) =>
+        record.name?.toLowerCase().includes("jss") ? (
+          <span>Junior</span>
+        ) : record.name?.toLowerCase().includes("ss") ? (
+          <span>Senior</span>
+        ) : (
+          <span className="text-gray-500">N/A</span>
+        ),
     },
     {
       title: "Teacher Assigned",
@@ -188,11 +236,7 @@ const ClassManagement = () => {
       render: (teacher) =>
         teacher || <span className="text-gray-400">Not Assigned</span>,
     },
-    {
-      title: "Students",
-      dataIndex: "students",
-      key: "students",
-    },
+    { title: "Students", dataIndex: "students", key: "students" },
     {
       title: "Actions",
       key: "actions",
@@ -202,7 +246,6 @@ const ClassManagement = () => {
           <Menu>
             <Menu.Item
               icon={<EyeOutlined />}
-              size="small"
               onClick={() => {
                 setViewClass(record);
                 setIsViewOpen(true);
@@ -212,16 +255,12 @@ const ClassManagement = () => {
             </Menu.Item>
             <Menu.Item
               icon={<EditOutlined />}
-              size="small"
-              type="default"
               onClick={() => openModal(record)}
             >
               Edit
             </Menu.Item>
             <Menu.Item
               icon={<UserAddOutlined />}
-              size="small"
-              type="dashed"
               onClick={() => {
                 setAssignClass(record);
                 setIsAssignOpen(true);
@@ -232,25 +271,16 @@ const ClassManagement = () => {
             </Menu.Item>
             <Menu.Item
               icon={<SwapOutlined />}
-              size="small"
-              type="dashed"
-              className="border-blue-500 text-blue-600 hover:!bg-blue-50"
               onClick={() => setIsMigrateOpen(true)}
             >
               Migrate Class
             </Menu.Item>
-            <Menu.Item key="delete" danger>
+            <Menu.Item key="delete">
               <Popconfirm
                 title="Are you sure you want to delete this class?"
-                onConfirm={() => handleDelete(record.key)}
+                onConfirm={() => handleDelete(record)}
               >
-                <Button
-                  size="small"
-                  type="text"
-                  danger
-                  icon={<DeleteOutlined />}
-                  className="!p-0"
-                >
+                <Button type="text" danger icon={<DeleteOutlined />}>
                   Delete
                 </Button>
               </Popconfirm>
@@ -259,18 +289,18 @@ const ClassManagement = () => {
         );
 
         return (
-          <Button>
-            <Dropdown overlay={menu} trigger={["click"]}>
+          <Dropdown overlay={menu} trigger={["click"]}>
+            <Button>
               <MoreOutlined />
-            </Dropdown>
-          </Button>
+            </Button>
+          </Dropdown>
         );
       },
     },
   ];
 
   return (
-    <div className="">
+    <div>
       {contextHolder}
       <div className="flex justify-end items-center mb-4">
         <Button
@@ -282,59 +312,120 @@ const ClassManagement = () => {
         </Button>
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={classes}
-        rowKey="key"
-        bordered
-        size="small"
-        pagination={{
-          pageSize: 7,
-          position: ["bottomCenter"],
-          className: "custom-pagination",
-        }}
-        className="custom-table"
-        scroll={{ x: "max-content" }}
-      />
+      {isLoadingClasses ? (
+        <Skeleton active paragraph={{ rows: 7 }} />
+      ) : (
+        <Table
+          columns={columns}
+          dataSource={classes}
+          rowKey="key"
+          bordered
+          size="small"
+          pagination={{
+            pageSize: 7,
+            position: ["bottomCenter"],
+            className: "custom-pagination",
+          }}
+          scroll={{ x: "max-content" }}
+        />
+      )}
 
-      {/* Create/Edit Class Modal */}
+      {/* Create/Edit Modal */}
       <Modal
         title={editingClass ? "Edit Class" : "Create Class"}
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
         destroyOnClose
+        width={450}
       >
-        <Form form={form} layout="vertical" onFinish={handleSave}>
-          <Form.Item
-            label="Class Name"
-            name="name"
-            rules={[{ required: true, message: "Please enter class name" }]}
-          >
-            <Input placeholder="Enter class name" />
-          </Form.Item>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSave}
+          onFinishFailed={(err) => console.log("Validation Failed:", err)}
+        >
+          <Tabs defaultActiveKey="1">
+            {/* Single Class */}
+            <TabPane tab="Single Class" key="1">
+              <Form.Item
+                label="Class Name"
+                name="name"
+                rules={[{ required: true, message: "Please enter class name" }]}
+              >
+                <Input placeholder="e.g. JSS 1" />
+              </Form.Item>
+              <Form.Item
+                label="Arm"
+                name="arm"
+                rules={[{ required: true, message: "Please enter class arm" }]}
+              >
+                <Input placeholder="e.g. Empowerment En-cliff" />
+              </Form.Item>
+            </TabPane>
 
-          <Form.Item
-            label="Section"
-            name="section"
-            rules={[{ required: true, message: "Please select section" }]}
-          >
-            <Select placeholder="Select section">
-              <Option value="Junior">Junior</Option>
-              <Option value="Senior">Senior</Option>
-            </Select>
-          </Form.Item>
+            {/* Bulk Upload */}
+            <TabPane tab="Bulk Upload" key="2">
+              <Form.Item
+                label="Class Name"
+                name="bulkName" // <-- change from 'name'
+                rules={[{ required: true, message: "Please enter class name" }]}
+              >
+                <Input placeholder="e.g. JSS 3" />
+              </Form.Item>
 
-          <div className="flex justify-end gap-2">
+              <Form.List name="arms" initialValue={[""]}>
+                {(fields, { add, remove }) => (
+                  <>
+                    {fields.map((field) => (
+                      <Space
+                        key={field.key}
+                        style={{ display: "flex", marginBottom: 8 }}
+                        align="baseline"
+                      >
+                        <Form.Item
+                          {...field}
+                          name={field.name}
+                          fieldKey={field.fieldKey}
+                          rules={[
+                            { required: true, message: "Missing arm name" },
+                          ]}
+                        >
+                          <Input placeholder="Arm name" />
+                        </Form.Item>
+                        {fields.length > 1 && (
+                          <MinusCircleOutlined
+                            onClick={() => remove(field.name)}
+                          />
+                        )}
+                      </Space>
+                    ))}
+                    <Form.Item>
+                      <Button
+                        type="dashed"
+                        onClick={() => add()}
+                        block
+                        icon={<PlusOutlined />}
+                      >
+                        Add Arm
+                      </Button>
+                    </Form.Item>
+                  </>
+                )}
+              </Form.List>
+            </TabPane>
+          </Tabs>
+
+          <div className="flex justify-end gap-2 mt-4">
             <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" loading={isClassLoading}>
               {editingClass ? "Update" : "Create"}
             </Button>
           </div>
         </Form>
       </Modal>
 
-      {/* ✅ Assign Teacher Modal (dynamic teachers) */}
+      {/* Assign Teacher Modal */}
       <Modal
         title={`Assign Teacher to ${assignClass?.name}`}
         open={isAssignOpen}
@@ -380,7 +471,7 @@ const ClassManagement = () => {
         </Form>
       </Modal>
 
-      {/* View Class Details Modal */}
+      {/* View Class Modal */}
       <Modal
         title="Class Details"
         open={isViewOpen}

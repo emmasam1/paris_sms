@@ -79,7 +79,7 @@ const Teacher = () => {
       );
 
       const result = res.data.data || [];
-      console.log(result)
+      console.log(result);
       setStaff(result);
       setPagination({
         current: res.data.pagination?.page || 1,
@@ -144,8 +144,8 @@ const Teacher = () => {
 
       if (editingTeacher) {
         // 🔄 Update existing staff
-        res = await axios.put(
-          `${API_BASE_URL}/api/management/staff/update/${editingTeacher._id}`,
+        res = await axios.patch(
+          `${API_BASE_URL}/api/management/update-profile/${editingTeacher._id}`,
           values,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -212,7 +212,7 @@ const Teacher = () => {
   const columns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     {
-      title: "Profile",
+      title: "Image",
       key: "avatar",
       render: (_, record) => renderAvatar(record),
     },
@@ -242,6 +242,7 @@ const Teacher = () => {
     {
       title: "Action",
       key: "action",
+      // width: 50,
       render: (_, record) => {
         const menu = (
           <Menu>
@@ -296,11 +297,11 @@ const Teacher = () => {
         );
 
         return (
-          <Button>
-            <Dropdown overlay={menu} trigger={["click"]}>
-            <MoreOutlined />
+          <Dropdown overlay={menu} trigger={["click"]}>
+            <Button>
+              <MoreOutlined />
+            </Button>
           </Dropdown>
-          </Button>
         );
       },
     },
@@ -333,7 +334,7 @@ const Teacher = () => {
       </div>
 
       {isFetching ? (
-        <div className="p-6 bg-white">
+        <div className="p-6 ">
           <Skeleton active paragraph={{ rows: 6 }} />
         </div>
       ) : staff.length === 0 ? (

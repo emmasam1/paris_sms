@@ -2,15 +2,24 @@ import { Navigate, Outlet } from "react-router";
 import { useApp } from "../context/AppContext";
 
 const PrivateRoute = ({ allowedRoles }) => {
-  const { user } = useApp(); // user saved in session via saveSession
+  const { user, initialized } = useApp();
 
+  // Wait for context to initialize before checking user
+  if (!initialized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-lg font-medium text-gray-600">
+        Checking authentication...
+      </div>
+    );
+  }
+
+  // Not logged in
   if (!user) {
-    // Not logged in
     return <Navigate to="/" replace />;
   }
 
+  // Role mismatch → redirect to their correct dashboard
   if (!allowedRoles.includes(user.role)) {
-    // Wrong role, redirect to correct dashboard
     switch (user.role) {
       case "super_admin":
       case "school_admin":
@@ -27,7 +36,7 @@ const PrivateRoute = ({ allowedRoles }) => {
     }
   }
 
-  return <Outlet />; // render the nested routes
+  return <Outlet />;
 };
 
 export default PrivateRoute;

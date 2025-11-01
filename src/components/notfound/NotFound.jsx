@@ -1,22 +1,24 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Button } from "antd";
-import logo from "../../assets/logo.png"; // replace with your logo path
+import { Button, Spin } from "antd";
+import logo from "../../assets/logo.png";
 import { useApp } from "../../context/AppContext";
 
 const NotFound = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, clearSession } = useApp(); // make sure this exists in your context
+  const { user, loading, clearSession } = useApp();
 
   useEffect(() => {
+    if (loading) return; // Wait until session is loaded
+
     const timer = setTimeout(() => {
       if (user) {
-        navigate(-1); // go back to previous page
+        navigate(-1); // Go back if logged in
       } else {
-        // clear session + redirect to login
+        // Clear session + redirect to login
         try {
-          if (clearSession) clearSession();
+          clearSession?.();
           sessionStorage.removeItem("user");
           sessionStorage.removeItem("token");
         } catch (err) {
@@ -27,13 +29,15 @@ const NotFound = () => {
     }, 7000);
 
     return () => clearTimeout(timer);
-  }, [navigate, user, clearSession]);
+  }, [navigate, user, loading, clearSession]);
 
   const handleGoBack = () => {
+    if (loading) return; // Don’t act until loaded
+
     if (user) navigate(-1);
     else {
       try {
-        if (clearSession) clearSession();
+        clearSession?.();
         sessionStorage.removeItem("user");
         sessionStorage.removeItem("token");
       } catch (err) {
@@ -43,10 +47,19 @@ const NotFound = () => {
     }
   };
 
+  // ✅ Show loading state to avoid premature redirect
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+        <Spin size="large" tip="Restoring session..." />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-blue-50 via-white to-pink-50 px-4">
       {/* Logo */}
-      <img src={logo} alt="Smart Schola" className="mb-6 w-42 h-auto" />
+      <img src={logo} alt="Smart Schola" className="mb-6 w-40 h-auto" />
 
       {/* 404 Text */}
       <h1 className="text-7xl font-bold text-gray-800 mb-4">404</h1>

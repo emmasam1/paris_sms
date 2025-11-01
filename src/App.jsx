@@ -3,16 +3,15 @@ import Login from "./pages/auth/Login";
 import DashboardLayout from "./layout/admin/DashboardLayout";
 import Dashboard from "./pages/admin/dashboard/Dashboard";
 import Student from "./pages/admin/student/Student";
+import ClassManagement from "./pages/admin/class/ClassManagement"
 import Teacher from "./pages/admin/teacher/Teacher";
-import ClassManagement from "./pages/admin/class/ClassManagement ";
 import PinManagement from "./pages/admin/pin/PinManagement";
 import Settings from "./pages/admin/setting/Settings";
 import TeacherDashboardLayout from "./layout/teacher/TeacherDashboardLayout";
 import TeacherDashboard from "./pages/teacher/dashboard/TeacherDashboard";
 import MyClasses from "./pages/teacher/class/MyClasses";
 import Setting from "./pages/teacher/settings/Setting";
-// import TeacherProfile from "./pages/teacher/profile/TeacherProfile";
-import AdminMessage from "./pages/admin/message/AdminMessage ";
+import AdminMessage from "./pages/admin/message/AdminMessage";
 import ParentHome from "./pages/parent/ParentHome";
 import Result from "./pages/parent/Result";
 import ViewAttendance from "./pages/parent/ViewAttendance";
@@ -29,7 +28,7 @@ import NotFound from "./components/notfound/NotFound";
 const App = () => {
   return (
     <Routes>
-      <Route path="*" element={<NotFound />} />
+      {/* Auth */}
       <Route path="/" element={<Login />} />
 
       {/* ===== Admin Routes ===== */}
@@ -79,6 +78,9 @@ const App = () => {
         <Route path="/parent/attendance" element={<ViewAttendance />} />
         <Route path="/parent/messages" element={<ParentMessages />} />
       </Route>
+
+      {/* ===== Catch-All (404) ===== */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

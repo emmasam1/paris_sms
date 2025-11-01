@@ -37,7 +37,7 @@ const Profile = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUserData(res.data.data);
-      // console.log(res)
+      console.log(res)
     } catch (error) {
       console.log("Profile fetch error:", error);
     } finally {
@@ -82,7 +82,7 @@ const Profile = () => {
       const res = await axios.patch(
         `${API_BASE_URL}/api/management/update-profile`,
         formData,
-        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } }
+        { headers: { Authorization: `Bearer ${token}`} }
       );
       message.success(res.data.message || "Profile updated successfully");
       setIsEditModalOpen(false);

@@ -336,6 +336,8 @@ const Student = () => {
 
     setLoading(true);
 
+    console.log(formData);
+
     try {
       let res;
       if (editingStudent) {
@@ -351,6 +353,7 @@ const Student = () => {
           }
         );
         messageApi.success(res.data.message || "Student updated successfully");
+        console.log(res);
       } else {
         // POST request for create
         res = await axios.post(
@@ -401,9 +404,42 @@ const Student = () => {
     );
   };
 
-  const handleDelete = (record) => {
-    setStudents((prev) => prev.filter((s) => s.key !== record.key));
-    messageApi.success("Student deleted");
+  const handleDelete = async (record) => {
+    console.log(record)
+    try {
+      // Optional: show a loading message
+      messageApi.open({
+        type: "loading",
+        content: "Deleting student...",
+        duration: 0,
+      });
+
+      const res = await axios.delete(
+        `${API_BASE_URL}/api/class-management/classes/${record._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Close the loading message first
+      messageApi.destroy();
+
+      messageApi.success(res?.data?.message || "Student deleted successfully");
+
+      // Update local state (remove deleted student)
+      setStudents((prev) => prev.filter((s) => s._id !== record._id));
+
+      // Refresh class list if needed
+      getClass?.();
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      messageApi.destroy();
+      messageApi.error(
+        error?.response?.data?.message || "Failed to delete student"
+      );
+    }
   };
 
   const columns = [
@@ -452,12 +488,12 @@ const Student = () => {
       title: "Parent Phone",
       dataIndex: "parentPhone",
       key: "parentPhone",
-      render: (_, record) => record.parent?.phone || "-",
+      // render: (_, record) => record.parent?.phone || "-",
     },
     {
       title: "Actions",
       key: "action",
-      width: 200,
+      // width: 200,
       render: (_, record) => {
         const menu = (
           <Menu

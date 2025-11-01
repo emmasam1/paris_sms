@@ -36,14 +36,6 @@ import axios from "axios";
 
 const { Option } = Select;
 
-const getBase64 = (file) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = (error) => reject(error);
-  });
-
 const Teacher = () => {
   const [searchText, setSearchText] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,9 +46,14 @@ const Teacher = () => {
   const [imageUrl, setImageUrl] = useState(null);
   const [messageApi, contextHolder] = message.useMessage();
   const [teachers, setTeachers] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [assignLoading, setAssignLoading] = useState(false);
 
   const [staff, setStaff] = useState([]);
   const [isFetching, setIsFetching] = useState(true);
@@ -72,14 +69,15 @@ const Teacher = () => {
     setIsFetching(true);
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/management/staff/all?page=${page}&limit=${limit}${
+        `${API_BASE_URL}/api/staff-management/staff/all?page=${page}&limit=${limit}${
           search ? `&search=${search}` : ""
         }`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const result = res.data.data || [];
-      console.log(result);
+      messageApi.success(res?.data?.message);
+      // console.log(result);
       setStaff(result);
       setPagination({
         current: res.data.pagination?.page || 1,
@@ -94,12 +92,6 @@ const Teacher = () => {
     }
   };
 
-  // ✅ Ensure token ready before fetching
-  useEffect(() => {
-    if (initialized && token) {
-      getTeachers(pagination.current, pagination.pageSize, searchText);
-    }
-  }, [initialized, token]);
 
   // ✅ Debounced search
   useEffect(() => {
@@ -176,6 +168,89 @@ const Teacher = () => {
     }
   };
 
+  const getClass = async () => {
+    if (!token) return;
+
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/class-management/classes`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setClasses(res?.data?.data || []);
+      console.log(res);
+      // messageApi.success(res?.data?.message || "Classes fetched successfully");
+    } catch (error) {
+      console.error(error);
+      messageApi.error(
+        error?.response?.data?.message || "Failed to fetch classes"
+      );
+    }
+  };
+
+  useEffect(() => {
+    getClass();
+  }, [token]);
+
+  const handleAssignAdmin = async () => {
+    const id = selectedStaff?._id;
+    if (!selectedClass) {
+      messageApi.warning("Please select a class to assign.");
+      return;
+    }
+
+    const className = selectedClass;
+
+    setAssignLoading(true);
+    try {
+      const res = await axios.patch(
+        `${API_BASE_URL}/api/staff-management/staff/${id}/promote-class-admin`,
+        {
+          levelName: className,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      messageApi.success(
+        res?.data?.message || "Admin role assigned successfully!"
+      );
+      setIsAssignModalOpen(false);
+      setSelectedClass(null);
+      setSelectedStaff(null);
+      getTeachers(); // refresh table after assignment
+    } catch (error) {
+      console.error(error);
+      messageApi.error(
+        error?.response?.data?.message || "Failed to assign admin role"
+      );
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const removeAdminRole = async (record) => {
+    setIsAssignModalOpen(false);
+    setLoading(true);
+    const id = record?._id;
+
+    try {
+      const res = await axios.patch(
+        `${API_BASE_URL}/api/staff-management/staff/${id}/demote-class-admin`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      messageApi.success(res?.data?.message);
+      getTeachers();
+    } catch (error) {
+      messageApi.error(res?.data?.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const toggleBlock = (record) => {
     setTeachers((prev) =>
       prev.map((t) =>
@@ -206,7 +281,8 @@ const Teacher = () => {
   };
 
   const handleManageStaff = (record) => {
-    message.info(`Manage staff: ${record.firstName} ${record.lastName}`);
+    setSelectedStaff(record);
+    setIsAssignModalOpen(true);
   };
 
   const columns = [
@@ -225,8 +301,30 @@ const Teacher = () => {
         }`.trim(),
     },
     { title: "Subject", dataIndex: "subject", key: "subject" },
-    { title: "Role", dataIndex: "role", key: "role" },
-    { title: "Admin Over", dataIndex: "levelName", key: "levelName" },
+    {
+      title: "Role",
+      dataIndex: "role",
+      key: "role",
+      render: (role, record) => {
+        return record.role === "class_admin" ? (
+          <p>Class Admin</p>
+        ) : record.role === "teacher" ? (<p>Teacher</p>) : role 
+        ;
+      },
+    },
+    {
+      title: "Admin Over",
+      dataIndex: "adminLevel",
+      key: "adminLevel",
+      render: (adminLevel, record) => {
+        return record.role === "class_admin" ? (
+          <p>{adminLevel || "--"}</p>
+        ) : (
+          <p>--</p>
+        );
+      },
+    },
+
     { title: "Phone", dataIndex: "phone", key: "phone" },
     { title: "Email", dataIndex: "email", key: "email" },
     {
@@ -274,9 +372,22 @@ const Teacher = () => {
             <Menu.Item
               key="manage"
               icon={<SettingOutlined />}
-              onClick={() => handleManageStaff(record)}
+              onClick={() => handleManageStaff(record)} // Only fires for assigning
             >
-              Manage Staff
+              {record.role === "class_admin" ? (
+                <Button
+                  className="!border-0 !p-0 hover:!text-black hover:!bg-transparent"
+                  loading={loading}
+                  onClick={(e) => {
+                    e.stopPropagation(); // 🧠 Prevent modal from opening
+                    removeAdminRole(record);
+                  }}
+                >
+                  Remove Admin Role
+                </Button>
+              ) : (
+                "Assign Admin Role"
+              )}
             </Menu.Item>
 
             <Menu.Divider />
@@ -526,6 +637,52 @@ const Teacher = () => {
             </Descriptions.Item>
           </Descriptions>
         )}
+      </Modal>
+
+      {/* Assign Admin Role Modal */}
+      <Modal
+        title={`Assign Admin Role${
+          selectedStaff
+            ? ` - ${selectedStaff.firstName} ${selectedStaff.lastName}`
+            : ""
+        }`}
+        open={isAssignModalOpen}
+        onCancel={() => setIsAssignModalOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsAssignModalOpen(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="assign"
+            type="primary"
+            loading={assignLoading}
+            onClick={handleAssignAdmin}
+          >
+            Assign
+          </Button>,
+        ]}
+      >
+        <p className="mb-2 text-gray-700">Select class to assign:</p>
+        <Select
+          style={{ width: "100%" }}
+          placeholder="Select a class"
+          value={selectedClass}
+          onChange={(value) => setSelectedClass(value)}
+          options={[
+            ...new Map(
+              classes.map((cls) => [
+                cls.name,
+                {
+                  value: cls.name,
+                  label: cls.name,
+                  disabled: teachers?.some(
+                    (t) => t.adminLevel === cls.name // 🔒 disable if someone is already admin over this class
+                  ),
+                },
+              ])
+            ).values(),
+          ]}
+        />
       </Modal>
     </div>
   );

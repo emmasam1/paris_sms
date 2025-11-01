@@ -4,15 +4,14 @@ import { Form, Input, Button, Tabs, message } from "antd";
 import { useNavigate } from "react-router";
 import { UserOutlined, LockOutlined, IdcardOutlined } from "@ant-design/icons";
 import axios from "axios";
-import { useApp } from "../../context/AppContext"; // ✅ Adjust the path to your actual context location
+import { useApp } from "../../context/AppContext";
 
 const Login = () => {
   const [activeTab, setActiveTab] = useState("adminTeacher");
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
 
-  const { API_BASE_URL, loading, setLoading, saveSession } = useApp();
-
+  const { API_BASE_URL, loading, setLoading, setUser, setToken } = useApp();
 
   // ================= STAFF LOGIN ==================
   const handleStaffLogin = async (values) => {
@@ -23,16 +22,17 @@ const Login = () => {
         password: values.password,
       });
 
-      console.log(res)
+      // console.log(res)
+
       const { token, user } = res.data;
       messageApi.success(res?.data?.message || "Login successful!");
 
-      // Save encrypted session
-      saveSession(user, token);
+      // ✅ Save user and token to context (auto-encrypted by AppContext)
+      setUser(user);
+      setToken(token);
 
-      // Route based on role and school status
+      // Route based on role
       const { role, school } = user;
-
       switch (role) {
         case "super_admin":
           navigate("/super-admin/dashboard");
@@ -55,7 +55,7 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Login error:", err);
-      messageApi.error(err.res?.data?.message || "Login failed. Try again.");
+      messageApi.error(err.response?.data?.message || "Login failed. Try again.");
     } finally {
       setLoading(false);
     }
@@ -72,7 +72,8 @@ const Login = () => {
       const { token, user } = res.data;
       messageApi.success(res?.data?.message || "Parent login successful!");
 
-      saveSession(user, token);
+      setUser(user);
+      setToken(token);
       navigate("/home");
     } catch (err) {
       console.error("Parent login error:", err);
@@ -85,7 +86,7 @@ const Login = () => {
   // ================= FORM SUBMIT ==================
   const onFinish = (values) => {
     if (activeTab === "adminTeacher") handleStaffLogin(values);
-    else if (activeTab === "parent") handleParentLogin(values);
+    else handleParentLogin(values);
   };
 
   // ================= MOTION VARIANTS ==================

@@ -56,8 +56,12 @@ const DashboardLayout = () => {
   const screens = useBreakpoint();
   const location = useLocation();
   const navigate = useNavigate();
-  const { API_BASE_URL, clearSession, token, initialized } = useApp();
-  const [user, setUser] = useState(null);
+
+  // ✅ Use the context-provided values
+  const { API_BASE_URL, clearSession, token, initialized, user, setUser, logout } = useApp();
+
+  // console.log("token", token);
+  // console.log("user", user);
 
   const {
     token: { colorBgContainer, borderRadiusLG },
@@ -68,15 +72,15 @@ const DashboardLayout = () => {
     setCollapsed(!screens.lg);
   }, [screens]);
 
-  // ✅ Separate redirect check
+  // ✅ Redirect unauthenticated users
   useEffect(() => {
     if (initialized && !token) {
-      clearSession();
+      logout();
       navigate("/");
     }
   }, [initialized, token, navigate]);
 
-  // ✅ Fetch user when token is ready
+  // ✅ Fetch user info
   const getUser = async () => {
     if (!token) return;
 
@@ -84,9 +88,7 @@ const DashboardLayout = () => {
       const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       setUser(res.data.data);
-      // console.log("Fetched user:", res.data.data);
     } catch (error) {
       console.error("Failed to fetch user:", error);
       message.error("Session expired. Please log in again.");
@@ -96,12 +98,12 @@ const DashboardLayout = () => {
   };
 
   useEffect(() => {
-    if (initialized && token) {
+    if (initialized && token && !user) {
       getUser();
     }
   }, [initialized, token]);
 
-  // 🧠 Generate initials if no avatar
+  // 🧠 Get initials for avatar fallback
   const getInitials = () => {
     if (!user) return "";
     const first = user.firstName?.charAt(0)?.toUpperCase() || "";
@@ -113,7 +115,7 @@ const DashboardLayout = () => {
 
   const handleMenuClick = ({ key }) => {
     if (key === "logout") {
-      clearSession();
+      logout();
       navigate("/");
     }
     if (key === "profile") {
@@ -137,7 +139,6 @@ const DashboardLayout = () => {
           height: "100vh",
         }}
       >
-        {/* Logo */}
         <div
           className={`flex items-center transition-all duration-300 ${
             collapsed ? "justify-center py-6" : "justify-start gap-4 py-6 px-4"
@@ -154,7 +155,6 @@ const DashboardLayout = () => {
               className={`object-contain ${collapsed ? "h-10 w-10" : "h-12 w-12"}`}
             />
           </div>
-
           {!collapsed && (
             <div className="flex flex-col">
               <p className="text-white font-semibold text-sm uppercase tracking-wide">
@@ -234,7 +234,6 @@ const DashboardLayout = () => {
               overflow: "hidden",
             }}
           >
-            {/* Watermark */}
             <div
               style={{
                 position: "fixed",

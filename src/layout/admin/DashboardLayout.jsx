@@ -56,9 +56,10 @@ const DashboardLayout = () => {
   const screens = useBreakpoint();
   const location = useLocation();
   const navigate = useNavigate();
+  const [user, setUser] = useState([])
 
   // ✅ Use the context-provided values
-  const { API_BASE_URL, clearSession, token, initialized, user, setUser, logout } = useApp();
+  const { API_BASE_URL, clearSession, token, initialized, logout } = useApp();
 
   // console.log("token", token);
   // console.log("user", user);
@@ -89,6 +90,7 @@ const DashboardLayout = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(res.data.data);
+      // console.log("user from layout", res)
     } catch (error) {
       console.error("Failed to fetch user:", error);
       message.error("Session expired. Please log in again.");
@@ -98,7 +100,7 @@ const DashboardLayout = () => {
   };
 
   useEffect(() => {
-    if (initialized && token && !user) {
+    if (initialized && token) {
       getUser();
     }
   }, [initialized, token]);
@@ -119,7 +121,7 @@ const DashboardLayout = () => {
       navigate("/");
     }
     if (key === "profile") {
-      navigate("/admin/dashboard/profile");
+      navigate("/profile");
     }
   };
 
@@ -217,7 +219,7 @@ const DashboardLayout = () => {
               <span className="text-sm font-medium text-gray-200">
                 {user?.firstName && user?.lastName
                   ? `${user.title} ${user.firstName}`
-                  : user?.firstName || "Admin"}
+                  : user?.firstName || ""}
               </span>
             </div>
           </Dropdown>

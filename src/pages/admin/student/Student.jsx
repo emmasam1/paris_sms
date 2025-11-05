@@ -81,10 +81,16 @@ const Student = () => {
   const [isLoadingClasses, setIsLoadingClasses] = useState(false);
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm();
   const [csvFile, setCsvFile] = useState(null);
+   const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 20, // use your backend’s default page size
+    total: 0,
+  });
 
   // 🧠 Avatar upload states
   const [fileList, setFileList] = useState([]);
@@ -129,22 +135,35 @@ const Student = () => {
   }, [editingStudent, form]);
 
   // Fetch students
-  const getStudents = async () => {
+ const getStudents = async (page = 1) => {
     setLoading(true);
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/student-management/student`,
+        `${API_BASE_URL}/api/student-management/student?page=${page}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
+      
+
       const studentsWithFullName = (res?.data?.data || []).map((s) => ({
         ...s,
+        key: s._id,
         name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
       }));
 
+      console.log(res)
+
       setStudents(studentsWithFullName);
+
+      // 🔹 Update pagination info from backend
+      setPagination({
+        current: res?.data?.pagination?.page || page,
+        total: res?.data?.pagination?.total || studentsWithFullName.length,
+        pageSize: 20,
+      });
+
       messageApi.success(res?.data?.message || "Students fetched successfully");
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -156,8 +175,30 @@ const Student = () => {
     }
   };
 
+  const getTeachers = async () => {
+      if (!token) return;
+      try {
+        const res = await axios.get(
+          `${API_BASE_URL}/api/staff-management/staff/all`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setTeachers(res?.data?.data || []);
+        console.log("teachers", res);
+      } catch (error) {
+        console.error("Error fetching teachers:", error);
+      } 
+    };
+
+  // 🔹 Handle page change
+  const handleTableChange = (paginationConfig) => {
+    getStudents(paginationConfig.current);
+  };
+
   useEffect(() => {
-    if (initialized && token) getStudents();
+    if (initialized && token) getStudents(pagination.current);
+    getTeachers()
   }, [initialized, token]);
 
   const handleCsvUpload = async () => {
@@ -237,8 +278,24 @@ const Student = () => {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (student) => {
-    setEditingStudent(student);
+ const openEditModal = (student) => {
+  const waitForClasses = () => {
+    if (!classes || classes.length === 0) {
+      setTimeout(waitForClasses, 300); // try again after 300ms
+      return;
+    }
+
+    console.log("Editing:", student.class);
+
+    const matchingClass = classes.find(
+      (c) =>
+        c._id === student.class?._id ||
+        c.name === student.class?.name ||
+        c.displayName ===
+          `${student.class?.name}${student.class?.arm ? " - " + student.class?.arm : ""}`
+    );
+
+    console.log("matchingClass:", matchingClass);
 
     form.setFieldsValue({
       firstName: student.firstName,
@@ -247,7 +304,7 @@ const Student = () => {
       rollNumber: student.rollNumber,
       dob: student.dob ? student.dob.split("T")[0] : "",
       gender: student.gender,
-      class: student.class?._id || null, // ✅ Use the _id for dropdown
+      class: matchingClass?._id || "",
       session: student.session,
       status: student.status || "active",
       house: student.house,
@@ -256,7 +313,6 @@ const Student = () => {
       parentAddress: student.parentAddress,
     });
 
-    // Load existing avatar if available
     if (student.avatar) {
       setFileList([
         {
@@ -270,8 +326,14 @@ const Student = () => {
       setFileList([]);
     }
 
+    setEditingStudent(student);
     setIsModalOpen(true);
   };
+
+  waitForClasses();
+};
+
+
 
   const openDetails = (record) => {
     setDetailsStudent(record);
@@ -336,8 +398,6 @@ const Student = () => {
 
     setLoading(true);
 
-    console.log(formData);
-
     try {
       let res;
       if (editingStudent) {
@@ -354,6 +414,7 @@ const Student = () => {
         );
         messageApi.success(res.data.message || "Student updated successfully");
         console.log(res);
+        getStudents()
       } else {
         // POST request for create
         res = await axios.post(
@@ -472,6 +533,12 @@ const Student = () => {
       dataIndex: "class",
       key: "class",
       render: (text, record) => record?.class?.name || record.class,
+    },
+    {
+      title: "Arm",
+      dataIndex: "arm",
+      key: "arm",
+      render: (text, record) => record?.class?.arm || record.class,
     },
     {
       title: "Session",
@@ -644,11 +711,15 @@ const Student = () => {
           rowKey="key"
           bordered
           size="small"
-          pagination={{
-            pageSize: 7,
-            position: ["bottomCenter"],
-            className: "custom-pagination",
-          }}
+           pagination={{
+          current: pagination.current,
+          total: pagination.total,
+          pageSize: pagination.pageSize,
+          position: ["bottomCenter"],
+          className: "custom-pagination",
+          showSizeChanger: false,
+        }}
+        onChange={handleTableChange}
           className="custom-table"
           scroll={{ x: "max-content" }}
         />

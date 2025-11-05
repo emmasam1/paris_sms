@@ -44,12 +44,17 @@ const ClassManagement = () => {
   const [teachers, setTeachers] = useState([]);
   const [isFetching, setIsFetching] = useState(false);
   const [isClassLoading, setIsClassLoading] = useState(false);
-  const [isLoadingClasses, setIsLoadingClasses] = useState(true);
   const [selectedClassId, setSelectedClassId] = useState(null);
   const [activeTab, setActiveTab] = useState("1");
 
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
+
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 7,
+    total: 0,
+  });
 
   const [form] = Form.useForm();
   const [assignForm] = Form.useForm();
@@ -69,31 +74,46 @@ const ClassManagement = () => {
   };
 
   // Fetch classes
-  const getClass = async () => {
-    if (!token) return;
-    setIsLoadingClasses(true);
-    setLoading(true);
+  const getClass = async (page = 1) => {
+  if (!token) return;
+  setLoading(true);
 
-    try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/class-management/classes`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setClasses(res?.data?.data || []);
-      messageApi.success(res?.data?.message || "Classes fetched successfully");
-      // console.log(res);
-    } catch (error) {
-      console.error(error);
-      messageApi.error(
-        error?.response?.data?.message || "Failed to fetch classes"
-      );
-    } finally {
-      setIsLoadingClasses(false);
-      setLoading(false);
-    }
-  };
+  try {
+    const res = await axios.get(`${API_BASE_URL}/api/class-management/classes`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // console.log("All class:", res);
+
+    const data = res?.data?.data || [];
+    const mapped = data.map((cls) => ({
+      ...cls,
+      key: cls._id,
+    }));
+
+    // 🔹 simulate pagination
+    const pageSize = 7;
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const paginated = mapped.slice(start, end);
+
+    setClasses(paginated);
+
+    setPagination({
+      current: page,
+      total: mapped.length,
+      pageSize,
+    });
+
+    messageApi.success(res?.data?.message || "Classes fetched successfully");
+  } catch (error) {
+    console.error(error);
+    messageApi.error(error?.response?.data?.message || "Failed to fetch classes");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Fetch teachers
   const getTeachers = async () => {
@@ -118,9 +138,14 @@ const ClassManagement = () => {
   useEffect(() => {
     if (initialized && token) {
       getTeachers();
-      getClass();
+      getClass(pagination.current);
     }
   }, [initialized, token]);
+
+  // 🔹 Handle AntD table pagination change
+  const handleTableChange = (paginationConfig) => {
+    getClass(paginationConfig.current);
+  };
 
   // ✅ Unified Assign/Unassign function
   const assignStaff = async (record, teacherId = null) => {
@@ -421,20 +446,25 @@ const ClassManagement = () => {
         </Button>
       </div>
 
-      {isLoadingClasses ? (
+      {loading ? (
         <Skeleton active paragraph={{ rows: 7 }} />
       ) : (
         <Table
           columns={columns}
           dataSource={classes}
+          loading={loading}
           rowKey="key"
           bordered
           size="small"
-          pagination={{
-            pageSize: 7,
-            position: ["bottomCenter"],
-            className: "custom-pagination",
-          }}
+           pagination={{
+          current: pagination.current,
+          total: pagination.total,
+          pageSize: pagination.pageSize,
+          position: ["bottomCenter"],
+          className: "custom-pagination",
+          showSizeChanger: false,
+        }}
+          onChange={handleTableChange}
           scroll={{ x: "max-content" }}
         />
       )}

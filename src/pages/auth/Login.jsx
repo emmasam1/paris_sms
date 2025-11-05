@@ -22,7 +22,7 @@ const Login = () => {
         password: values.password,
       });
 
-      // console.log(res)
+      console.log(res)
 
       const { token, user } = res.data;
       messageApi.success(res?.data?.message || "Login successful!");

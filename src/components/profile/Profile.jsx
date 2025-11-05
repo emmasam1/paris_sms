@@ -13,9 +13,17 @@ import {
   Upload,
   message,
 } from "antd";
-import { MailOutlined, BookOutlined, TeamOutlined, BankOutlined, UploadOutlined } from "@ant-design/icons";
-import { useApp } from "../../context/AppContext";
+import {
+  MailOutlined,
+  BookOutlined,
+  TeamOutlined,
+  BankOutlined,
+  UploadOutlined,
+  ArrowLeftOutlined,
+} from "@ant-design/icons";
 import axios from "axios";
+import { useApp } from "../../context/AppContext";
+import { useNavigate } from "react-router";
 
 const { Option } = Select;
 
@@ -23,13 +31,13 @@ const Profile = () => {
   const { API_BASE_URL, token } = useApp();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Edit modal & form states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const navigate = useNavigate();
 
+  // Fetch user profile
   const getUserProfile = async () => {
     setLoading(true);
     try {
@@ -37,9 +45,10 @@ const Profile = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUserData(res.data.data);
-      console.log(res)
+      // console.log("Profile:", res.data.data);
     } catch (error) {
       console.log("Profile fetch error:", error);
+      message.error("Failed to load profile");
     } finally {
       setLoading(false);
     }
@@ -49,8 +58,7 @@ const Profile = () => {
     if (token) getUserProfile();
   }, [token]);
 
-  const handleAvatarChange = ({ fileList: newFileList }) => setFileList(newFileList);
-
+  // Open edit modal and populate fields
   const openEditModal = () => {
     form.setFieldsValue({
       address: userData.address || "",
@@ -62,11 +70,16 @@ const Profile = () => {
       setFileList([
         { uid: "-1", name: "avatar.png", status: "done", url: userData.avatar },
       ]);
+    } else {
+      setFileList([]);
     }
 
     setIsEditModalOpen(true);
   };
 
+  const handleAvatarChange = ({ fileList: newFileList }) => setFileList(newFileList);
+
+  // Submit profile update
   const handleEditSubmit = async (values) => {
     const formData = new FormData();
     formData.append("address", values.address);
@@ -80,9 +93,9 @@ const Profile = () => {
     setUploading(true);
     try {
       const res = await axios.patch(
-        `${API_BASE_URL}/api/management/update-profile`,
+        `${API_BASE_URL}/api/staff-management/staff/update-profile`,
         formData,
-        { headers: { Authorization: `Bearer ${token}`} }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       message.success(res.data.message || "Profile updated successfully");
       setIsEditModalOpen(false);
@@ -97,14 +110,30 @@ const Profile = () => {
 
   const renderAvatar = () => {
     if (userData?.avatar) return <Avatar size={120} src={userData.avatar} />;
-    const initials = userData?.firstName && userData?.lastName
-      ? `${userData.firstName[0]}${userData.lastName[0]}`
-      : "U";
-    return <Avatar size={120}>{initials.toUpperCase()}</Avatar>;
+    const initials =
+      userData?.firstName && userData?.lastName
+        ? `${userData.firstName[0]}${userData.lastName[0]}`
+        : "U";
+    return (
+      <Avatar size={120} className="bg-blue-600 text-white text-xl">
+        {initials.toUpperCase()}
+      </Avatar>
+    );
   };
 
   return (
-    <div>
+    <div className="max-w-5xl mx-auto p-4">
+      {/* Fancy Go Back Button */}
+      <div className="flex justify-start mb-4">
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium border-none hover:from-indigo-600 hover:to-blue-500 transition-all duration-300 rounded-full px-5 py-2 shadow-md"
+        >
+          Go Back
+        </Button>
+      </div>
+
       <Card className="rounded-2xl shadow-lg border border-gray-100">
         {loading ? (
           <Skeleton active avatar paragraph={{ rows: 10 }} />
@@ -115,14 +144,18 @@ const Profile = () => {
               {renderAvatar()}
               <div className="flex-1 space-y-2 text-center sm:text-left">
                 <h2 className="text-2xl font-semibold">
-                  {userData.firstName} {userData.lastName}
+                  {userData.title} {userData.firstName} {userData.lastName}
                 </h2>
                 <p className="text-gray-500 capitalize">{userData.role}</p>
                 <div className="mt-2">
                   <MailOutlined className="text-gray-500 mr-2" />
                   <span>{userData.email}</span>
                 </div>
-                <Button className="mt-3" onClick={openEditModal}>
+                <Button
+                  type="primary"
+                  className="mt-3"
+                  onClick={openEditModal}
+                >
                   Edit Profile
                 </Button>
               </div>
@@ -132,9 +165,15 @@ const Profile = () => {
 
             {/* Address, Phone, Gender */}
             <div className="grid sm:grid-cols-3 gap-6 mt-4 text-gray-600">
-              <p><strong>Address:</strong> {userData.address || "—"}</p>
-              <p><strong>Phone:</strong> {userData.phone || "—"}</p>
-              <p><strong>Gender:</strong> {userData.gender || "—"}</p>
+              <p>
+                <strong>Address:</strong> {userData.address || "—"}
+              </p>
+              <p>
+                <strong>Phone:</strong> {userData.phone || "—"}
+              </p>
+              <p className="capitalize">
+                <strong>Gender:</strong> {userData.gender || "—"}
+              </p>
             </div>
 
             <Divider />
@@ -161,7 +200,10 @@ const Profile = () => {
                   <TeamOutlined className="text-green-500" /> Form Class
                 </h3>
                 {userData?.formClass ? (
-                  <Tag color="green">{userData.formClass}</Tag>
+                  <Tag color="green">
+                    {userData.formClass?.name || userData.formClass}
+                    {userData.formClass?.arm ? ` - ${userData.formClass.arm}` : ""}
+                  </Tag>
                 ) : (
                   <p className="text-gray-500 text-sm">No class assigned</p>
                 )}
@@ -194,12 +236,14 @@ const Profile = () => {
                     {userData.school.address}
                   </p>
                   <p>
-                    <span className="font-medium text-gray-700">Current Session:</span>{" "}
-                    {userData.school.currentSession}
+                    <span className="font-medium text-gray-700">
+                      Current Session:
+                    </span>{" "}
+                    {userData.school.currentSession || "—"}
                   </p>
                   <p>
                     <span className="font-medium text-gray-700">Current Term:</span>{" "}
-                    {userData.school.currentTerm}
+                    {userData.school.currentTerm || "—"}
                   </p>
                 </div>
               </div>

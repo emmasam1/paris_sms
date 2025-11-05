@@ -77,7 +77,7 @@ const Teacher = () => {
 
       const result = res.data.data || [];
       messageApi.success(res?.data?.message);
-      // console.log(result);
+      console.log(result);
       setStaff(result);
       setPagination({
         current: res.data.pagination?.page || 1,
@@ -179,7 +179,7 @@ const Teacher = () => {
         }
       );
       setClasses(res?.data?.data || []);
-      console.log(res);
+      // console.log(res);
       // messageApi.success(res?.data?.message || "Classes fetched successfully");
     } catch (error) {
       console.error(error);
@@ -310,6 +310,18 @@ const Teacher = () => {
           <p>Class Admin</p>
         ) : record.role === "teacher" ? (<p>Teacher</p>) : role 
         ;
+      },
+    },
+    {
+      title: "Class Teacher",
+      dataIndex: "formClass",
+      key: "formClass",
+      render: (formClass) => {
+        return formClass ? (
+          <p>{formClass.name } {formClass.arm}</p>
+        ) : (
+          <p>--</p>
+        );
       },
     },
     {

@@ -3,7 +3,7 @@ import Login from "./pages/auth/Login";
 import DashboardLayout from "./layout/admin/DashboardLayout";
 import Dashboard from "./pages/admin/dashboard/Dashboard";
 import Student from "./pages/admin/student/Student";
-import ClassManagement from "./pages/admin/class/ClassManagement"
+import ClassManagement from "./pages/admin/class/ClassManagement";
 import Teacher from "./pages/admin/teacher/Teacher";
 import PinManagement from "./pages/admin/pin/PinManagement";
 import Settings from "./pages/admin/setting/Settings";
@@ -31,11 +31,29 @@ const App = () => {
       {/* Auth */}
       <Route path="/" element={<Login />} />
 
+      <Route
+        element={
+          <PrivateRoute
+            allowedRoles={[
+              "super_admin",
+              "school_admin",
+              "principal",
+              "class_admin",
+              "teacher",
+              "parent",
+            ]}
+          />
+        }
+      >
+        {/* 🔹 Global Profile Page (shared by everyone) */}
+        <Route path="/profile" element={<Profile />} />
+      </Route>
+
       {/* ===== Admin Routes ===== */}
       <Route
         element={
           <PrivateRoute
-            allowedRoles={["super_admin", "school_admin", "principal"]}
+            allowedRoles={["class-admin", "school_admin", "principal"]}
           />
         }
       >
@@ -46,7 +64,7 @@ const App = () => {
           <Route path="class-management" element={<ClassManagement />} />
           <Route path="pin-management" element={<PinManagement />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="profile" element={<Profile />} />
+          {/* <Route path="profile" element={<Profile />} /> */}
           <Route path="message" element={<AdminMessage />} />
           <Route path="subject-management" element={<SubjectManagement />} />
         </Route>
@@ -58,16 +76,17 @@ const App = () => {
           <Route path="" element={<TeacherDashboard />} />
           <Route path="classes" element={<MyClasses />} />
           <Route path="settings" element={<Setting />} />
-          <Route path="profile" element={<Profile />} />
+          {/* <Route path="profile" element={<Profile />} /> */}
         </Route>
       </Route>
 
       {/* ===== Sub-Admin Routes ===== */}
-      <Route element={<PrivateRoute allowedRoles={["sub_admin"]} />}>
-        <Route path="/sub-admin/dashboard" element={<SubAdminLayout />}>
+      <Route element={<PrivateRoute allowedRoles={["class_admin"]} />}>
+        <Route path="/class-admin/dashboard" element={<SubAdminLayout />}>
           <Route path="" element={<SubAdminHome />} />
           <Route path="results" element={<SubAdminResults />} />
           <Route path="attendance" element={<SubAdminAttendance />} />
+          {/* <Route path="profile" element={<Profile />} /> */}
         </Route>
       </Route>
 

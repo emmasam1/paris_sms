@@ -8,6 +8,8 @@ import {
 } from "@ant-design/icons";
 import { Layout, Menu, theme, Grid, Dropdown, Space, Avatar } from "antd";
 import { Outlet, useLocation, useNavigate } from "react-router";
+import { useApp } from "../../context/AppContext";
+import axios from 'axios' 
 
 const menu_items = [
   {
@@ -51,6 +53,8 @@ const TeacherDashboardLayout = () => {
   const screens = useBreakpoint();
   const location = useLocation();
   const navigate = useNavigate();
+  const [user, setUser] = useState([]);
+  const { API_BASE_URL, clearSession, token, initialized, logout } = useApp();
 
   const {
     token: { colorBgContainer },
@@ -68,8 +72,40 @@ const TeacherDashboardLayout = () => {
       navigate("/");
     }
     if (key === "profile") {
-      navigate("/teacher/dashboard/profile");
+      navigate("/profile");
     }
+  };
+
+  // Fetch user profile
+  const getUser = async () => {
+    if (!token) return;
+
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUser(res.data.data);
+      console.log("user from layout", res);
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+      // message.error("Session expired. Please log in again.");
+      clearSession();
+      navigate("/");
+    }
+  };
+
+  useEffect(() => {
+    if (initialized && token) {
+      getUser();
+    }
+  }, [initialized, token]);
+
+  // 🧠 Get initials for avatar fallback
+  const getInitials = () => {
+    if (!user) return "";
+    const first = user.firstName?.charAt(0)?.toUpperCase() || "";
+    const last = user.lastName?.charAt(0)?.toUpperCase() || "";
+    return first + last || "AD";
   };
 
   return (
@@ -122,12 +158,28 @@ const TeacherDashboardLayout = () => {
           {/* User Info */}
           <Dropdown menu={{ items: menu_items, onClick: handleMenuClick }}>
             <div
-              className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-slate-800 cursor-pointer transition"
+              className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-slate-800 cursor-pointer"
               onClick={(e) => e.preventDefault()}
             >
-              <Avatar size="large" icon={<UserOutlined />} />
+              {user?.avatar ? (
+                <Avatar size="large" src={user.avatar} />
+              ) : (
+                <Avatar
+                  size="large"
+                  style={{
+                    backgroundColor: "#1677ff",
+                    color: "#fff",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {getInitials()}
+                </Avatar>
+              )}
+
               <span className="text-sm font-medium text-gray-200">
-                John Doe
+                {user?.firstName && user?.lastName
+                  ? `${user.title} ${user.firstName}`
+                  : user?.firstName || "Admin"}
               </span>
             </div>
           </Dropdown>

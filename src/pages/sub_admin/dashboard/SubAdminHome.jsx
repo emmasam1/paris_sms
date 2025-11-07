@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Card,
   Row,
@@ -9,6 +9,8 @@ import {
   List,
   Tag,
   Space,
+  message,
+  Skeleton
 } from "antd";
 import {
   UserOutlined,
@@ -19,11 +21,17 @@ import {
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router";
+import axios from "axios";
+import { useApp } from "../../../context/AppContext";
+
 
 const SubAdminHome = () => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
+  const [user, setUser] = useState([])
+  const [loading, setLoading] = useState(false)
+   const { API_BASE_URL, token } = useApp();
   const [announcements, setAnnouncements] = useState([
     {
       id: 1,
@@ -93,6 +101,24 @@ const SubAdminHome = () => {
       // path: "/subadmin/dashboard/messages",
     },
   ];
+
+  const getUser = async () => {
+    setLoading(true)
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setUser(res?.data?.data)
+      console.log(res)
+    } catch (error) {
+      console.log(error)
+    }finally{
+      setLoading(false)
+    }
+  }
+  useEffect(()=>{
+    getUser()
+  }, [])
 
   return (
     <div className="space-y-8">

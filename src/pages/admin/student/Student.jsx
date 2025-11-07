@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Row,
   Col,
@@ -18,7 +18,6 @@ import {
   Avatar,
   Dropdown,
   Menu,
-  Divider,
 } from "antd";
 import {
   SearchOutlined,
@@ -29,9 +28,7 @@ import {
   BarChartOutlined,
   UploadOutlined,
   MoreOutlined,
-  PlusCircleOutlined,
 } from "@ant-design/icons";
-import * as XLSX from "xlsx";
 import std_img from "../../../assets/student.jpg";
 import { useApp } from "../../../context/AppContext";
 import axios from "axios";
@@ -39,21 +36,7 @@ import axios from "axios";
 const { Title } = Typography;
 const { Option } = Select;
 
-const classes = ["JSS1", "JSS2", "JSS3", "SS1", "SS2", "SS3"];
 const sessions = ["2023/2024", "2024/2025", "2025/2026"];
-
-const subjects = [
-  "Mathematics",
-  "English",
-  "Physics",
-  "Chemistry",
-  "Biology",
-  "Geography",
-  "Economics",
-  "Civic Education",
-  "Literature",
-  "Computer Science",
-];
 
 const teacherAssigned = {
   JSS1: "Mr. Adams",
@@ -64,14 +47,13 @@ const teacherAssigned = {
   SS3: "Mrs. Gomez",
 };
 
-const generatePin = () =>
-  Math.floor(100000 + Math.random() * 900000).toString();
-const generateRegNo = () => `STU${Date.now().toString().slice(-6)}`;
+// const generatePin = () =>
+//   Math.floor(100000 + Math.random() * 900000).toString();
+// const generateRegNo = () => `STU${Date.now().toString().slice(-6)}`;
 
 const Student = () => {
   const [searchText, setSearchText] = useState("");
   const [selectedClass, setSelectedClass] = useState(null);
-  const [selectedSession, setSelectedSession] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
@@ -85,12 +67,29 @@ const Student = () => {
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm();
-  const [csvFile, setCsvFile] = useState(null);
-   const [pagination, setPagination] = useState({
+  const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 20, // use your backend’s default page size
     total: 0,
   });
+
+  // CSV upload + preview state
+  const [csvLoading, setCsvLoading] = useState(false);
+  const [csvPreviewData, setCsvPreviewData] = useState([]); // array of preview rows (objects)
+  const [isCsvModalVisible, setIsCsvModalVisible] = useState(false);
+
+  // editable cell state: store currently editing cell as `${rowIndex}-${dataIndex}`
+  const [editingCell, setEditingCell] = useState(null);
+
+  // pagination for CSV preview table (client-side)
+  const [csvPagination, setCsvPagination] = useState({
+    current: 1,
+    pageSize: 5,
+  });
+
+  const fileInputRef = useRef(null);
+
+  const [isFocused, setIsFocused] = useState(false);
 
   // 🧠 Avatar upload states
   const [fileList, setFileList] = useState([]);
@@ -134,18 +133,23 @@ const Student = () => {
     }
   }, [editingStudent, form]);
 
-  // Fetch students
- const getStudents = async (page = 1) => {
+  // Fetch students (with search)
+  const getStudents = async (page = 1, search = "") => {
     setLoading(true);
     try {
+      const normalizedSearch = search.trim().toLowerCase();
+      const searchParam = normalizedSearch
+        ? `&search=${encodeURIComponent(normalizedSearch)}`
+        : "";
+
       const res = await axios.get(
-        `${API_BASE_URL}/api/student-management/student?page=${page}`,
+        `${API_BASE_URL}/api/student-management/student?page=${page}${searchParam}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      
+      console.log(res);
 
       const studentsWithFullName = (res?.data?.data || []).map((s) => ({
         ...s,
@@ -153,18 +157,14 @@ const Student = () => {
         name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
       }));
 
-      console.log(res)
-
+      messageApi.success(res.data?.message);
       setStudents(studentsWithFullName);
 
-      // 🔹 Update pagination info from backend
       setPagination({
         current: res?.data?.pagination?.page || page,
         total: res?.data?.pagination?.total || studentsWithFullName.length,
         pageSize: 20,
       });
-
-      messageApi.success(res?.data?.message || "Students fetched successfully");
     } catch (error) {
       console.error("Error fetching students:", error);
       messageApi.error(
@@ -176,76 +176,38 @@ const Student = () => {
   };
 
   const getTeachers = async () => {
-      if (!token) return;
-      try {
-        const res = await axios.get(
-          `${API_BASE_URL}/api/staff-management/staff/all`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setTeachers(res?.data?.data || []);
-        console.log("teachers", res);
-      } catch (error) {
-        console.error("Error fetching teachers:", error);
-      } 
-    };
+    if (!token) return;
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/staff-management/staff/all`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setTeachers(res?.data?.data || []);
+      // console.log("teachers", res);
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+    }
+  };
 
-  // 🔹 Handle page change
   const handleTableChange = (paginationConfig) => {
-    getStudents(paginationConfig.current);
+    getStudents(paginationConfig.current, searchText);
+  };
+
+  // Add this before return
+  const handleSearch = () => {
+    if (!searchText.trim()) {
+      getStudents(); // If empty, show all
+    } else {
+      getStudents(1, searchText);
+    }
   };
 
   useEffect(() => {
     if (initialized && token) getStudents(pagination.current);
-    getTeachers()
+    getTeachers();
   }, [initialized, token]);
-
-  const handleCsvUpload = async () => {
-    if (!csvFile) {
-      message.warning("Please select a CSV file first.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", csvFile);
-
-    setLoading(true);
-    try {
-      const res = await axios.post(
-        `${API_BASE_URL}/api/student-management/student/bulk-import`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      console.log("Bulk import response:", res.data);
-
-      // show message from backend
-      if (res?.data?.message) {
-        messageApi.success(res.data.message);
-      }
-
-      // refresh table data
-      await getStudents();
-    } catch (error) {
-      console.error("Bulk import error:", error);
-
-      const errMsg =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to upload CSV file";
-
-      messageApi.error(errMsg);
-    } finally {
-      setLoading(false);
-      setCsvFile(null);
-    }
-  };
 
   const openProgressModal = (student) => {
     setProgressStudent({
@@ -278,62 +240,62 @@ const Student = () => {
     setIsModalOpen(true);
   };
 
- const openEditModal = (student) => {
-  const waitForClasses = () => {
-    if (!classes || classes.length === 0) {
-      setTimeout(waitForClasses, 300); // try again after 300ms
-      return;
-    }
+  const openEditModal = (student) => {
+    const waitForClasses = () => {
+      if (!classes || classes.length === 0) {
+        setTimeout(waitForClasses, 300); // try again after 300ms
+        return;
+      }
 
-    console.log("Editing:", student.class);
+      console.log("Editing:", student.class);
 
-    const matchingClass = classes.find(
-      (c) =>
-        c._id === student.class?._id ||
-        c.name === student.class?.name ||
-        c.displayName ===
-          `${student.class?.name}${student.class?.arm ? " - " + student.class?.arm : ""}`
-    );
+      const matchingClass = classes.find(
+        (c) =>
+          c._id === student.class?._id ||
+          c.name === student.class?.name ||
+          c.displayName ===
+            `${student.class?.name}${
+              student.class?.arm ? " - " + student.class?.arm : ""
+            }`
+      );
 
-    console.log("matchingClass:", matchingClass);
+      console.log("matchingClass:", matchingClass);
 
-    form.setFieldsValue({
-      firstName: student.firstName,
-      lastName: student.lastName,
-      admissionNumber: student.admissionNumber,
-      rollNumber: student.rollNumber,
-      dob: student.dob ? student.dob.split("T")[0] : "",
-      gender: student.gender,
-      class: matchingClass?._id || "",
-      session: student.session,
-      status: student.status || "active",
-      house: student.house,
-      parentEmail: student.parentEmail,
-      parentPhone: student.parentPhone,
-      parentAddress: student.parentAddress,
-    });
+      form.setFieldsValue({
+        firstName: student.firstName,
+        lastName: student.lastName,
+        admissionNumber: student.admissionNumber,
+        rollNumber: student.rollNumber,
+        dob: student.dob ? student.dob.split("T")[0] : "",
+        gender: student.gender,
+        class: matchingClass?._id || "",
+        session: student.session,
+        status: student.status || "active",
+        house: student.house,
+        parentEmail: student.parentEmail,
+        parentPhone: student.parentPhone,
+        parentAddress: student.parentAddress,
+      });
 
-    if (student.avatar) {
-      setFileList([
-        {
-          uid: "-1",
-          name: "avatar.png",
-          status: "done",
-          url: student.avatar,
-        },
-      ]);
-    } else {
-      setFileList([]);
-    }
+      if (student.avatar) {
+        setFileList([
+          {
+            uid: "-1",
+            name: "avatar.png",
+            status: "done",
+            url: student.avatar,
+          },
+        ]);
+      } else {
+        setFileList([]);
+      }
 
-    setEditingStudent(student);
-    setIsModalOpen(true);
+      setEditingStudent(student);
+      setIsModalOpen(true);
+    };
+
+    waitForClasses();
   };
-
-  waitForClasses();
-};
-
-
 
   const openDetails = (record) => {
     setDetailsStudent(record);
@@ -414,7 +376,7 @@ const Student = () => {
         );
         messageApi.success(res.data.message || "Student updated successfully");
         console.log(res);
-        getStudents()
+        getStudents();
       } else {
         // POST request for create
         res = await axios.post(
@@ -466,7 +428,7 @@ const Student = () => {
   };
 
   const handleDelete = async (record) => {
-    console.log(record)
+    console.log(record);
     try {
       // Optional: show a loading message
       messageApi.open({
@@ -618,24 +580,529 @@ const Student = () => {
     },
   ];
 
+  // console.log(token)
+  // console.log(API_BASE_URL)
+
+  // -----------------------------------------
+  // CSV upload -> preview (opens preview modal)
+  // -----------------------------------------
+  const handleCsvUpload = async (file) => {
+    if (!file) return message.warning("Please select a file first!");
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      setCsvLoading(true);
+      const res = await axios.post(
+        `${API_BASE_URL}/api/student-management/student/bulk/preview`,
+        formData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log(res)
+      
+      if (res.data?.success) {
+        messageApi.success(res.data?.message || "Preview generated successfully");
+        // store preview array in state
+        // ensure it's a deep copy so edits don't mutate original response (safety)
+        const previewArray = Array.isArray(res.data.preview)
+          ? res.data.preview.map((r) => ({ ...r }))
+          : [];
+        setCsvPreviewData(previewArray);
+        setCsvPagination((p) => ({ ...p, current: 1 })); // reset preview pager
+        setIsCsvModalVisible(true);
+        console.log(res)
+      } else {
+        messageApi.error(res.data?.message || "Preview failed");
+      }
+    } catch (error) {
+      messageApi.error(error?.response?.data?.message || "CSV preview failed");
+      console.error("CSV preview error:", error);
+    } finally {
+      setCsvLoading(false);
+    }
+  };
+
+  // Helper: try to parse DOB from formats like "3/22/2015" -> "2015-03-22"
+// If it's already ISO-like, return as-is.
+const normalizeDob = (dob) => {
+  if (!dob) return "";
+  // common mm/dd/yyyy or m/d/yyyy
+  if (typeof dob === "string" && dob.includes("/")) {
+    const parts = dob.split("/").map((p) => p.trim());
+    // expect M/D/YYYY
+    if (parts.length === 3) {
+      let [m, d, y] = parts;
+      if (y.length === 2) {
+        // assume 20xx for two-digit years (unlikely here)
+        y = "20" + y;
+      }
+      // zero-pad month/day
+      if (m.length === 1) m = "0" + m;
+      if (d.length === 1) d = "0" + d;
+      return `${y}-${m}-${d}`;
+    }
+  }
+  // fallback: return original (server may accept different formats)
+  return dob;
+};
+
+// Helper: try to find a classId from classes list using className and arm
+const findClassId = (row, classes) => {
+  if (!classes || classes.length === 0) return null;
+  const name = (row.className || "").trim();
+  const arm = (row.arm || "").trim();
+
+  // 1) exact match on name + arm
+  let c = classes.find(
+    (cl) =>
+      String(cl.name).trim().toLowerCase() === name.toLowerCase() &&
+      String(cl.arm || "").trim().toLowerCase() === arm.toLowerCase()
+  );
+  if (c) return c._id;
+
+  // 2) match on displayName (if you stored `${name} - ${arm}`)
+  c = classes.find(
+    (cl) =>
+      String(cl.displayName || "")
+        .trim()
+        .toLowerCase() === `${name}${arm ? " - " + arm : ""}`.toLowerCase()
+  );
+  if (c) return c._id;
+
+  // 3) fallback: match by name only
+  c = classes.find(
+    (cl) => String(cl.name).trim().toLowerCase() === name.toLowerCase()
+  );
+  if (c) return c._id;
+
+  // 4) last resort: try partial match (startsWith)
+  c = classes.find((cl) =>
+    String(cl.name).trim().toLowerCase().startsWith(name.toLowerCase())
+  );
+  if (c) return c._id;
+
+  return null; // couldn't find
+};
+
+// confirmImport function - place inside your component (has access to csvPreviewData, classes, token, API_BASE_URL, message, setCsvLoading, getStudents, setIsCsvModalVisible)
+const confirmImport = async () => {
+  if (!csvPreviewData || csvPreviewData.length === 0) {
+    messageApi.warning("No preview data to import.");
+    return;
+  }
+
+  // Build payload.students and validate class mapping
+  const studentsPayload = [];
+  const missingClassRows = []; // collect indices or info for rows we can't map to classId
+
+  csvPreviewData.forEach((row, idx) => {
+    // map row fields -> expected API fields
+    const classId = findClassId(row, classes);
+
+    if (!classId) {
+      missingClassRows.push({
+        row: idx + 1,
+        firstName: row.firstName || "",
+        lastName: row.lastName || "",
+        className: row.className || "",
+        arm: row.arm || "",
+      });
+      // still build payload but with null classId so user sees the issue if they inspect
+    }
+
+    // normalize phone - if 10 digits and doesn't start with 0, add leading 0
+    let phone = row.parentPhone || "";
+    const digitsOnly = String(phone).replace(/\D/g, "");
+    if (digitsOnly.length === 10 && !String(phone).startsWith("0")) {
+      phone = "0" + digitsOnly;
+    }
+
+    // normalize dob
+    const dob = normalizeDob(row.dob);
+
+    // normalize subjects (if array -> join, if string -> use as-is)
+    let subjects = row.subjects;
+    if (Array.isArray(subjects)) subjects = subjects.join(", ");
+    if (subjects == null) subjects = "";
+
+    // build student object
+    studentsPayload.push({
+      firstName: row.firstName || "",
+      lastName: row.lastName || "",
+      classId: classId || null,
+      session: row.session || "",
+      gender: row.gender || "",
+      dob: dob || "",
+      subjects: subjects,
+      parentEmail: row.parentEmail || "",
+      parentPhone: phone,
+      house: row.house || "",
+      status: row.status || "active",
+    });
+  });
+
+  // If some rows are missing classId, notify user & abort so they can fix in the preview modal
+  if (missingClassRows.length > 0) {
+    // produce a helpful message describing which rows are missing mapping
+    const details = missingClassRows
+      .slice(0, 5) // show up to 5 examples
+      .map(
+        (r) =>
+          `Row ${r.row}: ${r.firstName} ${r.lastName} (class: ${r.className}${
+            r.arm ? " - " + r.arm : ""
+          })`
+      )
+      .join("\n");
+
+    messageApi.error(
+      `Unable to resolve classId for ${missingClassRows.length} row(s). Please fix className/arm in the preview modal.\n\nExamples:\n${details}`
+    );
+    return;
+  }
+
+  // All good -> call import endpoint
+  try {
+    setLoading(true);
+
+    // Endpoint expects { students: [...] } per your sample
+    const payload = { students: studentsPayload };
+
+    const res = await axios.post(
+      `${API_BASE_URL}/api/student-management/student/bulk/commit`,
+      payload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (res.data?.success) {
+      messageApi.success(res.data.message || "Students imported successfully");
+      setIsCsvModalVisible(false);
+      // refresh main students list
+      getStudents();
+    } else {
+      // API responded but reported failure
+      messageApi.error(res.data?.message || "Import failed");
+      console.error("Import response:", res.data);
+    }
+  } catch (err) {
+    console.error("Import error:", err);
+    messageApi.error(err?.response?.data?.message || "Import request failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  // ----------------------
+  // Editable cell handlers
+  // ----------------------
+  // editingCell format: `${rowIndex}-${dataIndex}`
+  const startEditCell = (rowIndex, dataIndex) => {
+    setEditingCell(`${rowIndex}-${dataIndex}`);
+  };
+
+  const stopEditCell = () => setEditingCell(null);
+
+  // Save a single cell value into csvPreviewData (rowIndex refers to index in csvPreviewData array)
+  const handleSaveCell = (rowIndex, dataIndex, newValue) => {
+    setCsvPreviewData((prev) => {
+      const copy = prev.map((r) => ({ ...r }));
+      // defensively create object if missing
+      if (!copy[rowIndex]) copy[rowIndex] = {};
+      // convert some fields if needed: suggestions/subjects expect arrays? We'll keep strings for edit and later mapping.
+      copy[rowIndex][dataIndex] = newValue;
+      return copy;
+    });
+    stopEditCell();
+  };
+
+  // Utility to render cell content (display) and editor
+  const renderEditableCell = (text, record, rowIndex, dataIndex) => {
+    const cellId = `${rowIndex}-${dataIndex}`;
+    const isEditing = editingCell === cellId;
+
+    // choose editor based on dataIndex
+    const getEditor = () => {
+      if (dataIndex === "gender") {
+        return (
+          <Select
+            autoFocus
+            defaultValue={text || ""}
+            onBlur={(e) => {
+              // blur handler may not carry value; use onChange to save
+              stopEditCell();
+            }}
+            onChange={(val) => handleSaveCell(rowIndex, dataIndex, val)}
+            style={{ width: "100%" }}
+          >
+            <Option value="male">male</Option>
+            <Option value="female">female</Option>
+            <Option value="other">other</Option>
+          </Select>
+        );
+      }
+
+      if (dataIndex === "status") {
+        return (
+          <Select
+            autoFocus
+            defaultValue={text || ""}
+            onBlur={() => stopEditCell()}
+            onChange={(val) => handleSaveCell(rowIndex, dataIndex, val)}
+            style={{ width: "100%" }}
+          >
+            <Option value="active">active</Option>
+            <Option value="inactive">inactive</Option>
+          </Select>
+        );
+      }
+
+      // default editor: text input for most fields
+      return (
+        <Input
+          autoFocus
+          defaultValue={text === undefined || text === null ? "" : String(text)}
+          onPressEnter={(e) =>
+            handleSaveCell(rowIndex, dataIndex, e.target.value)
+          }
+          onBlur={(e) => handleSaveCell(rowIndex, dataIndex, e.target.value)}
+        />
+      );
+    };
+
+    // how to display arrays: suggestions/subjects -> join
+    const displayValue = () => {
+      const val = record[dataIndex];
+      if (Array.isArray(val)) return val.join(", ");
+      return val === undefined || val === null ? "—" : String(val);
+    };
+
+    return isEditing ? (
+      getEditor()
+    ) : (
+      <div
+        onDoubleClick={() => startEditCell(rowIndex, dataIndex)}
+        style={{
+          minHeight: 20,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+        title="Double-click to edit"
+      >
+        {displayValue()}
+      </div>
+    );
+  };
+
+  // ------------------------------
+  // CSV preview table column defs
+  // include all fields you listed plus any others that may appear
+  // ------------------------------
+  const csvColumns = [
+    {
+      title: "First Name",
+      dataIndex: "firstName",
+      key: "firstName",
+      // width: 130,
+      render: (text, record, idx) =>
+        renderEditableCell(text, record, idx, "firstName"),
+    },
+    {
+      title: "Last Name",
+      dataIndex: "lastName",
+      key: "lastName",
+      // width: 130,
+      render: (text, record, idx) =>
+        renderEditableCell(text, record, idx, "lastName"),
+    },
+    {
+      title: "DOB",
+      dataIndex: "dob",
+      key: "dob",
+      // width: 110,
+      render: (text, record, idx) =>
+        renderEditableCell(text, record, idx, "dob"),
+    },
+    {
+      title: "Gender",
+      dataIndex: "gender",
+      key: "gender",
+      // width: 100,
+      render: (text, record, idx) =>
+        renderEditableCell(text, record, idx, "gender"),
+    },
+    {
+      title: "Class",
+      dataIndex: "className",
+      key: "className",
+      // width: 120,
+      render: (text, record, idx) =>
+        renderEditableCell(text, record, idx, "className"),
+    },
+    {
+      title: "Arm",
+      dataIndex: "arm",
+      key: "arm",
+      // width: 120,
+      render: (text, record, idx) =>
+        renderEditableCell(text, record, idx, "arm"),
+    },
+    {
+      title: "House",
+      dataIndex: "house",
+      key: "house",
+      // width: 120,
+      render: (text, record, idx) =>
+        renderEditableCell(text, record, idx, "house"),
+    },
+    {
+      title: "Session",
+      dataIndex: "session",
+      key: "session",
+      // width: 120,
+      render: (text, record, idx) =>
+        renderEditableCell(text, record, idx, "session"),
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      // width: 110,
+      render: (text, record, idx) =>
+        renderEditableCell(text, record, idx, "status"),
+    },
+    {
+      title: "Parent Phone",
+      dataIndex: "parentPhone",
+      key: "parentPhone",
+      // width: 140,
+      render: (text, record, idx) =>
+        renderEditableCell(text, record, idx, "parentPhone"),
+    },
+    {
+      title: "Parent Email",
+      dataIndex: "parentEmail",
+      key: "parentEmail",
+      // width: 200,
+      render: (text, record, idx) =>
+        renderEditableCell(text, record, idx, "parentEmail"),
+    },
+    {
+      title: "Subjects",
+      dataIndex: "subjects",
+      key: "subjects",
+      // width: 250,
+      render: (text, record, idx) => {
+        // if subjects is an array keep it, otherwise it's a string -> treat as comma list
+        const subj = Array.isArray(record.subjects)
+          ? record.subjects.join(", ")
+          : record.subjects;
+        return renderEditableCell(subj, record, idx, "subjects");
+      },
+    },
+    {
+      title: "Suggestions",
+      dataIndex: "suggestions",
+      key: "suggestions",
+      // width: 200,
+      render: (text, record, idx) => {
+        const sug = Array.isArray(record.suggestions)
+          ? record.suggestions.join(", ")
+          : record.suggestions || "";
+        return renderEditableCell(sug, record, idx, "suggestions");
+      },
+    },
+    // actions column to allow row-level operations (optional)
+  ];
+
+  // helper: map csvPreviewData to dataSource with row index keys
+  const csvDataSource = csvPreviewData.map((r, idx) => ({ ...r, key: idx }));
+
+  // Confirm import handler (optional: call import API or send csvPreviewData)
+  const handleConfirmImport = async () => {
+    try {
+      // Example: call bulk/import endpoint with edited preview data
+      setCsvLoading(true);
+      // convert suggestions/subjects from comma string to arrays if needed
+      const payload = csvPreviewData.map((row) => {
+        const copy = { ...row };
+        if (typeof copy.subjects === "string") {
+          copy.subjects = copy.subjects
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        }
+        if (typeof copy.suggestions === "string") {
+          copy.suggestions = copy.suggestions
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        }
+        return copy;
+      });
+
+      // adjust endpoint as your API expects
+      const res = await axios.post(
+        `${API_BASE_URL}/api/student-management/student/bulk/import`,
+        { data: payload },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data?.success) {
+        message.success(res.data?.message || "Import successful");
+        setIsCsvModalVisible(false);
+        getStudents(); // refresh main list
+      } else {
+        message.error(res.data?.message || "Import failed");
+      }
+    } catch (err) {
+      console.error("Import error:", err);
+      message.error(err?.response?.data?.message || "Import failed");
+    } finally {
+      setCsvLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {contextHolder}
 
       {/* Filters and Actions */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <Input
-          placeholder="Search student by name"
-          prefix={<SearchOutlined />}
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          className="w-full md:w-1/3"
-        />
+        <div className="flex items-center gap-2 w-full md:w-1/3">
+          <Input
+            placeholder="Search student by name"
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={(e) => {
+              const value = e.target.value;
+              setSearchText(value);
+              if (value.trim() === "") {
+                getStudents(); // 🔥 fetch all when input is cleared
+              }
+            }}
+            onPressEnter={handleSearch} // ✅ triggers search on Enter
+            className="flex-1"
+          />
+          <Button
+            type="primary"
+            icon={<SearchOutlined />}
+            loading={loading}
+            disabled={loading}
+            onClick={handleSearch} // ✅ triggers search on button click
+          >
+            Search
+          </Button>
+        </div>
 
         <div className="flex items-center gap-3">
           <Select
             placeholder="Select Class"
-            // onChange={(value) => setSelectedClass(value)}
+            onChange={(value) => setSelectedClass(value)}
             allowClear
             className="w-40"
             value={selectedClass}
@@ -669,26 +1136,27 @@ const Student = () => {
             >
               Add Student
             </Button>
-            <Upload
+            <input
+              ref={fileInputRef}
+              type="file"
               accept=".csv"
-              beforeUpload={(file) => {
-                setCsvFile(file);
-                message.success(`${file.name} selected successfully`);
-                return false; // prevent auto upload
+              id="csvUploadInput"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  handleCsvUpload(file);
+                  e.target.value = "";
+                }
               }}
-              onRemove={() => setCsvFile(null)}
-              showUploadList={false}
-            >
-              <Button icon={<UploadOutlined />}>Select CSV File</Button>
-            </Upload>
+            />
 
             <Button
-              type="primary"
-              disabled={!csvFile}
-              loading={loading}
-              onClick={handleCsvUpload}
+              icon={<UploadOutlined />}
+              loading={csvLoading}
+              onClick={() => fileInputRef.current?.click()}
             >
-              {loading ? "Uploading..." : "Upload & Import"}
+              Upload CSV File
             </Button>
           </Space>
         </div>
@@ -711,15 +1179,15 @@ const Student = () => {
           rowKey="key"
           bordered
           size="small"
-           pagination={{
-          current: pagination.current,
-          total: pagination.total,
-          pageSize: pagination.pageSize,
-          position: ["bottomCenter"],
-          className: "custom-pagination",
-          showSizeChanger: false,
-        }}
-        onChange={handleTableChange}
+          pagination={{
+            current: pagination.current,
+            total: pagination.total,
+            pageSize: pagination.pageSize,
+            position: ["bottomCenter"],
+            className: "custom-pagination",
+            showSizeChanger: false,
+          }}
+          onChange={handleTableChange}
           className="custom-table"
           scroll={{ x: "max-content" }}
         />
@@ -795,7 +1263,7 @@ const Student = () => {
           </Row>
 
           <Row gutter={16}>
-            <Col span={12}>
+            {/* <Col span={12}>
               <Form.Item
                 label="Admission Number"
                 name="admissionNumber"
@@ -805,16 +1273,14 @@ const Student = () => {
               >
                 <Input />
               </Form.Item>
-            </Col>
+            </Col> */}
 
             <Col span={12}>
               <Form.Item label="Roll Number" name="rollNumber">
                 <Input />
               </Form.Item>
             </Col>
-          </Row>
 
-          <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 label="Date of Birth"
@@ -826,6 +1292,9 @@ const Student = () => {
                 <Input type="date" />
               </Form.Item>
             </Col>
+          </Row>
+
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 label="Gender"
@@ -838,9 +1307,7 @@ const Student = () => {
                 </Select>
               </Form.Item>
             </Col>
-          </Row>
 
-          <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 label="Class"
@@ -858,6 +1325,17 @@ const Student = () => {
                       {`${c.name}${c.arm ? " - " + c.arm : ""}`}
                     </Option>
                   ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Status" name="status" initialValue="active">
+                <Select>
+                  <Option value="active">Active</Option>
+                  <Option value="inactive">Inactive</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -880,15 +1358,6 @@ const Student = () => {
           </Row>
 
           <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label="Status" name="status" initialValue="active">
-                <Select>
-                  <Option value="active">Active</Option>
-                  <Option value="inactive">Inactive</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-
             <Col span={12}>
               <Form.Item label="House" name="house">
                 <Input placeholder="e.g. Blue House" />
@@ -1076,8 +1545,59 @@ const Student = () => {
           />
         )}
       </Modal>
+
+      {/* CSV Preview Modal with editable table + pagination */}
+      <Modal
+        title="CSV Preview"
+        open={isCsvModalVisible}
+        onCancel={() => setIsCsvModalVisible(false)}
+        width={1000}
+        footer={[
+          <Button key="close" onClick={() => setIsCsvModalVisible(false)}>
+            Close
+          </Button>,
+          <Button
+            key="confirm"
+            type="primary"
+            loading={loading}
+            onClick={confirmImport}
+          >
+            Confirm Import
+          </Button>,
+        ]}
+      >
+        <Table
+          dataSource={csvDataSource}
+          columns={csvColumns}
+          bordered
+          rowKey="key"
+          size="small"
+          pagination={{
+            current: csvPagination.current,
+            pageSize: csvPagination.pageSize,
+            total: csvPreviewData.length,
+            showSizeChanger: true,
+             className: "custom-pagination",
+            pageSizeOptions: ["5", "10", "20", "50"],
+            onChange: (page, pageSize) => {
+              setCsvPagination({ current: page, pageSize });
+            },
+            onShowSizeChange: (current, size) =>
+              setCsvPagination({ current: 1, pageSize: size }),
+          }}
+           className="custom-table"
+          scroll={{ x: "max-content" }}
+        />
+        <div style={{ marginTop: 12 }}>
+          <small>
+            Tip: double-click any cell to edit it. Press Enter or click outside
+            to save the cell value.
+          </small>
+        </div>
+      </Modal>
     </div>
   );
 };
 
-export default Student;
+export default Student
+

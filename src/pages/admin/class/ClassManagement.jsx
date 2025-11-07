@@ -62,6 +62,8 @@ const ClassManagement = () => {
   const [isMigrateOpen, setIsMigrateOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState("JSS1A");
 
+  console.log(token)
+
   const students = [
     { id: 1, name: "John Doe" },
     { id: 2, name: "Mary Johnson" },
@@ -363,7 +365,7 @@ const ClassManagement = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 320,
+      width: 60,
       render: (_, record) => {
         const menu = (
           <Menu>

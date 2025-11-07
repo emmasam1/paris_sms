@@ -63,6 +63,63 @@ const Teacher = () => {
     total: 0,
   });
 
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState("");
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [fileList, setFileList] = useState([]);
+
+  // 🧠 Convert to base64 (for preview and sending)
+  const getBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+
+  // 🧩 Handle image preview
+  const handlePreview = async (file) => {
+    if (!file.url && !file.preview) {
+      file.preview = await getBase64(file.originFileObj);
+    }
+    setPreviewImage(file.url || file.preview);
+    setPreviewOpen(true);
+    setPreviewTitle(
+      file.name || file.url.substring(file.url.lastIndexOf("/") + 1)
+    );
+  };
+
+  // 🧩 Handle image change (adds/removes from fileList)
+  const handleChange = async ({ fileList: newFileList }) => {
+    setFileList(newFileList);
+
+    // If you want to save the avatar to form field (for backend)
+    if (newFileList.length > 0) {
+      const file = newFileList[0].originFileObj;
+      const base64 = await getBase64(file);
+      form.setFieldsValue({ avatar: base64 });
+    } else {
+      form.setFieldsValue({ avatar: null });
+    }
+  };
+
+  // 🧩 When editing teacher, pre-fill the avatar preview
+  useEffect(() => {
+    if (editingTeacher?.avatar) {
+      setFileList([
+        {
+          uid: "-1",
+          name: "avatar.png",
+          status: "done",
+          url: editingTeacher.avatar,
+        },
+      ]);
+      form.setFieldsValue({ avatar: editingTeacher.avatar });
+    } else {
+      setFileList([]);
+    }
+  }, [editingTeacher]);
+
   // ✅ Fetch teachers
   const getTeachers = async (page = 1, limit = 10, search = "") => {
     if (!token) return;
@@ -92,7 +149,6 @@ const Teacher = () => {
     }
   };
 
-
   // ✅ Debounced search
   useEffect(() => {
     if (!initialized || !token) return;
@@ -104,22 +160,23 @@ const Teacher = () => {
 
   // ✅ Avatar fallback
   const renderAvatar = (record) => {
-    if (record.avatar) {
-      return (
-        <img
-          src={record.avatar}
-          alt="teacher"
-          className="w-10 h-10 rounded-full object-cover"
-        />
-      );
-    }
-    const initials = `${record.firstName?.[0] || ""}${
-      record.lastName?.[0] || ""
-    }`;
+    const avatarUrl = record?.avatar;
+
     return (
-      <Avatar style={{ backgroundColor: "#1677ff", color: "#fff" }}>
-        {initials.toUpperCase()}
-      </Avatar>
+      <div className="flex items-center justify-center">
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={`${record.firstName || "Staff"}'s avatar`}
+            className="w-10 h-10 rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 text-gray-500 text-sm font-semibold">
+            {record?.firstName?.[0]?.toUpperCase() || "?"}
+            {record?.lastName?.[0]?.toUpperCase() || "?"}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -132,35 +189,63 @@ const Teacher = () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
-      let res;
 
+      // Build FormData (multipart/form-data)
+      const formData = new FormData();
+      formData.append("title", values.title || "");
+      formData.append("firstName", values.firstName || "");
+      formData.append("lastName", values.lastName || "");
+      formData.append("email", values.email || "");
+      formData.append("phone", values.phone || "");
+      formData.append("address", values.address || "");
+      formData.append("role", values.role || "teacher"); // backend expects role
+
+      // If there's a file uploaded (new file), append it as `avatar`
+      if (fileList.length > 0 && fileList[0].originFileObj) {
+        formData.append("avatar", fileList[0].originFileObj);
+      }
+      // NOTE: when editing and user didn't upload a new file, do NOT append avatar.
+      // Backend will keep existing avatar (as your registerStaff handler checks req.files).
+
+      let res;
       if (editingTeacher) {
-        // 🔄 Update existing staff
+        // Update profile (multipart) - server should accept files here too
         res = await axios.patch(
           `${API_BASE_URL}/api/management/update-profile/${editingTeacher._id}`,
-          values,
-          { headers: { Authorization: `Bearer ${token}` } }
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              // DON'T set Content-Type manually—let the browser set the multipart boundary:
+              // "Content-Type": "multipart/form-data"
+            },
+          }
         );
         messageApi.success(res?.data?.message || "Staff updated successfully");
       } else {
-        // 🆕 Create new staff
-        res = await axios.post(`${API_BASE_URL}/api/auth/register`, values, {
-          headers: { Authorization: `Bearer ${token}` },
+        // Register new staff
+        res = await axios.post(`${API_BASE_URL}/api/auth/register`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // same note: don't set content-type manually
+          },
         });
         messageApi.success(res?.data?.message || "Staff added successfully");
       }
 
+      // Success flow
       setSuccessMessage(res?.data?.message);
       setIsModalOpen(false);
       setIsSuccessModalOpen(true);
       form.resetFields();
+      setFileList([]);
       setEditingTeacher(null);
       getTeachers(pagination.current, pagination.pageSize, searchText);
     } catch (error) {
       console.error("Staff creation/update failed:", error);
       messageApi.error(
-        error.response?.data?.message ||
-          error.response?.data?.errors?.[0]?.msg ||
+        error?.response?.data?.message ||
+          error?.response?.data?.errors?.[0]?.msg ||
           "Something went wrong. Please try again."
       );
     } finally {
@@ -308,8 +393,11 @@ const Teacher = () => {
       render: (role, record) => {
         return record.role === "class_admin" ? (
           <p>Class Admin</p>
-        ) : record.role === "teacher" ? (<p>Teacher</p>) : role 
-        ;
+        ) : record.role === "teacher" ? (
+          <p>Teacher</p>
+        ) : (
+          role
+        );
       },
     },
     {
@@ -318,7 +406,9 @@ const Teacher = () => {
       key: "formClass",
       render: (formClass) => {
         return formClass ? (
-          <p>{formClass.name } {formClass.arm}</p>
+          <p>
+            {formClass.name} {formClass.arm}
+          </p>
         ) : (
           <p>--</p>
         );
@@ -554,23 +644,34 @@ const Teacher = () => {
             </Col>
 
             <Col xs={24} md={12}>
-              <Form.Item label="Profile Image" name="image">
+              <Form.Item label="Profile Image" name="avatar">
                 <Upload
-                  listType="picture"
+                  listType="picture-card"
+                  fileList={fileList}
+                  onPreview={handlePreview}
+                  onChange={handleChange}
+                  beforeUpload={() => false} // prevent auto upload
                   maxCount={1}
-                  beforeUpload={() => false}
-                  onChange={handleImageChange}
-                  showUploadList={false}
                 >
-                  <Button icon={<UploadOutlined />}>Upload Image</Button>
+                  {fileList.length >= 1 ? null : (
+                    <div>
+                      <PlusOutlined />
+                      <div style={{ marginTop: 8 }}>Upload</div>
+                    </div>
+                  )}
                 </Upload>
-                {imageUrl && (
+                <Modal
+                  open={previewOpen}
+                  title={previewTitle}
+                  footer={null}
+                  onCancel={() => setPreviewOpen(false)}
+                >
                   <img
-                    src={imageUrl}
-                    alt="Preview"
-                    className="mt-2 w-24 h-24 object-cover rounded-md border"
+                    alt="preview"
+                    style={{ width: "100%" }}
+                    src={previewImage}
                   />
-                )}
+                </Modal>
               </Form.Item>
             </Col>
 

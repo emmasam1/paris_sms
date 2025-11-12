@@ -21,10 +21,11 @@ import {
   MessageOutlined,
   BarChartOutlined,
   UploadOutlined,
-  IdcardOutlined 
+  IdcardOutlined,
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import { useApp } from "../../../context/AppContext";
+import { useNavigate } from "react-router";
 import axios from "axios";
 
 import UploadResult from "../../../components/uploadresult/UploadResult";
@@ -44,7 +45,9 @@ const Dashboard = () => {
   const [messageApi, contextHolder] = message.useMessage();
 
   const { API_BASE_URL, token } = useApp();
+  const navigate = useNavigate();
 
+  // ===== Dummy activity data =====
   const recentActivities = [
     {
       key: "1",
@@ -101,12 +104,12 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const res = await axios.get(`${API_BASE_URL}/api/analytics/dashboard`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setAnalytics(res.data.data.totals);
-      messageApi.success(res?.data?.message || "Dashboard data loaded successfully.");
+      messageApi.success(
+        res?.data?.message || "Dashboard data loaded successfully."
+      );
     } catch (error) {
       console.error("Error fetching analytics:", error);
       messageApi.error("Failed to load dashboard data.");
@@ -119,40 +122,51 @@ const Dashboard = () => {
     getAnalyticsData();
   }, [token]);
 
+  // ===== Cards with navigation =====
   const statCards = [
-  {
-    icon: <UserOutlined className="text-3xl !text-blue-500" />,
-    label: "Students",
-    value: analytics?.students ?? 0,
-  },
-  {
-    icon: <IdcardOutlined className="text-3xl !text-orange-500" />,
-    label: "Total Staff",
-    value: analytics?.staff ?? 0, // <-- make sure backend returns analytics.staff
-  },
-  {
-    icon: <BookOutlined className="text-3xl !text-purple-500" />,
-    label: "Classes",
-    value: analytics?.classes ?? 0,
-  },
-  {
-    icon: <KeyOutlined className="text-3xl !text-yellow-500" />,
-    label: "Total PINs",
-    value: analytics?.pinsGenerated ?? 0,
-  },
-  {
-    icon: <DollarOutlined className="text-3xl !text-emerald-500" />,
-    label: "Revenue",
-    value: analytics?.totalRevenue
-      ? `₦${analytics.totalRevenue.toLocaleString()}`
-      : "₦0",
-  },
-];
-
+    {
+      icon: <UserOutlined className="text-3xl !text-blue-500" />,
+      label: "Students",
+      value: analytics?.students ?? 0,
+      route: "/admin/dashboard/students",
+      tooltip: "View and manage all students",
+    },
+    {
+      icon: <IdcardOutlined className="text-3xl !text-orange-500" />,
+      label: "Total Staff",
+      value: analytics?.staff ?? 0,
+      route: "/admin/dashboard/teachers",
+      tooltip: "View and manage staff members",
+    },
+    {
+      icon: <BookOutlined className="text-3xl !text-purple-500" />,
+      label: "Classes",
+      value: analytics?.classes ?? 0,
+      route: "/admin/dashboard/class-management",
+      tooltip: "View all school classes",
+    },
+    {
+      icon: <KeyOutlined className="text-3xl !text-yellow-500" />,
+      label: "Total PINs",
+      value: analytics?.pinsGenerated ?? 0,
+      route: "/admin/dashboard/pin-management",
+      tooltip: "Manage generated PINs",
+    },
+    {
+      icon: <DollarOutlined className="text-3xl !text-emerald-500" />,
+      label: "Revenue",
+      value: analytics?.totalRevenue
+        ? `₦${analytics.totalRevenue.toLocaleString()}`
+        : "₦0",
+      // route: "/dashboard/finance",
+      tooltip: "View revenue reports",
+    },
+  ];
 
   return (
     <div className="space-y-6">
       {contextHolder}
+
       {/* ===== Stats Section ===== */}
       <Row gutter={[16, 16]}>
         {statCards.map((item, i) => (
@@ -160,23 +174,29 @@ const Dashboard = () => {
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.15, duration: 0.5, ease: "easeOut" }}
+              transition={{ delay: i * 0.15, duration: 0.5 }}
               whileHover={{ scale: 1.05 }}
               className="h-full"
             >
-              <Card className="shadow-md rounded-xl hover:shadow-lg transition">
-                {loading ? (
-                  <Skeleton active paragraph={{ rows: 1 }} />
-                ) : (
-                  <div className="flex items-center space-x-4">
-                    {item.icon}
-                    <div>
-                      <p className="text-gray-500">{item.label}</p>
-                      <p className="text-xl font-bold">{item.value}</p>
+              <Tooltip title={item.tooltip}>
+                <Card
+                  hoverable
+                  onClick={() => navigate(item.route)}
+                  className="shadow-md rounded-xl cursor-pointer hover:shadow-lg transition-all duration-200"
+                >
+                  {loading ? (
+                    <Skeleton active paragraph={{ rows: 1 }} />
+                  ) : (
+                    <div className="flex items-center space-x-4">
+                      {item.icon}
+                      <div>
+                        <p className="text-gray-500">{item.label}</p>
+                        <p className="text-xl font-bold">{item.value}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </Card>
+                  )}
+                </Card>
+              </Tooltip>
             </motion.div>
           </Col>
         ))}
@@ -284,8 +304,10 @@ const Dashboard = () => {
             pagination={{
               pageSize: 7,
               position: ["bottomCenter"],
+              className: "custom-pagination",
             }}
             scroll={{ x: "max-content" }}
+            className="custom-table"
           />
         )}
       </Card>

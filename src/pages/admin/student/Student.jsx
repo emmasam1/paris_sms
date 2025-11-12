@@ -18,6 +18,7 @@ import {
   Avatar,
   Dropdown,
   Menu,
+  Card
 } from "antd";
 import {
   SearchOutlined,
@@ -1173,6 +1174,7 @@ const confirmImport = async () => {
       {loading ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : (
+        <Card className="shadow-md rounded-xl">
         <Table
           columns={columns}
           dataSource={students}
@@ -1191,6 +1193,7 @@ const confirmImport = async () => {
           className="custom-table"
           scroll={{ x: "max-content" }}
         />
+      </Card>
       )}
 
       {/* ... your modals remain unchanged ... */}

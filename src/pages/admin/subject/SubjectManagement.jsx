@@ -62,7 +62,7 @@ const SubjectManagement = () => {
   // console.log(API_BASE_URL)
 
   const showAssignModal = (record) => {
-    console.log(record);
+    // console.log(record);
     setSelectedSubject(record); // ✅ store the clicked subject
     setIsAssignIsModalOpen(true);
   };
@@ -140,22 +140,21 @@ const SubjectManagement = () => {
   // 🔹 Delete subject
   const handleDelete = async (record) => {
     const subjectId = record?._id
-    console.log(subjectId)
-    // if (!token) return;
-    // setLoading(true);
-    // try {
-    //  const res = await axios.delete(
-    //     `${API_BASE_URL}/api/subject-management/subjects/${subjectId}`,
-    //     { headers: { Authorization: `Bearer ${token}` } }
-    //   );
-    //   messageApi.success(res?.data?.message || "Subject deleted");
-    //   getAllSubjects(pagination.current, pagination.pageSize);
-    // } catch (error) {
-    //   console.error(error);
-    //   messageApi.error(error?.response?.data?.message || "Failed to delete subject");
-    // } finally {
-    //   setLoading(false);
-    // }
+    if (!token) return;
+    setLoading(true);
+    try {
+     const res = await axios.delete(
+        `${API_BASE_URL}/api/subject-management/subjects/${subjectId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      messageApi.success(res?.data?.message || "Subject deleted");
+      getAllSubjects(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error(error);
+      messageApi.error(error?.response?.data?.message || "Failed to delete subject");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 🔹 Fetch subjects (with pagination)
@@ -215,19 +214,19 @@ const SubjectManagement = () => {
   const handleUnassignClick = async (record) => {
     console.log(record)
 
-    // if (!token) return;
-    // try {
-    //   await axios.patch(
-    //     `${API_BASE_URL}/api/subject-management/subjects/${record.id}/unassign`,
-    //     {},
-    //     { headers: { Authorization: `Bearer ${token}` } }
-    //   );
-    //   message.success("Subject unassigned successfully");
-    //   getAllSubjects(pagination.current, pagination.pageSize);
-    // } catch (error) {
-    //   console.error(error);
-    //   message.error("Failed to unassign subject");
-    // }
+    if (!token) return;
+    try {
+      await axios.patch(
+        `${API_BASE_URL}/api/subject-management/subjects/${record.id}/unassign`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      message.success("Subject unassigned successfully");
+      getAllSubjects(pagination.current, pagination.pageSize);
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to unassign subject");
+    }
   };
 
   //Get teachers

@@ -23,7 +23,6 @@ import {
   UserAddOutlined,
   MoreOutlined,
   SwapOutlined,
-  MinusCircleOutlined,
   UserDeleteOutlined,
 } from "@ant-design/icons";
 import MigrateClassModal from "../../../components/migrate/MigrateClassModal";
@@ -44,7 +43,9 @@ const ClassManagement = () => {
   const [isFetching, setIsFetching] = useState(false);
   const [isClassLoading, setIsClassLoading] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState(null);
-  const [activeTab, setActiveTab] = useState("1");
+  const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
+  const [currentClass, setCurrentClass] = useState(null);
+  const [students, setStudents] = useState([]);
 
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
@@ -63,15 +64,37 @@ const ClassManagement = () => {
 
   // console.log(token);
 
-  const students = [
-    { id: 1, name: "John Doe" },
-    { id: 2, name: "Mary Johnson" },
-    { id: 3, name: "David Smith" },
-  ];
-
   const handleMigrate = (promoted, notPromoted) => {
     console.log("Promoted:", promoted);
     console.log("Not Promoted:", notPromoted);
+  };
+
+  // Fetch students (with search)
+  const getStudents = async () => {
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/student-management/student`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      // console.log(res);
+
+      const studentsWithFullName = (res?.data?.data || []).map((s) => ({
+        ...s,
+        key: s._id,
+        name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
+      }));
+
+      // messageApi.success(res.data?.message);
+      setStudents(studentsWithFullName);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      messageApi.error(
+        error?.response?.data?.message || "Failed to fetch students"
+      );
+    }
   };
 
   // Fetch classes
@@ -145,8 +168,36 @@ const ClassManagement = () => {
     if (initialized && token) {
       getTeachers();
       getClass(pagination.current);
+      getStudents();
     }
   }, [initialized, token]);
+
+  //Add student to class
+  const addStudentToClass = async (values) => {
+    setLoading(true);
+    try {
+      if (!currentClass?._id) return;
+
+      const payload = {
+        studentIds: values.studentIds, // array of selected student IDs
+        classId: currentClass._id,
+      };
+
+      const res = await axios.post(
+        `${API_BASE_URL}/api/class-management/students/assign-class`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log(res, "student addes");
+      message.success(res?.data?.message || "Students added successfully!");
+      setIsAddStudentModalOpen(false);
+    } catch (error) {
+      console.error("Error adding students:", error);
+      message.error(error?.response?.data?.message || "Failed to add students");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 🔹 Handle AntD table pagination change
   const handleTableChange = (paginationConfig) => {
@@ -236,6 +287,9 @@ const ClassManagement = () => {
     setIsModalOpen(true);
   };
 
+  // console.log(token);
+  // console.log(API_BASE_URL);
+
   // Save single class
   const handleSave = async (values) => {
     setIsClassLoading(true);
@@ -268,7 +322,7 @@ const ClassManagement = () => {
           level: values.level,
         };
 
-        console.log(payload)
+        console.log(payload);
 
         res = await axios.post(
           `${API_BASE_URL}/api/class-management/classes`,
@@ -295,11 +349,10 @@ const ClassManagement = () => {
   };
 
   useEffect(() => {
-  if (editingClass) {
-    form.setFieldsValue(editingClass);
-  }
-}, [editingClass]);
-
+    if (editingClass) {
+      form.setFieldsValue(editingClass);
+    }
+  }, [editingClass]);
 
   // Delete class
   const handleDelete = async (record) => {
@@ -322,6 +375,12 @@ const ClassManagement = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openClassModal = (record) => {
+    setCurrentClass(record);
+    setIsAddStudentModalOpen(true);
+    console.log(record);
   };
 
   // Table columns
@@ -355,7 +414,22 @@ const ClassManagement = () => {
           <span className="text-gray-400">Not Assigned</span>
         ),
     },
-    { title: "Students", dataIndex: "students", key: "students" },
+    {
+      title: "Students",
+      key: "students",
+      render: (_, record) => {
+        // Count students in this class
+        const count = students.filter(
+          (s) => s.class?.name === record.name
+        ).length;
+        return (
+          <span>
+            {count} {count === 1 ? "student" : "students"}
+          </span>
+        );
+      },
+    },
+
     {
       title: "Actions",
       key: "actions",
@@ -397,6 +471,13 @@ const ClassManagement = () => {
                   </Space>
                 </Popconfirm>
               )}
+            </Menu.Item>
+
+            <Menu.Item
+              icon={<UserAddOutlined />}
+              onClick={() => openClassModal(record)}
+            >
+              Add Student to Class
             </Menu.Item>
 
             <Menu.Item
@@ -568,6 +649,49 @@ const ClassManagement = () => {
             <Button onClick={() => setIsAssignOpen(false)}>Cancel</Button>
             <Button type="primary" htmlType="submit" loading={loading}>
               Assign
+            </Button>
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Add student to class modal */}
+      <Modal
+        title={`Add Student to ${currentClass?.name || ""}`}
+        open={isAddStudentModalOpen}
+        onCancel={() => setIsAddStudentModalOpen(false)}
+        footer={null} // use form buttons instead
+      >
+        <Form layout="vertical" onFinish={addStudentToClass}>
+          <Form.Item
+            label="Select Students"
+            name="studentIds"
+            rules={[
+              { required: true, message: "Please select at least one student" },
+            ]}
+          >
+            <Select
+              mode="multiple"
+              placeholder="Select students"
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                option.children.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {students.map((s) => (
+                <Select.Option key={s._id} value={s._id}>
+                  {s.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setIsAddStudentModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              Add Students
             </Button>
           </div>
         </Form>

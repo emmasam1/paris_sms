@@ -378,10 +378,15 @@ const Teacher = () => {
       render: (_, record) => renderAvatar(record),
     },
     {
+      title: "Title",
+      key: "title",
+      render: (_, record) => `${record.title || ""}`,
+    },
+    {
       title: "Full Name",
       key: "name",
       render: (_, record) =>
-        `${record.title || ""} ${record.firstName || ""} ${
+        ` ${record.firstName || ""} ${
           record.lastName || ""
         }`.trim(),
     },

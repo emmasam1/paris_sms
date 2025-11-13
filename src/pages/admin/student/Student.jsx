@@ -937,22 +937,6 @@ const confirmImport = async () => {
         renderEditableCell(text, record, idx, "gender"),
     },
     {
-      title: "Class",
-      dataIndex: "className",
-      key: "className",
-      // width: 120,
-      render: (text, record, idx) =>
-        renderEditableCell(text, record, idx, "className"),
-    },
-    {
-      title: "Arm",
-      dataIndex: "arm",
-      key: "arm",
-      // width: 120,
-      render: (text, record, idx) =>
-        renderEditableCell(text, record, idx, "arm"),
-    },
-    {
       title: "House",
       dataIndex: "house",
       key: "house",
@@ -992,31 +976,31 @@ const confirmImport = async () => {
       render: (text, record, idx) =>
         renderEditableCell(text, record, idx, "parentEmail"),
     },
-    {
-      title: "Subjects",
-      dataIndex: "subjects",
-      key: "subjects",
-      // width: 250,
-      render: (text, record, idx) => {
-        // if subjects is an array keep it, otherwise it's a string -> treat as comma list
-        const subj = Array.isArray(record.subjects)
-          ? record.subjects.join(", ")
-          : record.subjects;
-        return renderEditableCell(subj, record, idx, "subjects");
-      },
-    },
-    {
-      title: "Suggestions",
-      dataIndex: "suggestions",
-      key: "suggestions",
-      // width: 200,
-      render: (text, record, idx) => {
-        const sug = Array.isArray(record.suggestions)
-          ? record.suggestions.join(", ")
-          : record.suggestions || "";
-        return renderEditableCell(sug, record, idx, "suggestions");
-      },
-    },
+    // {
+    //   title: "Subjects",
+    //   dataIndex: "subjects",
+    //   key: "subjects",
+    //   // width: 250,
+    //   render: (text, record, idx) => {
+    //     // if subjects is an array keep it, otherwise it's a string -> treat as comma list
+    //     const subj = Array.isArray(record.subjects)
+    //       ? record.subjects.join(", ")
+    //       : record.subjects;
+    //     return renderEditableCell(subj, record, idx, "subjects");
+    //   },
+    // },
+    // {
+    //   title: "Suggestions",
+    //   dataIndex: "suggestions",
+    //   key: "suggestions",
+    //   // width: 200,
+    //   render: (text, record, idx) => {
+    //     const sug = Array.isArray(record.suggestions)
+    //       ? record.suggestions.join(", ")
+    //       : record.suggestions || "";
+    //     return renderEditableCell(sug, record, idx, "suggestions");
+    //   },
+    // },
     // actions column to allow row-level operations (optional)
   ];
 

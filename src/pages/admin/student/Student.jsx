@@ -84,7 +84,7 @@ const Student = () => {
 
   const fileInputRef = useRef(null);
 
-  const [isFocused, setIsFocused] = useState(false);
+  // console.log(token)
 
   // 🧠 Avatar upload states
   const [fileList, setFileList] = useState([]);
@@ -135,22 +135,16 @@ const Student = () => {
   }, [editingStudent, form]);
 
   // Fetch students (with search)
-  // const getStudents = async (page = 1, search = "") => {
+  //  const getStudents = async (page = 1, search = "", classId = "") => {
   //   setLoading(true);
   //   try {
-  //     const normalizedSearch = search.trim().toLowerCase();
-  //     const searchParam = normalizedSearch
-  //       ? `&search=${encodeURIComponent(normalizedSearch)}`
-  //       : "";
+  //     const searchParam = search ? `?search=${encodeURIComponent(search)}` : "";
+  //     const classParam = classId ? `&classId=${classId}` : "";
 
   //     const res = await axios.get(
-  //       `${API_BASE_URL}/api/student-management/student?page=${page}${searchParam}`,
-  //       {
-  //         headers: { Authorization: `Bearer ${token}` },
-  //       }
+  //       `${API_BASE_URL}/api/student-management/student?page=${page}${searchParam}${classParam}`,
+  //       { headers: { Authorization: `Bearer ${token}` } }
   //     );
-
-  //     console.log(res);
 
   //     const studentsWithFullName = (res?.data?.data || []).map((s) => ({
   //       ...s,
@@ -158,9 +152,7 @@ const Student = () => {
   //       name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
   //     }));
 
-  //     messageApi.success(res.data?.message);
   //     setStudents(studentsWithFullName);
-
   //     setPagination({
   //       current: res?.data?.pagination?.page || page,
   //       total: res?.data?.pagination?.total || studentsWithFullName.length,
@@ -177,37 +169,44 @@ const Student = () => {
   // };
 
   const getStudents = async (page = 1, search = "", classId = "") => {
-    setLoading(true);
-    try {
-      const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
-      const classParam = classId ? `&classId=${classId}` : "";
+  setLoading(true);
+  try {
+    // Build query parameters correctly
+    const params = new URLSearchParams();
+    params.append("page", page);
+    if (search) params.append("search", search);
+    if (classId) params.append("classId", classId);
 
-      const res = await axios.get(
-        `${API_BASE_URL}/api/student-management/student?page=${page}${searchParam}${classParam}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+console.log(search)
+    const res = await axios.get(
+      `${API_BASE_URL}/api/student-management/student?${params.toString()}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const studentsWithFullName = (res?.data?.data || []).map((s) => ({
-        ...s,
-        key: s._id,
-        name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
-      }));
 
-      setStudents(studentsWithFullName);
-      setPagination({
-        current: res?.data?.pagination?.page || page,
-        total: res?.data?.pagination?.total || studentsWithFullName.length,
-        pageSize: 20,
-      });
-    } catch (error) {
-      console.error("Error fetching students:", error);
-      messageApi.error(
-        error?.response?.data?.message || "Failed to fetch students"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+
+    const studentsWithFullName = (res?.data?.data || []).map((s) => ({
+      ...s,
+      key: s._id,
+      name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
+    }));
+
+    setStudents(studentsWithFullName);
+    setPagination({
+      current: res?.data?.pagination?.page || page,
+      total: res?.data?.pagination?.total || studentsWithFullName.length,
+      pageSize: 20,
+    });
+  } catch (error) {
+    console.error("Error fetching students:", error);
+    messageApi.error(
+      error?.response?.data?.message || "Failed to fetch students"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const getTeachers = async () => {
     if (!token) return;

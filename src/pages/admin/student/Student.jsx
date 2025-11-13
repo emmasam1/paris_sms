@@ -48,9 +48,7 @@ const teacherAssigned = {
   SS3: "Mrs. Gomez",
 };
 
-// const generatePin = () =>
-//   Math.floor(100000 + Math.random() * 900000).toString();
-// const generateRegNo = () => `STU${Date.now().toString().slice(-6)}`;
+
 
 const Student = () => {
   const [searchText, setSearchText] = useState("");
@@ -65,6 +63,7 @@ const Student = () => {
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [importing, setImporting] = useState(false);
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm();
@@ -628,172 +627,62 @@ const Student = () => {
 
   // Helper: try to parse DOB from formats like "3/22/2015" -> "2015-03-22"
 // If it's already ISO-like, return as-is.
-const normalizeDob = (dob) => {
-  if (!dob) return "";
-  // common mm/dd/yyyy or m/d/yyyy
-  if (typeof dob === "string" && dob.includes("/")) {
-    const parts = dob.split("/").map((p) => p.trim());
-    // expect M/D/YYYY
-    if (parts.length === 3) {
-      let [m, d, y] = parts;
-      if (y.length === 2) {
-        // assume 20xx for two-digit years (unlikely here)
-        y = "20" + y;
-      }
-      // zero-pad month/day
-      if (m.length === 1) m = "0" + m;
-      if (d.length === 1) d = "0" + d;
-      return `${y}-${m}-${d}`;
-    }
-  }
-  // fallback: return original (server may accept different formats)
-  return dob;
-};
 
-// Helper: try to find a classId from classes list using className and arm
-const findClassId = (row, classes) => {
-  if (!classes || classes.length === 0) return null;
-  const name = (row.className || "").trim();
-  const arm = (row.arm || "").trim();
-
-  // 1) exact match on name + arm
-  let c = classes.find(
-    (cl) =>
-      String(cl.name).trim().toLowerCase() === name.toLowerCase() &&
-      String(cl.arm || "").trim().toLowerCase() === arm.toLowerCase()
-  );
-  if (c) return c._id;
-
-  // 2) match on displayName (if you stored `${name} - ${arm}`)
-  c = classes.find(
-    (cl) =>
-      String(cl.displayName || "")
-        .trim()
-        .toLowerCase() === `${name}${arm ? " - " + arm : ""}`.toLowerCase()
-  );
-  if (c) return c._id;
-
-  // 3) fallback: match by name only
-  c = classes.find(
-    (cl) => String(cl.name).trim().toLowerCase() === name.toLowerCase()
-  );
-  if (c) return c._id;
-
-  // 4) last resort: try partial match (startsWith)
-  c = classes.find((cl) =>
-    String(cl.name).trim().toLowerCase().startsWith(name.toLowerCase())
-  );
-  if (c) return c._id;
-
-  return null; // couldn't find
-};
-
-// confirmImport function - place inside your component (has access to csvPreviewData, classes, token, API_BASE_URL, message, setCsvLoading, getStudents, setIsCsvModalVisible)
 const confirmImport = async () => {
-  if (!csvPreviewData || csvPreviewData.length === 0) {
-    messageApi.warning("No preview data to import.");
-    return;
-  }
-
-  // Build payload.students and validate class mapping
-  const studentsPayload = [];
-  const missingClassRows = []; // collect indices or info for rows we can't map to classId
-
-  csvPreviewData.forEach((row, idx) => {
-    // map row fields -> expected API fields
-    const classId = findClassId(row, classes);
-
-    if (!classId) {
-      missingClassRows.push({
-        row: idx + 1,
-        firstName: row.firstName || "",
-        lastName: row.lastName || "",
-        className: row.className || "",
-        arm: row.arm || "",
-      });
-      // still build payload but with null classId so user sees the issue if they inspect
+  try {
+    if (!csvPreviewData || csvPreviewData.length === 0) {
+      messageApi.error("No data to import");
+      return;
     }
 
-    // normalize phone - if 10 digits and doesn't start with 0, add leading 0
-    let phone = row.parentPhone || "";
-    const digitsOnly = String(phone).replace(/\D/g, "");
-    if (digitsOnly.length === 10 && !String(phone).startsWith("0")) {
-      phone = "0" + digitsOnly;
-    }
+    setImporting(true);
 
-    // normalize dob
-    const dob = normalizeDob(row.dob);
-
-    // normalize subjects (if array -> join, if string -> use as-is)
-    let subjects = row.subjects;
-    if (Array.isArray(subjects)) subjects = subjects.join(", ");
-    if (subjects == null) subjects = "";
-
-    // build student object
-    studentsPayload.push({
+    // Format student data
+    const studentsPayload = csvPreviewData.map((row) => ({
       firstName: row.firstName || "",
       lastName: row.lastName || "",
-      classId: classId || null,
       session: row.session || "",
-      gender: row.gender || "",
-      dob: dob || "",
-      subjects: subjects,
+      gender: row.gender?.toLowerCase() || "",
+      dob: row.dob ? new Date(row.dob).toISOString().split("T")[0] : "",
       parentEmail: row.parentEmail || "",
-      parentPhone: phone,
+      parentPhone: row.parentPhone || "",
       house: row.house || "",
       status: row.status || "active",
-    });
-  });
+    }));
 
-  // If some rows are missing classId, notify user & abort so they can fix in the preview modal
-  if (missingClassRows.length > 0) {
-    // produce a helpful message describing which rows are missing mapping
-    const details = missingClassRows
-      .slice(0, 5) // show up to 5 examples
-      .map(
-        (r) =>
-          `Row ${r.row}: ${r.firstName} ${r.lastName} (class: ${r.className}${
-            r.arm ? " - " + r.arm : ""
-          })`
-      )
-      .join("\n");
+    const pagination = {
+      page: 1,
+      total: studentsPayload.length,
+      totalPages: 1,
+    };
 
-    messageApi.error(
-      `Unable to resolve classId for ${missingClassRows.length} row(s). Please fix className/arm in the preview modal.\n\nExamples:\n${details}`
-    );
-    return;
-  }
-
-  // All good -> call import endpoint
-  try {
-    setLoading(true);
-
-    // Endpoint expects { students: [...] } per your sample
-    const payload = { students: studentsPayload };
-
-    const res = await axios.post(
+    const response = await axios.post(
       `${API_BASE_URL}/api/student-management/student/bulk/commit`,
-      payload,
-      { headers: { Authorization: `Bearer ${token}` } }
+      { students: studentsPayload, pagination },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
     );
 
-    if (res.data?.success) {
-      messageApi.success(res.data.message || "Students imported successfully");
+    if (response.data.success) {
+      messageApi.success("Students imported successfully!");
       setIsCsvModalVisible(false);
-      // refresh main students list
-      getStudents();
+      setCsvPreviewData([]); // reset CSV preview
+      getStudents(); // refresh main list
     } else {
-      // API responded but reported failure
-      messageApi.error(res.data?.message || "Import failed");
-      console.error("Import response:", res.data);
+      messageApi.error(response.data.message || "Failed to import students");
     }
-  } catch (err) {
-    console.error("Import error:", err);
-    messageApi.error(err?.response?.data?.message || "Import request failed");
+  } catch (error) {
+    console.error("Import error:", error);
+    messageApi.error("Something went wrong while importing students");
   } finally {
-    setLoading(false);
+    setImporting(false);
   }
 };
+
 
 
   // ----------------------
@@ -976,32 +865,7 @@ const confirmImport = async () => {
       render: (text, record, idx) =>
         renderEditableCell(text, record, idx, "parentEmail"),
     },
-    // {
-    //   title: "Subjects",
-    //   dataIndex: "subjects",
-    //   key: "subjects",
-    //   // width: 250,
-    //   render: (text, record, idx) => {
-    //     // if subjects is an array keep it, otherwise it's a string -> treat as comma list
-    //     const subj = Array.isArray(record.subjects)
-    //       ? record.subjects.join(", ")
-    //       : record.subjects;
-    //     return renderEditableCell(subj, record, idx, "subjects");
-    //   },
-    // },
-    // {
-    //   title: "Suggestions",
-    //   dataIndex: "suggestions",
-    //   key: "suggestions",
-    //   // width: 200,
-    //   render: (text, record, idx) => {
-    //     const sug = Array.isArray(record.suggestions)
-    //       ? record.suggestions.join(", ")
-    //       : record.suggestions || "";
-    //     return renderEditableCell(sug, record, idx, "suggestions");
-    //   },
-    // },
-    // actions column to allow row-level operations (optional)
+ 
   ];
 
   // helper: map csvPreviewData to dataSource with row index keys
@@ -1099,19 +963,6 @@ const confirmImport = async () => {
             ))}
           </Select>
 
-          {/* <Select
-            placeholder="Select Session"
-            // onChange={(value) => setSelectedSession(value)}
-            allowClear
-            className="w-40"
-            value={selectedSession}
-          >
-            {sessions.map((s) => (
-              <Option key={s} value={s}>
-                {s}
-              </Option>
-            ))}
-          </Select> */}
 
           <Space>
             <Button

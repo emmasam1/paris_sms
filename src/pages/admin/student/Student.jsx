@@ -135,22 +135,57 @@ const Student = () => {
   }, [editingStudent, form]);
 
   // Fetch students (with search)
-  const getStudents = async (page = 1, search = "") => {
+  // const getStudents = async (page = 1, search = "") => {
+  //   setLoading(true);
+  //   try {
+  //     const normalizedSearch = search.trim().toLowerCase();
+  //     const searchParam = normalizedSearch
+  //       ? `&search=${encodeURIComponent(normalizedSearch)}`
+  //       : "";
+
+  //     const res = await axios.get(
+  //       `${API_BASE_URL}/api/student-management/student?page=${page}${searchParam}`,
+  //       {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       }
+  //     );
+
+  //     console.log(res);
+
+  //     const studentsWithFullName = (res?.data?.data || []).map((s) => ({
+  //       ...s,
+  //       key: s._id,
+  //       name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
+  //     }));
+
+  //     messageApi.success(res.data?.message);
+  //     setStudents(studentsWithFullName);
+
+  //     setPagination({
+  //       current: res?.data?.pagination?.page || page,
+  //       total: res?.data?.pagination?.total || studentsWithFullName.length,
+  //       pageSize: 20,
+  //     });
+  //   } catch (error) {
+  //     console.error("Error fetching students:", error);
+  //     messageApi.error(
+  //       error?.response?.data?.message || "Failed to fetch students"
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  const getStudents = async (page = 1, search = "", classId = "") => {
     setLoading(true);
     try {
-      const normalizedSearch = search.trim().toLowerCase();
-      const searchParam = normalizedSearch
-        ? `&search=${encodeURIComponent(normalizedSearch)}`
-        : "";
+      const searchParam = search ? `&search=${encodeURIComponent(search)}` : "";
+      const classParam = classId ? `&classId=${classId}` : "";
 
       const res = await axios.get(
-        `${API_BASE_URL}/api/student-management/student?page=${page}${searchParam}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `${API_BASE_URL}/api/student-management/student?page=${page}${searchParam}${classParam}`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      console.log(res);
 
       const studentsWithFullName = (res?.data?.data || []).map((s) => ({
         ...s,
@@ -158,9 +193,7 @@ const Student = () => {
         name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
       }));
 
-      messageApi.success(res.data?.message);
       setStudents(studentsWithFullName);
-
       setPagination({
         current: res?.data?.pagination?.page || page,
         total: res?.data?.pagination?.total || studentsWithFullName.length,
@@ -192,7 +225,7 @@ const Student = () => {
     }
   };
 
-  const getAllSubjects = async (page = 1, limit = 10) => {
+  const getAllSubjects = async () => {
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/subject-management/subjects`,
@@ -335,7 +368,6 @@ const Student = () => {
   const openDetails = (record) => {
     setDetailsStudent(record);
     setIsDetailsOpen(true);
-    console.log(record);
   };
 
   //Get Class
@@ -942,14 +974,22 @@ const Student = () => {
         <div className="flex items-center gap-3">
           <Select
             placeholder="Select Class"
-            onChange={(value) => setSelectedClass(value)}
             allowClear
             className="w-40"
+            loading={isLoadingClasses}
             value={selectedClass}
+            onChange={(value) => {
+              setSelectedClass(value);
+              if (value) {
+                getStudents(1, "", value); // fetch students for the selected class
+              } else {
+                getStudents(); // reset to all students
+              }
+            }}
           >
             {classes.map((c) => (
-              <Option key={c} value={c}>
-                {c}
+              <Option key={c._id} value={c._id}>
+                {c.displayName}
               </Option>
             ))}
           </Select>

@@ -167,6 +167,7 @@ const SubjectManagement = () => {
       );
 
       const result = res.data;
+      console.log("subjects", result)
       setSubjects(result?.data || []);
       setPagination({
         current: result?.pagination?.page || 1,
@@ -332,7 +333,7 @@ const SubjectManagement = () => {
               <Menu.Item key="assign" onClick={() => showAssignModal(record)}>
                 <Space>
                   <BookOutlined style={{ color: "#1890ff" }} />
-                  <span>Assign Subject</span>
+                  <span>Assign Subject To Teacher</span>
                 </Space>
               </Menu.Item>
             ) : (

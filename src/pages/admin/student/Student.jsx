@@ -18,7 +18,7 @@ import {
   Avatar,
   Dropdown,
   Menu,
-  Card
+  Card,
 } from "antd";
 import {
   SearchOutlined,
@@ -29,6 +29,7 @@ import {
   BarChartOutlined,
   UploadOutlined,
   MoreOutlined,
+  BookOutlined,
 } from "@ant-design/icons";
 import std_img from "../../../assets/student.jpg";
 import { useApp } from "../../../context/AppContext";
@@ -38,17 +39,6 @@ const { Title } = Typography;
 const { Option } = Select;
 
 const sessions = ["2023/2024", "2024/2025", "2025/2026"];
-
-const teacherAssigned = {
-  JSS1: "Mr. Adams",
-  JSS2: "Mrs. Akande",
-  JSS3: "Mr. Brown",
-  SS1: "Mrs. Johnson",
-  SS2: "Mr. Peters",
-  SS3: "Mrs. Gomez",
-};
-
-
 
 const Student = () => {
   const [searchText, setSearchText] = useState("");
@@ -64,6 +54,11 @@ const Student = () => {
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [importing, setImporting] = useState(false);
+  const [openSubjectAssignModal, setOpenAssignSubjectsModal] = useState(false);
+
+  const [subjects, setSubjects] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm();
@@ -106,26 +101,32 @@ const Student = () => {
   // 🧠 Load existing avatar when editing
   useEffect(() => {
     if (editingStudent) {
-      // Populate form fields
       form.setFieldsValue({
-        ...editingStudent,
-        parentEmail: editingStudent.parentEmail || "",
-        parentPhone: editingStudent.parentPhone || "",
-        parentAddress: editingStudent.parentAddress || "",
+        firstName: editingStudent.firstName,
+        lastName: editingStudent.lastName,
+        rollNumber: editingStudent.rollNumber,
+        dob: editingStudent.dob ? editingStudent.dob.split("T")[0] : null, // format date for input[type="date"]
+        gender: editingStudent.gender,
+        class: editingStudent.class?._id, // ✅ send _id, not name
+        status: editingStudent.status || "active",
+        session: editingStudent.session,
+        house: editingStudent.house,
+        parentEmail: editingStudent.parentEmail,
+        parentPhone: editingStudent.parentPhone,
+        parentAddress: editingStudent.parentAddress,
+        avatar: editingStudent.avatar || null,
       });
 
-      // Populate avatar if exists
+      // Set file list for avatar preview if editing
       if (editingStudent.avatar) {
         setFileList([
           {
             uid: "-1",
             name: "avatar.png",
             status: "done",
-            url: editingStudent.avatar, // existing image
+            url: editingStudent.avatar,
           },
         ]);
-      } else {
-        setFileList([]);
       }
     } else {
       form.resetFields();
@@ -191,6 +192,56 @@ const Student = () => {
     }
   };
 
+  const getAllSubjects = async (page = 1, limit = 10) => {
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/subject-management/subjects`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setSubjects(res?.data?.data || []);
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to fetch subjects");
+    }
+  };
+
+  const openAssignSubjectsModal = (student) => {
+    setSelectedStudent(student);
+    setSelectedSubjects(student?.subjects || []);
+    setOpenAssignSubjectsModal(true);
+    getAllSubjects();
+  };
+
+  const assignSubject = async () => {
+    const id = selectedStudent?._id;
+    const payload = {
+      subjectIds: selectedSubjects, // ✅ use state directly
+    };
+
+    try {
+      setLoading(true);
+      // Example API call
+      const res = await axios.post(
+        `${API_BASE_URL}/api/student-management/students/${id}/subjects`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setOpenAssignSubjectsModal(false);
+      getStudents();
+      messageApi.success(
+        res?.data?.message || "Subjects assigned successfully!"
+      );
+    } catch (error) {
+      console.error(error);
+      messageApi.error(res?.response?.error || "Failed to assign subjects.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleTableChange = (paginationConfig) => {
     getStudents(paginationConfig.current, searchText);
   };
@@ -207,6 +258,7 @@ const Student = () => {
   useEffect(() => {
     if (initialized && token) getStudents(pagination.current);
     getTeachers();
+    getAllSubjects();
   }, [initialized, token]);
 
   const openProgressModal = (student) => {
@@ -241,65 +293,49 @@ const Student = () => {
   };
 
   const openEditModal = (student) => {
-    const waitForClasses = () => {
-      if (!classes || classes.length === 0) {
-        setTimeout(waitForClasses, 300); // try again after 300ms
-        return;
-      }
+    const matchingClass = classes.find(
+      (c) =>
+        c._id === student.class ||
+        c.name === student.class ||
+        c.displayName ===
+          `${student.class}${student.arm ? " - " + student.arm : ""}`
+    );
 
-      console.log("Editing:", student.class);
+    form.setFieldsValue({
+      firstName: student.firstName,
+      lastName: student.lastName,
+      admissionNumber: student.admissionNumber,
+      rollNumber: student.rollNumber,
+      dob: student.dob ? new Date(student.dob).toISOString().split("T")[0] : "",
+      gender: student.gender,
+      class: matchingClass?._id || student.class || "",
+      session: student.session,
+      status: student.status || "active",
+      house: student.house,
+      parentEmail: student.parentEmail || student.parent?.email || "",
+      parentPhone: student.parentPhone || student.parent?.phone || "",
+      parentAddress: student.parentAddress || student.parent?.address || "",
+    });
 
-      const matchingClass = classes.find(
-        (c) =>
-          c._id === student.class?._id ||
-          c.name === student.class?.name ||
-          c.displayName ===
-            `${student.class?.name}${
-              student.class?.arm ? " - " + student.class?.arm : ""
-            }`
-      );
+    if (student.avatar) {
+      setFileList([
+        {
+          uid: "-1",
+          name: "avatar.png",
+          status: "done",
+          url: student.avatar,
+        },
+      ]);
+    } else setFileList([]);
 
-      console.log("matchingClass:", matchingClass);
-
-      form.setFieldsValue({
-        firstName: student.firstName,
-        lastName: student.lastName,
-        admissionNumber: student.admissionNumber,
-        rollNumber: student.rollNumber,
-        dob: student.dob ? student.dob.split("T")[0] : "",
-        gender: student.gender,
-        class: matchingClass?._id || "",
-        session: student.session,
-        status: student.status || "active",
-        house: student.house,
-        parentEmail: student.parentEmail,
-        parentPhone: student.parentPhone,
-        parentAddress: student.parentAddress,
-      });
-
-      if (student.avatar) {
-        setFileList([
-          {
-            uid: "-1",
-            name: "avatar.png",
-            status: "done",
-            url: student.avatar,
-          },
-        ]);
-      } else {
-        setFileList([]);
-      }
-
-      setEditingStudent(student);
-      setIsModalOpen(true);
-    };
-
-    waitForClasses();
+    setEditingStudent(student);
+    setIsModalOpen(true);
   };
 
   const openDetails = (record) => {
     setDetailsStudent(record);
     setIsDetailsOpen(true);
+    console.log(record);
   };
 
   //Get Class
@@ -542,10 +578,17 @@ const Student = () => {
                 onClick: () => openEditModal(record),
               },
               {
+                key: "3",
+                icon: <BookOutlined />,
+                label: "Assign Subjects",
+                onClick: () => openAssignSubjectsModal(record),
+              },
+
+              {
                 type: "divider",
               },
               {
-                key: "3",
+                key: "4",
                 icon: <BarChartOutlined style={{ color: "#52c41a" }} />,
                 label: "Progress Report",
                 onClick: () => openProgressModal(record),
@@ -554,7 +597,7 @@ const Student = () => {
                 type: "divider",
               },
               {
-                key: "4",
+                key: "5",
                 icon: <DeleteOutlined style={{ color: "#ff4d4f" }} />,
                 label: (
                   <Popconfirm
@@ -580,9 +623,6 @@ const Student = () => {
     },
   ];
 
-  // console.log(token)
-  // console.log(API_BASE_URL)
-
   // -----------------------------------------
   // CSV upload -> preview (opens preview modal)
   // -----------------------------------------
@@ -601,10 +641,12 @@ const Student = () => {
         }
       );
 
-      console.log(res)
-      
+      // console.log(res);
+
       if (res.data?.success) {
-        messageApi.success(res.data?.message || "Preview generated successfully");
+        messageApi.success(
+          res.data?.message || "Preview generated successfully"
+        );
         // store preview array in state
         // ensure it's a deep copy so edits don't mutate original response (safety)
         const previewArray = Array.isArray(res.data.preview)
@@ -613,7 +655,7 @@ const Student = () => {
         setCsvPreviewData(previewArray);
         setCsvPagination((p) => ({ ...p, current: 1 })); // reset preview pager
         setIsCsvModalVisible(true);
-        console.log(res)
+        console.log(res);
       } else {
         messageApi.error(res.data?.message || "Preview failed");
       }
@@ -625,65 +667,60 @@ const Student = () => {
     }
   };
 
-  // Helper: try to parse DOB from formats like "3/22/2015" -> "2015-03-22"
-// If it's already ISO-like, return as-is.
-
-const confirmImport = async () => {
-  try {
-    if (!csvPreviewData || csvPreviewData.length === 0) {
-      messageApi.error("No data to import");
-      return;
-    }
-
-    setImporting(true);
-
-    // Format student data
-    const studentsPayload = csvPreviewData.map((row) => ({
-      firstName: row.firstName || "",
-      lastName: row.lastName || "",
-      session: row.session || "",
-      gender: row.gender?.toLowerCase() || "",
-      dob: row.dob ? new Date(row.dob).toISOString().split("T")[0] : "",
-      parentEmail: row.parentEmail || "",
-      parentPhone: row.parentPhone || "",
-      house: row.house || "",
-      status: row.status || "active",
-    }));
-
-    const pagination = {
-      page: 1,
-      total: studentsPayload.length,
-      totalPages: 1,
-    };
-
-    const response = await axios.post(
-      `${API_BASE_URL}/api/student-management/student/bulk/commit`,
-      { students: studentsPayload, pagination },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+  const confirmImport = async () => {
+    try {
+      if (!csvPreviewData || csvPreviewData.length === 0) {
+        messageApi.error("No data to import");
+        return;
       }
-    );
 
-    if (response.data.success) {
-      messageApi.success("Students imported successfully!");
-      setIsCsvModalVisible(false);
-      setCsvPreviewData([]); // reset CSV preview
-      getStudents(); // refresh main list
-    } else {
-      messageApi.error(response.data.message || "Failed to import students");
+      setImporting(true);
+
+      // Format student data
+      const studentsPayload = csvPreviewData.map((row) => ({
+        firstName: row.firstName || "",
+        lastName: row.lastName || "",
+        session: row.session || "",
+        gender: row.gender?.toLowerCase() || "",
+        dob: row.dob ? new Date(row.dob).toISOString().split("T")[0] : "",
+        parentEmail: row.parentEmail || "",
+        parentPhone: row.parentPhone || "",
+        house: row.house || "",
+        status: row.status || "active",
+      }));
+
+      const pagination = {
+        page: 1,
+        total: studentsPayload.length,
+        totalPages: 1,
+      };
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/student-management/student/bulk/commit`,
+        { students: studentsPayload, pagination },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        messageApi.success("Students imported successfully!");
+        setIsCsvModalVisible(false);
+        setCsvPreviewData([]); // reset CSV preview
+        getStudents(); // refresh main list
+      } else {
+        messageApi.error(response.data.message || "Failed to import students");
+      }
+    } catch (error) {
+      console.error("Import error:", error);
+      messageApi.error("Something went wrong while importing students");
+    } finally {
+      setImporting(false);
     }
-  } catch (error) {
-    console.error("Import error:", error);
-    messageApi.error("Something went wrong while importing students");
-  } finally {
-    setImporting(false);
-  }
-};
-
-
+  };
 
   // ----------------------
   // Editable cell handlers
@@ -865,56 +902,10 @@ const confirmImport = async () => {
       render: (text, record, idx) =>
         renderEditableCell(text, record, idx, "parentEmail"),
     },
- 
   ];
 
   // helper: map csvPreviewData to dataSource with row index keys
   const csvDataSource = csvPreviewData.map((r, idx) => ({ ...r, key: idx }));
-
-  // Confirm import handler (optional: call import API or send csvPreviewData)
-  const handleConfirmImport = async () => {
-    try {
-      // Example: call bulk/import endpoint with edited preview data
-      setCsvLoading(true);
-      // convert suggestions/subjects from comma string to arrays if needed
-      const payload = csvPreviewData.map((row) => {
-        const copy = { ...row };
-        if (typeof copy.subjects === "string") {
-          copy.subjects = copy.subjects
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
-        }
-        if (typeof copy.suggestions === "string") {
-          copy.suggestions = copy.suggestions
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
-        }
-        return copy;
-      });
-
-      // adjust endpoint as your API expects
-      const res = await axios.post(
-        `${API_BASE_URL}/api/student-management/student/bulk/import`,
-        { data: payload },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (res.data?.success) {
-        message.success(res.data?.message || "Import successful");
-        setIsCsvModalVisible(false);
-        getStudents(); // refresh main list
-      } else {
-        message.error(res.data?.message || "Import failed");
-      }
-    } catch (err) {
-      console.error("Import error:", err);
-      message.error(err?.response?.data?.message || "Import failed");
-    } finally {
-      setCsvLoading(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -963,7 +954,6 @@ const confirmImport = async () => {
             ))}
           </Select>
 
-
           <Space>
             <Button
               type="primary"
@@ -972,6 +962,13 @@ const confirmImport = async () => {
             >
               Add Student
             </Button>
+            {/* <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openAddModal}
+            >
+              Assign Subjects
+            </Button> */}
             <input
               ref={fileInputRef}
               type="file"
@@ -998,37 +995,37 @@ const confirmImport = async () => {
         </div>
       </div>
 
-      {selectedClass && (
+      {/* {selectedClass && (
         <p className="mb-3 text-gray-600">
           <span className="font-semibold">Teacher Assigned:</span>{" "}
           {teacherAssigned[selectedClass] || "Not Assigned"}
         </p>
-      )}
+      )} */}
 
       {/* Skeleton Loader */}
       {loading ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : (
         <Card className="shadow-md rounded-xl">
-        <Table
-          columns={columns}
-          dataSource={students}
-          rowKey="key"
-          bordered
-          size="small"
-          pagination={{
-            current: pagination.current,
-            total: pagination.total,
-            pageSize: pagination.pageSize,
-            position: ["bottomCenter"],
-            className: "custom-pagination",
-            showSizeChanger: false,
-          }}
-          onChange={handleTableChange}
-          className="custom-table"
-          scroll={{ x: "max-content" }}
-        />
-      </Card>
+          <Table
+            columns={columns}
+            dataSource={students}
+            rowKey="key"
+            bordered
+            size="small"
+            pagination={{
+              current: pagination.current,
+              total: pagination.total,
+              pageSize: pagination.pageSize,
+              position: ["bottomCenter"],
+              className: "custom-pagination",
+              showSizeChanger: false,
+            }}
+            onChange={handleTableChange}
+            className="custom-table"
+            scroll={{ x: "max-content" }}
+          />
+        </Card>
       )}
 
       {/* ... your modals remain unchanged ... */}
@@ -1319,11 +1316,11 @@ const confirmImport = async () => {
               {detailsStudent.parentAddress || "—"}
             </Descriptions.Item>
             <Descriptions.Item label="Class Teacher">
-              {teacherAssigned[detailsStudent.class] || "—"}
+              {/* {detailsStudent?.detailsStudent.class || "—"} */}
             </Descriptions.Item>
             <Descriptions.Item label="Subjects Offered">
-              {detailsStudent.subjects?.length
-                ? detailsStudent.subjects.join(", ")
+              {detailsStudent.subjects && detailsStudent.subjects.length > 0
+                ? detailsStudent.subjects.map((s) => s.name).join(", ")
                 : "—"}
             </Descriptions.Item>
           </Descriptions>
@@ -1415,7 +1412,7 @@ const confirmImport = async () => {
             pageSize: csvPagination.pageSize,
             total: csvPreviewData.length,
             showSizeChanger: true,
-             className: "custom-pagination",
+            className: "custom-pagination",
             pageSizeOptions: ["5", "10", "20", "50"],
             onChange: (page, pageSize) => {
               setCsvPagination({ current: page, pageSize });
@@ -1423,7 +1420,7 @@ const confirmImport = async () => {
             onShowSizeChange: (current, size) =>
               setCsvPagination({ current: 1, pageSize: size }),
           }}
-           className="custom-table"
+          className="custom-table"
           scroll={{ x: "max-content" }}
         />
         <div style={{ marginTop: 12 }}>
@@ -1433,9 +1430,41 @@ const confirmImport = async () => {
           </small>
         </div>
       </Modal>
+
+      {/* Asign Modal */}
+      <Modal
+        title={`Assign Subjects - ${selectedStudent?.name || ""}`}
+        open={openSubjectAssignModal}
+        onCancel={() => {
+          setOpenAssignSubjectsModal(false);
+          setSelectedStudent(null);
+          setSelectedSubjects([]);
+        }}
+        onOk={() => form.submit()} // ✅ safe submit
+        okText="Assign"
+        confirmLoading={loading}
+      >
+        <Form layout="vertical" form={form} onFinish={assignSubject}>
+          <Form.Item label="Select Subjects">
+            <Select
+              mode="multiple"
+              placeholder="Select subjects"
+              value={selectedSubjects}
+              onChange={setSelectedSubjects}
+              loading={loading}
+              style={{ width: "100%" }}
+            >
+              {subjects?.map((s) => (
+                <Option key={s._id} value={s._id}>
+                  {s.name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
 
-export default Student
-
+export default Student;

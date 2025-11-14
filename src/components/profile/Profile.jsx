@@ -45,7 +45,7 @@ const Profile = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUserData(res.data.data);
-      // console.log("Profile:", res.data.data);
+      console.log("Profile:", res.data.data);
     } catch (error) {
       console.log("Profile fetch error:", error);
       message.error("Failed to load profile");

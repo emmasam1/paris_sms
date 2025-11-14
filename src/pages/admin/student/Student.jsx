@@ -134,79 +134,41 @@ const Student = () => {
     }
   }, [editingStudent, form]);
 
-  // Fetch students (with search)
-  //  const getStudents = async (page = 1, search = "", classId = "") => {
-  //   setLoading(true);
-  //   try {
-  //     const searchParam = search ? `?search=${encodeURIComponent(search)}` : "";
-  //     const classParam = classId ? `&classId=${classId}` : "";
-
-  //     const res = await axios.get(
-  //       `${API_BASE_URL}/api/student-management/student?page=${page}${searchParam}${classParam}`,
-  //       { headers: { Authorization: `Bearer ${token}` } }
-  //     );
-
-  //     const studentsWithFullName = (res?.data?.data || []).map((s) => ({
-  //       ...s,
-  //       key: s._id,
-  //       name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
-  //     }));
-
-  //     setStudents(studentsWithFullName);
-  //     setPagination({
-  //       current: res?.data?.pagination?.page || page,
-  //       total: res?.data?.pagination?.total || studentsWithFullName.length,
-  //       pageSize: 20,
-  //     });
-  //   } catch (error) {
-  //     console.error("Error fetching students:", error);
-  //     messageApi.error(
-  //       error?.response?.data?.message || "Failed to fetch students"
-  //     );
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const getStudents = async (page = 1, search = "", classId = "") => {
-  setLoading(true);
-  try {
-    // Build query parameters correctly
-    const params = new URLSearchParams();
-    params.append("page", page);
-    if (search) params.append("search", search);
-    if (classId) params.append("classId", classId);
+    setLoading(true);
+    try {
+      // Build query parameters correctly
+      const params = new URLSearchParams();
+      params.append("page", page);
+      if (search) params.append("search", search);
+      if (classId) params.append("classId", classId);
 
-console.log(search)
-    const res = await axios.get(
-      `${API_BASE_URL}/api/student-management/student?${params.toString()}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+      const res = await axios.get(
+        `${API_BASE_URL}/api/student-management/student?${params.toString()}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
+      const studentsWithFullName = (res?.data?.data || []).map((s) => ({
+        ...s,
+        key: s._id,
+        name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
+      }));
 
-
-    const studentsWithFullName = (res?.data?.data || []).map((s) => ({
-      ...s,
-      key: s._id,
-      name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
-    }));
-
-    setStudents(studentsWithFullName);
-    setPagination({
-      current: res?.data?.pagination?.page || page,
-      total: res?.data?.pagination?.total || studentsWithFullName.length,
-      pageSize: 20,
-    });
-  } catch (error) {
-    console.error("Error fetching students:", error);
-    messageApi.error(
-      error?.response?.data?.message || "Failed to fetch students"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setStudents(studentsWithFullName);
+      setPagination({
+        current: res?.data?.pagination?.page || page,
+        total: res?.data?.pagination?.total || studentsWithFullName.length,
+        pageSize: 20,
+      });
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      messageApi.error(
+        error?.response?.data?.message || "Failed to fetch students"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getTeachers = async () => {
     if (!token) return;

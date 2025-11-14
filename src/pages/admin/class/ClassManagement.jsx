@@ -84,7 +84,9 @@ const ClassManagement = () => {
       const studentsWithFullName = (res?.data?.data || []).map((s) => ({
         ...s,
         key: s._id,
-        name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
+        studentName: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
+        arm: `${s.class?.arm || ""}`.trim(),
+        name: `${s.class?.name || ""}`.trim()
       }));
 
       // messageApi.success(res.data?.message);
@@ -275,6 +277,7 @@ const ClassManagement = () => {
 
   // Open create/edit modal
   const openModal = (record = null) => {
+   
     setEditingClass(record);
     if (record) {
       form.setFieldsValue({
@@ -440,6 +443,7 @@ const ClassManagement = () => {
             <Menu.Item
               icon={<EyeOutlined />}
               onClick={() => {
+                //  console.log(record)
                 setViewClass(record);
                 setIsViewOpen(true);
               }}
@@ -680,7 +684,7 @@ const ClassManagement = () => {
             >
               {students.map((s) => (
                 <Select.Option key={s._id} value={s._id}>
-                  {s.name}
+                  {s.studentName} - {s.name} {s.arm}
                 </Select.Option>
               ))}
             </Select>

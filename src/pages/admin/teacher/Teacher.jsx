@@ -23,12 +23,13 @@ import {
   SearchOutlined,
   EditOutlined,
   EyeOutlined,
-  PlusOutlined,
   StopOutlined,
   CheckCircleOutlined,
   UploadOutlined,
   SettingOutlined,
   MoreOutlined,
+  PlusOutlined,
+  MinusOutlined,
 } from "@ant-design/icons";
 import teacher_img from "../../../assets/teacher.jpg";
 import { useApp } from "../../../context/AppContext";
@@ -386,11 +387,21 @@ const Teacher = () => {
       title: "Full Name",
       key: "name",
       render: (_, record) =>
-        ` ${record.firstName || ""} ${
-          record.lastName || ""
-        }`.trim(),
+        ` ${record.firstName || ""} ${record.lastName || ""}`.trim(),
     },
-    { title: "Subject", dataIndex: "subject", key: "subject" },
+    {
+      title: "Subject",
+      dataIndex: "subject",
+      key: "subject",
+      render: (_, record) => {
+        const subjects = record?.subjects || [];
+        if (subjects.length === 0) return "-";
+
+        return subjects
+          .map((s) => `${s.name} (${s.levels?.join(", ")})`)
+          .join(", ");
+      },
+    },
     {
       title: "Role",
       dataIndex: "role",
@@ -456,6 +467,7 @@ const Teacher = () => {
               key="view"
               icon={<EyeOutlined />}
               onClick={() => {
+                console.log(record);
                 setSelectedTeacher(record);
                 setIsDetailsOpen(true);
               }}
@@ -474,6 +486,39 @@ const Teacher = () => {
               }}
             >
               Edit Staff
+            </Menu.Item>
+
+            <Menu.Item
+              key="subject"
+              onClick={() => handleManageStaff(record)}
+            >
+              {record.subjects?.length > 0 ? (
+                // 🔴 Unassign Subject
+                <Button
+                  className="!border-0 !p-0 hover:!text-black hover:!bg-transparent flex items-center gap-1"
+                  loading={loading}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeSubject(record);
+                  }}
+                  icon={<MinusOutlined />}
+                >
+                  Unassign Subject
+                </Button>
+              ) : (
+                // 🟢 Assign Subject
+                <Button
+                  className="!border-0 !p-0 hover:!text-black hover:!bg-transparent flex items-center gap-1"
+                  loading={loading}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    assignSubject(record);
+                  }}
+                  icon={<PlusOutlined />}
+                >
+                  Assign Subject
+                </Button>
+              )}
             </Menu.Item>
 
             <Menu.Item

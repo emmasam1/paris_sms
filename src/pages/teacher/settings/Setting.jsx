@@ -30,40 +30,6 @@ const Setting = () => {
     <div className="">
       <h2 className="text-2xl font-semibold mb-4"></h2>
 
-      {/* Profile Settings */}
-      <Card className="!mb-6 shadow-md rounded-xl">
-        <h3 className="text-lg font-semibold mb-3">Profile Information</h3>
-        <div className="flex items-center gap-5 mb-4">
-          <Upload showUploadList={false}>
-            <Button icon={<UploadOutlined />}>Change Profile Image</Button>
-          </Upload>
-          <div>
-            <p className="text-gray-700">John Doe</p>
-            <p className="text-gray-500 text-sm">Teacher</p>
-          </div>
-        </div>
-
-        <Form layout="vertical" form={form} onFinish={handleSave}>
-          <Form.Item label="Full Name" name="name">
-            <Input placeholder="John Doe" />
-          </Form.Item>
-          <Form.Item label="Email Address" name="email">
-            <Input placeholder="johndoe@example.com" disabled />
-          </Form.Item>
-          <Form.Item label="Phone Number" name="phone">
-            <Input placeholder="+234 801 234 5678" />
-          </Form.Item>
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            htmlType="submit"
-            loading={loading}
-          >
-            Save Changes
-          </Button>
-        </Form>
-      </Card>
-
       {/* Password Change */}
       <Card className="!mb-6 shadow-md rounded-xl">
         <h3 className="text-lg font-semibold mb-3">Change Password</h3>

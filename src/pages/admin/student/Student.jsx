@@ -148,6 +148,8 @@ const Student = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      console.log(res)
+
       const studentsWithFullName = (res?.data?.data || []).map((s) => ({
         ...s,
         key: s._id,

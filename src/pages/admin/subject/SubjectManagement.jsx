@@ -38,6 +38,7 @@ const SubjectManagement = () => {
   const [isAssignModalOpen, setIsAssignIsModalOpen] = useState(false);
   const [staff, setStaff] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
+  const [classes, setClasses] = useState([]);
   const [singleSubject, setSingleSubject] = useState({
     name: "",
     code: "",
@@ -97,6 +98,34 @@ const SubjectManagement = () => {
       levelsOffered: [],
     });
     setEditingKey(null);
+  };
+
+  // Fetch classes
+  const getClass = async () => {
+    if (!token) return;
+
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/class-management/classes`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const data = res?.data?.data || [];
+      const mapped = data.map((cls) => ({
+        ...cls,
+        key: cls._id,
+        levelName: cls.level, // 🔥 this is the string you need: "SSS"
+      }));
+
+      console.log("data from class", mapped);
+    } catch (error) {
+      console.error(error);
+      messageApi.error(
+        error?.response?.data?.message || "Failed to fetch classes"
+      );
+    }
   };
 
   // 🔹 Save subject (Add/Edit)
@@ -265,6 +294,7 @@ const SubjectManagement = () => {
   useEffect(() => {
     getAllSubjects();
     getTeachers();
+    getClass();
   }, []);
 
   // 🔹 Handle pagination
@@ -486,8 +516,28 @@ const SubjectManagement = () => {
         <div className="flex items-center gap-3">
           <Select
             allowClear
+            placeholder="Search subject by class"
+            onChange={(value) => {
+              if (!value) {
+                getAllSubjects(1, 10, ""); // reload all
+                return;
+              }
+
+              // 🔥 Filter subjects by class level
+              filterSubjectByLevel(value);
+            }}
+          >
+            {classes.map((cls) => (
+              <Option key={cls._id} value={cls.levelName}>
+                {cls.levelName}
+              </Option>
+            ))}
+          </Select>
+
+          <Select
+            allowClear
             placeholder="Search assigned subjects"
-            style={{ width: 200 }}
+            // style={{ width: 200 }}
             onChange={(value) => {
               if (!value) {
                 getAllSubjects(1, 10, ""); // on clear load all

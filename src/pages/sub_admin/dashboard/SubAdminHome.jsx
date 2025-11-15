@@ -188,13 +188,13 @@ const SubAdminHome = () => {
           <Button
             type="primary"
             icon={<UserOutlined />}
-            onClick={() => navigate("/sub-admin/dashboard/attendance")}
+            onClick={() => navigate("/class_admin/dashboard/attendance")}
           >
             Attendance
           </Button>
           <Button
             icon={<FileTextOutlined />}
-            onClick={() => navigate("/sub-admin/dashboard/results")}
+            onClick={() => navigate("/class_admin/dashboard/results")}
           >
             View Results
           </Button>

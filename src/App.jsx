@@ -53,7 +53,7 @@ const App = () => {
       <Route
         element={
           <PrivateRoute
-            allowedRoles={["class-admin", "school_admin", "principal"]}
+            allowedRoles={["class_admin", "school_admin", "principal"]}
           />
         }
       >
@@ -82,7 +82,7 @@ const App = () => {
 
       {/* ===== Sub-Admin Routes ===== */}
       <Route element={<PrivateRoute allowedRoles={["class_admin"]} />}>
-        <Route path="/class-admin/dashboard" element={<SubAdminLayout />}>
+        <Route path="/class_admin/dashboard" element={<SubAdminLayout />}>
           <Route path="" element={<SubAdminHome />} />
           <Route path="results" element={<SubAdminResults />} />
           <Route path="attendance" element={<SubAdminAttendance />} />

@@ -22,7 +22,7 @@ import {
 } from "antd";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { useApp } from "../../context/AppContext";
-
+import logo from "../../assets/logo.jpeg";
 const menu_items = [
   {
     key: "profile",
@@ -78,13 +78,21 @@ const SubAdminLayout = () => {
   const { API_BASE_URL, clearSession, token, initialized, logout } = useApp();
 
   const {
-    token: { colorBgContainer },
+    token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
   // Collapse automatically on small screen
   useEffect(() => {
     setCollapsed(!screens.lg);
   }, [screens]);
+
+   // ✅ Redirect unauthenticated users
+    useEffect(() => {
+      if (initialized && !token) {
+        logout();
+        navigate("/");
+      }
+    }, [initialized, token, navigate]);
 
   // Current page title
   const pageTitle = routeTitles[location.pathname] || "Dashboard";
@@ -147,15 +155,34 @@ const SubAdminLayout = () => {
           top: 0,
           bottom: 0,
           height: "100vh",
-          zIndex: 100,
         }}
       >
-        {/* <div className="flex flex-col items-center py-5 text-center">
-          <Avatar size={collapsed ? 40 : 64} icon={<UserOutlined />} />
+        <div
+          className={`flex items-center transition-all duration-300 ${
+            collapsed ? "justify-center py-6" : "justify-start gap-4 py-6 px-4"
+          }`}
+        >
+          <div
+            className={`bg-white rounded-full flex items-center justify-center ${
+              collapsed ? "p-2.5" : "p-2"
+            }`}
+          >
+            <img
+              src={logo}
+              alt="App Logo"
+              className={`object-contain ${
+                collapsed ? "h-10 w-10" : "h-12 w-12"
+              }`}
+            />
+          </div>
           {!collapsed && (
-            <p className="text-white mt-2 text-sm font-semibold">SubAdmin</p>
+            <div className="flex flex-col">
+              <p className="text-white font-semibold text-sm uppercase tracking-wide">
+                {user?.role === "class_admin" ? "Class Admin" : ""}
+              </p>
+            </div>
           )}
-        </div> */}
+        </div>
 
         <Menu
           className="!bg-slate-900 !text-white border-r-0"
@@ -223,15 +250,44 @@ const SubAdminLayout = () => {
         </Header>
 
         {/* Content Area */}
-        <Content
-          style={{
-            margin: "60px 0 0 0",
-            padding: 20,
-            background: colorBgContainer,
-            minHeight: "calc(100vh - 80px)",
-          }}
-        >
-          <Outlet />
+        <Content style={{ margin: "60px 0 0 0", position: "relative" }}>
+          <div
+            style={{
+              padding: 24,
+              background: colorBgContainer,
+              minHeight: "calc(100vh - 60px)",
+              borderRadius: borderRadiusLG,
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                position: "fixed",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                opacity: 0.08,
+                zIndex: 0,
+                pointerEvents: "none",
+                userSelect: "none",
+              }}
+            >
+              <img
+                src={logo}
+                alt="Watermark"
+                style={{
+                  width: 400,
+                  height: "auto",
+                  filter: "grayscale(100%)",
+                }}
+              />
+            </div>
+
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <Outlet />
+            </div>
+          </div>
         </Content>
       </Layout>
     </Layout>

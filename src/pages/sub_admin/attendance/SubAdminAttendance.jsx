@@ -9,6 +9,9 @@ import {
   Tag,
   Collapse,
   Radio,
+  Statistic,
+  Row,
+  Col,
 } from "antd";
 import dayjs from "dayjs";
 
@@ -17,9 +20,10 @@ const { TabPane } = Tabs;
 const { Panel } = Collapse;
 
 const SubAdminAttendance = () => {
+  const today = dayjs().format("YYYY-MM-DD");
+
   const classes = ["JSS1A", "JSS1B", "JSS1C"];
 
-  // Mock data
   const mockStudents = {
     JSS1A: [
       { id: 1, regNo: "JSS1A001", name: "Adeola Johnson" },
@@ -36,25 +40,26 @@ const SubAdminAttendance = () => {
     ],
   };
 
-  // State
   const [selectedClass, setSelectedClass] = useState("");
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({});
-  const [submitted, setSubmitted] = useState(false);
-  const [viewRecords, setViewRecords] = useState({});
+  const [viewRecords, setViewRecords] = useState({}); // { className: { date: [records] } }
 
-  const today = dayjs().format("YYYY-MM-DD");
+  const [selectedDate, setSelectedDate] = useState(today);
 
-  // When class changes
+  const [summary, setSummary] = useState(null);
+
+  /** Load class students */
   useEffect(() => {
     if (selectedClass) {
       setStudents(mockStudents[selectedClass] || []);
       setAttendance({});
-      setSubmitted(false);
+      setSummary(null);
+      setSelectedDate(today);
     }
   }, [selectedClass]);
 
-  // Handle attendance change
+  /** Change Attendance */
   const handleAttendanceChange = (studentId, status) => {
     setAttendance((prev) => ({
       ...prev,
@@ -62,32 +67,59 @@ const SubAdminAttendance = () => {
     }));
   };
 
-  // Submit attendance
+  /** Submit Attendance */
   const handleSubmit = () => {
-    if (!selectedClass) return message.warning("Please select a class first.");
+    if (!selectedClass) return message.warning("Please select a class.");
+
     if (Object.keys(attendance).length === 0)
-      return message.warning("No attendance marked yet.");
+      return message.warning("Please mark at least one student.");
+
+    // Prevent duplicate for same class + date
+    const existingDateRecords =
+      viewRecords[selectedClass]?.[selectedDate] || [];
+
+    if (existingDateRecords.length > 0) {
+      return message.error(
+        `Attendance for ${selectedClass} on ${selectedDate} is already recorded.`
+      );
+    }
 
     const formatted = students.map((stu) => ({
       id: stu.id,
       regNo: stu.regNo,
       name: stu.name,
       status: attendance[stu.id] || "Absent",
-      date: today,
+      date: selectedDate,
       className: selectedClass,
     }));
 
-    // Save grouped by class
+    // Push into viewRecords grouped by class and date
     setViewRecords((prev) => ({
       ...prev,
-      [selectedClass]: [...(prev[selectedClass] || []), ...formatted],
+      [selectedClass]: {
+        ...(prev[selectedClass] || {}),
+        [selectedDate]: formatted,
+      },
     }));
 
-    setSubmitted(true);
-    message.success(`Attendance submitted for ${selectedClass} (${today})`);
+    // Create summary
+    const summaryCount = {
+      Present: 0,
+      Absent: 0,
+      Late: 0,
+      Excused: 0,
+    };
+
+    formatted.forEach((r) => {
+      summaryCount[r.status]++;
+    });
+
+    setSummary(summaryCount);
+
+    message.success(`Attendance submitted for ${selectedClass}`);
   };
 
-  // Columns for marking attendance
+  /** Mark Attendance Table Columns */
   const markColumns = [
     { title: "Reg No", dataIndex: "regNo", key: "regNo" },
     { title: "Name", dataIndex: "name", key: "name" },
@@ -98,7 +130,6 @@ const SubAdminAttendance = () => {
         <Radio.Group
           onChange={(e) => handleAttendanceChange(record.id, e.target.value)}
           value={attendance[record.id] || ""}
-          disabled={submitted}
         >
           <Radio value="Present">
             <Tag color="green">Present</Tag>
@@ -117,16 +148,15 @@ const SubAdminAttendance = () => {
     },
   ];
 
-  // Columns for viewing attendance
+  /** View attendance columns */
   const viewColumns = [
-    { title: "Date", dataIndex: "date", key: "date" },
-    { title: "Reg No", dataIndex: "regNo", key: "regNo" },
-    { title: "Name", dataIndex: "name", key: "name" },
+    { title: "Reg No", dataIndex: "regNo" },
+    { title: "Name", dataIndex: "name" },
     {
       title: "Status",
       dataIndex: "status",
       render: (status) => {
-        let color =
+        const color =
           status === "Present"
             ? "green"
             : status === "Late"
@@ -143,16 +173,14 @@ const SubAdminAttendance = () => {
     <div>
       <Card className="rounded-xl">
         <Tabs defaultActiveKey="1">
-          {/* MARK ATTENDANCE */}
+          {/* --------------------- MARK ATTENDANCE TAB ----------------------- */}
           <TabPane tab="Mark Attendance" key="1">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mb-4">
-              <div className="flex-1 mb-3 sm:mb-0">
-                <label className="text-gray-700 font-medium">
-                  Select Class
-                </label>
+            <div className="flex flex-col sm:flex-row sm:space-x-4 mb-4">
+              <div className="flex-1">
+                <label className="font-semibold">Class</label>
                 <Select
-                  placeholder="Select class"
                   className="w-full"
+                  placeholder="Select class"
                   value={selectedClass}
                   onChange={setSelectedClass}
                 >
@@ -165,10 +193,8 @@ const SubAdminAttendance = () => {
               </div>
 
               <div className="flex-1">
-                <label className="text-gray-700 font-medium">Date</label>
-                <div className="border border-gray-200 rounded-md p-1 bg-gray-50">
-                  {today}
-                </div>
+                <label className="font-semibold">Date</label>
+                <div className="border border-gray-300 p-1 rounded bg-gray-50">{selectedDate}</div>
               </div>
             </div>
 
@@ -181,57 +207,70 @@ const SubAdminAttendance = () => {
                   bordered
                   pagination={false}
                   size="small"
+                  scroll={{ x: "max-content" }}
                 />
+
+                {/* SUMMARY BOX */}
+                {summary && (
+                  <Card className="mt-4 bg-gray-50">
+                    <Row gutter={16}>
+                      {Object.entries(summary).map(([key, val]) => (
+                        <Col span={6} key={key}>
+                          <Statistic title={key} value={val} />
+                        </Col>
+                      ))}
+                    </Row>
+                  </Card>
+                )}
+
                 <div className="text-right mt-4">
-                  <Button
-                    type="primary"
-                    onClick={handleSubmit}
-                    disabled={submitted}
-                  >
-                    {submitted ? "Submitted" : "Submit Attendance"}
+                  <Button type="primary" onClick={handleSubmit}>
+                    Submit Attendance
                   </Button>
                 </div>
               </>
             ) : (
-              <p className="text-gray-500 text-center mt-6">
-                Please select a class to view students.
+              <p className="text-gray-400 mt-6 text-center">
+                Select a class to load students
               </p>
             )}
           </TabPane>
 
-          {/* VIEW ATTENDANCE */}
+          {/* --------------------- VIEW ATTENDANCE TAB ----------------------- */}
           <TabPane tab="View Attendance" key="2">
             {Object.keys(viewRecords).length > 0 ? (
               <Collapse accordion>
-                {Object.entries(viewRecords).map(([className, records]) => (
+                {Object.entries(viewRecords).map(([className, dates]) => (
                   <Panel
                     header={
                       <div className="flex justify-between items-center">
                         <span className="font-semibold">{className}</span>
-                        <Tag color="blue">{records.length} record(s)</Tag>
+                        <Tag color="blue">
+                          {Object.keys(dates).length} day(s)
+                        </Tag>
                       </div>
                     }
                     key={className}
                   >
-                    <Table
-                      dataSource={records}
-                      columns={viewColumns}
-                      rowKey={(record) => `${record.id}-${record.date}`}
-                      bordered
-                      size="small"
-                      pagination={{
-                        pageSize: 7,
-                        position: ["bottomCenter"],
-                        className: "custom-pagination",
-                      }}
-                      scroll={{ x: "max-content" }}
-                    />
+                    {Object.entries(dates).map(([date, records]) => (
+                      <div key={date} className="mb-6">
+                        <h4 className="font-medium mb-2">{date}</h4>
+                        <Table
+                          dataSource={records}
+                          columns={viewColumns}
+                          rowKey={(r) => r.id}
+                          bordered
+                          pagination={false}
+                          size="small"
+                        />
+                      </div>
+                    ))}
                   </Panel>
                 ))}
               </Collapse>
             ) : (
-              <p className="text-gray-500 text-center mt-6">
-                No attendance records available yet.
+              <p className="text-gray-400 text-center mt-6">
+                No attendance records yet.
               </p>
             )}
           </TabPane>

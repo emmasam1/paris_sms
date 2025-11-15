@@ -9,7 +9,8 @@ import {
 import { Layout, Menu, theme, Grid, Dropdown, Space, Avatar } from "antd";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { useApp } from "../../context/AppContext";
-import axios from 'axios' 
+import logo from "../../assets/logo.jpeg";
+import axios from "axios";
 
 const menu_items = [
   {
@@ -57,12 +58,21 @@ const TeacherDashboardLayout = () => {
   const { API_BASE_URL, clearSession, token, initialized, logout } = useApp();
 
   const {
-    token: { colorBgContainer },
+    token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
+  // Collapse sidebar on small screens
   useEffect(() => {
     setCollapsed(!screens.lg);
   }, [screens]);
+
+  // ✅ Redirect unauthenticated users
+  useEffect(() => {
+    if (initialized && !token) {
+      logout();
+      navigate("/");
+    }
+  }, [initialized, token, navigate]);
 
   const pageTitle = routeTitles[location.pathname] || "Dashboard";
 
@@ -124,6 +134,32 @@ const TeacherDashboardLayout = () => {
           height: "100vh",
         }}
       >
+        <div
+          className={`flex items-center transition-all duration-300 ${
+            collapsed ? "justify-center py-6" : "justify-start gap-4 py-6 px-4"
+          }`}
+        >
+          <div
+            className={`bg-white rounded-full flex items-center justify-center ${
+              collapsed ? "p-2.5" : "p-2"
+            }`}
+          >
+            <img
+              src={logo}
+              alt="App Logo"
+              className={`object-contain ${
+                collapsed ? "h-10 w-10" : "h-12 w-12"
+              }`}
+            />
+          </div>
+          {!collapsed && (
+            <div className="flex flex-col">
+              <p className="text-white font-semibold text-sm uppercase tracking-wide">
+                {user?.role}
+              </p>
+            </div>
+          )}
+        </div>
         <Menu
           className="!bg-slate-900 !text-white border-r-0"
           selectedKeys={[location.pathname]}
@@ -185,15 +221,43 @@ const TeacherDashboardLayout = () => {
           </Dropdown>
         </Header>
 
-        <Content style={{ margin: "60px 0 0 0" }}>
+        <Content style={{ margin: "60px 0 0 0", position: "relative" }}>
           <div
             style={{
               padding: 24,
               background: colorBgContainer,
-              minHeight: "80vh",
+              minHeight: "calc(100vh - 60px)",
+              borderRadius: borderRadiusLG,
+              position: "relative",
+              overflow: "hidden",
             }}
           >
-            <Outlet />
+            <div
+              style={{
+                position: "fixed",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                opacity: 0.08,
+                zIndex: 0,
+                pointerEvents: "none",
+                userSelect: "none",
+              }}
+            >
+              <img
+                src={logo}
+                alt="Watermark"
+                style={{
+                  width: 400,
+                  height: "auto",
+                  filter: "grayscale(100%)",
+                }}
+              />
+            </div>
+
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <Outlet />
+            </div>
           </div>
         </Content>
       </Layout>

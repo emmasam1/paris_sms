@@ -95,7 +95,7 @@ const TeacherDashboardLayout = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(res.data.data);
-      console.log("user from layout", res);
+      // console.log("user from layout", res);
     } catch (error) {
       console.error("Failed to fetch user:", error);
       // message.error("Session expired. Please log in again.");

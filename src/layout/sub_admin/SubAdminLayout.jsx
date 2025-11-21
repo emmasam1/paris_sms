@@ -49,6 +49,7 @@ function getItem(label, key, icon, children) {
 // ============================
 const items = [
   getItem("Dashboard", "/class_admin/dashboard", <DashboardOutlined />),
+   getItem("My Classes", "/class_admin/dashboard/classes", <BookOutlined />),
   // getItem("Students", "/sub-admin/dashboard/students", <UserOutlined />),
   //   getItem("Subjects", "/sub-admin/dashboard/subjects", <ReadOutlined />),
   getItem("Results", "/class_admin/dashboard/results", <BookOutlined />),
@@ -60,6 +61,7 @@ const items = [
 // Titles for header
 const routeTitles = {
   "/class_admin/dashboard": "Dashboard",
+  "/class_admin/dashboard/classes": "My Classes",
   // "/sub-admin/dashboard/students": "Student Management",
   //   "/sub-admin/dashboard/subjects": "Subject Management",
   "/class_admin/dashboard/results": "Results",
@@ -118,7 +120,7 @@ const SubAdminLayout = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(res.data.data);
-      console.log("user from layout", res);
+      // console.log("user from layout", res);
     } catch (error) {
       console.error("Failed to fetch user:", error);
       message.error("Session expired. Please log in again.");

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Card, Row, Col, Modal, Button, Tag, List, Badge } from "antd";
+import React, { useState, useEffect } from "react";
+import { Card, Row, Col, Modal, Button, Tag, List, Skeleton } from "antd";
 import {
   UserOutlined,
   BookOutlined,
@@ -8,10 +8,16 @@ import {
   ClockCircleOutlined,
   MessageOutlined,
 } from "@ant-design/icons";
+import axios from "axios";
+import { useApp } from "../../../context/AppContext";
 
 const TeacherDashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const { token, API_BASE_URL } = useApp();
+
   const [announcements, setAnnouncements] = useState([
     {
       id: 1,
@@ -36,11 +42,32 @@ const TeacherDashboard = () => {
     },
   ]);
 
+  // console.log(API_BASE_URL)
+
+  const getUser = async () => {
+     if (!token) return;
+    try {
+      setLoading(true);
+     const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUser(res.data.data);
+      // console.log("Dashboard user data:", res.data.data);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getUser();
+  }, []);
+
   const openMessage = (message) => {
     setSelectedMessage(message);
     setIsModalOpen(true);
 
-    // Mark message as read
     setAnnouncements((prev) =>
       prev.map((m) => (m.id === message.id ? { ...m, read: true } : m))
     );
@@ -57,100 +84,112 @@ const TeacherDashboard = () => {
     messages: announcements.length,
   };
 
+  // ---- FORM TEACHER WELCOME TEXT ----
+  const getWelcomeText = () => {
+    if (!user) return "";
+
+    const isFormTeacher = user.formClass?.name;
+
+    if (isFormTeacher) {
+      return `Welcome, ${user.formClass.name} ${user.formClass.arm} Form Teacher`;
+    }
+
+    return `Welcome ${user.title} ${user.firstName} ${user.lastName}`;
+  };
+
   return (
     <div>
-      <Row gutter={[16, 16]}>
-        {/* My Students */}
-        <Col xs={24} sm={12} md={6}>
-          <Card className="shadow-md rounded-xl">
-            <div className="flex items-center space-x-4">
-              <UserOutlined className="text-3xl !text-blue-500" />
-              <div>
-                <p className="text-gray-500">My Students</p>
-                <p className="text-xl font-bold">{stats.students}</p>
-              </div>
-            </div>
-          </Card>
-        </Col>
+      {/* ---- WELCOME SECTION ---- */}
+      <Skeleton loading={loading} active paragraph={false}>
+        <h2 className="text-xl font-bold mb-4">{getWelcomeText()}</h2>
+      </Skeleton>
 
-        {/* My Classes */}
-        <Col xs={24} sm={12} md={6}>
-          <Card className="shadow-md rounded-xl">
-            <div className="flex items-center space-x-4">
-              <BookOutlined className="text-3xl !text-green-500" />
-              <div>
-                <p className="text-gray-500">My Classes</p>
-                <p className="text-xl font-bold">{stats.classes}</p>
+      <Skeleton loading={loading} active>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={6}>
+            <Card className="shadow-md rounded-xl">
+              <div className="flex items-center space-x-4">
+                <UserOutlined className="text-3xl !text-blue-500" />
+                <div>
+                  <p className="text-gray-500">My Students</p>
+                  <p className="text-xl font-bold">{stats.students}</p>
+                </div>
               </div>
-            </div>
-          </Card>
-        </Col>
+            </Card>
+          </Col>
 
-        {/* Total Results */}
-        <Col xs={24} sm={12} md={6}>
-          <Card className="shadow-md rounded-xl">
-            <div className="flex items-center space-x-4">
-              <BarChartOutlined className="text-3xl !text-purple-500" />
-              <div>
-                <p className="text-gray-500">Total Results</p>
-                <p className="text-xl font-bold">{stats.totalResults}</p>
+          <Col xs={24} sm={12} md={6}>
+            <Card className="shadow-md rounded-xl">
+              <div className="flex items-center space-x-4">
+                <BookOutlined className="text-3xl !text-green-500" />
+                <div>
+                  <p className="text-gray-500">My Classes</p>
+                  <p className="text-xl font-bold">{stats.classes}</p>
+                </div>
               </div>
-            </div>
-          </Card>
-        </Col>
+            </Card>
+          </Col>
 
-        {/* Results Entered */}
-        <Col xs={24} sm={12} md={6}>
-          <Card className="shadow-md rounded-xl">
-            <div className="flex items-center space-x-4">
-              <CheckCircleOutlined className="text-3xl !text-green-600" />
-              <div>
-                <p className="text-gray-500">Results Entered</p>
-                <p className="text-xl font-bold">{stats.resultsEntered}</p>
+          <Col xs={24} sm={12} md={6}>
+            <Card className="shadow-md rounded-xl">
+              <div className="flex items-center space-x-4">
+                <BarChartOutlined className="text-3xl !text-purple-500" />
+                <div>
+                  <p className="text-gray-500">Total Results</p>
+                  <p className="text-xl font-bold">{stats.totalResults}</p>
+                </div>
               </div>
-            </div>
-          </Card>
-        </Col>
+            </Card>
+          </Col>
 
-        {/* Results Left */}
-        <Col xs={24} sm={12} md={6}>
-          <Card className="shadow-md rounded-xl">
-            <div className="flex items-center space-x-4">
-              <ClockCircleOutlined className="text-3xl !text-orange-500" />
-              <div>
-                <p className="text-gray-500">Results Left</p>
-                <p className="text-xl font-bold">{stats.resultsLeft}</p>
+          <Col xs={24} sm={12} md={6}>
+            <Card className="shadow-md rounded-xl">
+              <div className="flex items-center space-x-4">
+                <CheckCircleOutlined className="text-3xl !text-green-600" />
+                <div>
+                  <p className="text-gray-500">Results Entered</p>
+                  <p className="text-xl font-bold">{stats.resultsEntered}</p>
+                </div>
               </div>
-            </div>
-          </Card>
-        </Col>
+            </Card>
+          </Col>
 
-        {/* Messages with unread badge */}
-        <Col xs={24} sm={12} md={6}>
-          <Card className="shadow-md rounded-xl relative">
-            <div className="flex items-center space-x-4">
-              <MessageOutlined className="text-3xl !text-pink-500" />
-              <div className="flex-1 relative">
-                <p className="text-gray-500">Messages</p>
-                <p className="text-xl font-bold">{stats.messages}</p>
-
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-2 py-[2px] rounded-full">
-                    {unreadCount} unread
-                  </span>
-                )}
+          <Col xs={24} sm={12} md={6}>
+            <Card className="shadow-md rounded-xl">
+              <div className="flex items-center space-x-4">
+                <ClockCircleOutlined className="text-3xl !text-orange-500" />
+                <div>
+                  <p className="text-gray-500">Results Left</p>
+                  <p className="text-xl font-bold">{stats.resultsLeft}</p>
+                </div>
               </div>
-            </div>
-          </Card>
-        </Col>
-      </Row>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Card className="shadow-md rounded-xl relative">
+              <div className="flex items-center space-x-4">
+                <MessageOutlined className="text-3xl !text-pink-500" />
+                <div className="flex-1 relative">
+                  <p className="text-gray-500">Messages</p>
+                  <p className="text-xl font-bold">{stats.messages}</p>
+
+                  {unreadCount > 0 && (
+                    <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-2 py-[2px] rounded-full">
+                      {unreadCount} unread
+                    </span>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+      </Skeleton>
 
       {/* Announcements */}
-      <div className="mt-8">
-        <Card title="Announcements" className="shadow-md rounded-xl">
-          {announcements.length === 0 ? (
-            <p>No new announcements.</p>
-          ) : (
+      <Skeleton loading={loading} active>
+        <div className="mt-8">
+          <Card title="Announcements" className="shadow-md rounded-xl">
             <List
               itemLayout="horizontal"
               dataSource={announcements}
@@ -169,21 +208,19 @@ const TeacherDashboard = () => {
                       </div>
                     }
                     description={
-                      <span>
-                        {item.content.length > 60
-                          ? item.content.slice(0, 60) + "..."
-                          : item.content}
-                      </span>
+                      item.content.length > 60
+                        ? item.content.slice(0, 60) + "..."
+                        : item.content
                     }
                   />
                 </List.Item>
               )}
             />
-          )}
-        </Card>
-      </div>
+          </Card>
+        </div>
+      </Skeleton>
 
-      {/* Modal for full message */}
+      {/* Modal */}
       <Modal
         open={isModalOpen}
         title={selectedMessage?.title}

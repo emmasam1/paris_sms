@@ -55,6 +55,7 @@ const Student = () => {
   const [teachers, setTeachers] = useState([]);
   const [importing, setImporting] = useState(false);
   const [openSubjectAssignModal, setOpenAssignSubjectsModal] = useState(false);
+  const [stdSubject, setStdSunject] = useState([]);
 
   const [subjects, setSubjects] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -148,7 +149,7 @@ const Student = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log(res)
+      // console.log(res)
 
       const studentsWithFullName = (res?.data?.data || []).map((s) => ({
         ...s,
@@ -202,12 +203,26 @@ const Student = () => {
     }
   };
 
+  // const openAssignSubjectsModal = (student) => {
+  //   setSelectedStudent(student);
+  //   setSelectedSubjects(student?.subjects?.map((s) => s._id) || []);
+
+  //   setOpenAssignSubjectsModal(true);
+  //   getAllSubjects();
+  //   getStdentSubjects(student);
+  // };
+
   const openAssignSubjectsModal = (student) => {
-    setSelectedStudent(student);
-    setSelectedSubjects(student?.subjects || []);
-    setOpenAssignSubjectsModal(true);
-    getAllSubjects();
-  };
+  setSelectedStudent(student);
+
+  // FIX: extract only the IDs
+  setSelectedSubjects(student?.subjects?.map(s => s._id) || []);
+
+  setOpenAssignSubjectsModal(true);
+  getAllSubjects();
+  getStdentSubjects(student);
+};
+
 
   const assignSubject = async () => {
     const id = selectedStudent?._id;
@@ -331,7 +346,50 @@ const Student = () => {
   const openDetails = (record) => {
     setDetailsStudent(record);
     setIsDetailsOpen(true);
+    // console.log(record)
   };
+
+  //Get student subjects
+  // const getStdentSubjects = async (student) => {
+  //   const id = student?._id;
+
+  //   try {
+  //     const res = await axios.get(
+  //       `${API_BASE_URL}/api/student-management/students/${id}/subjects`,
+  //       {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       }
+  //     );
+  //     // setStdSunject(res?.data?.data || []);
+  //     // stdSubject.map((sub)=> console.log("student subjects", sub))
+
+  //     setStdSunject(res?.data?.data || []);
+  //     setSelectedSubjects(res?.data?.data?.map((s) => s?._id) || []);
+  //   } catch (error) {
+  //     console.log(error || "Error getting subjects");
+  //   }
+  // };
+
+  const getStdentSubjects = async (student) => {
+  const id = student?._id;
+
+  try {
+    const res = await axios.get(
+      `${API_BASE_URL}/api/student-management/students/${id}/subjects`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const subjectsArr = res?.data?.data || [];
+    setStdSunject(subjectsArr);
+
+    // FIX: set selected subject IDs
+    setSelectedSubjects(subjectsArr.map(sub => sub._id));
+
+  } catch (error) {
+    console.log(error || "Error getting subjects");
+  }
+};
+
 
   //Get Class
   const getClass = async () => {

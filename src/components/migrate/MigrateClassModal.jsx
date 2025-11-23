@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal, Transfer, Select, Button, Typography, Divider } from "antd";
+import axios from "axios";
+import { useApp } from "../../context/AppContext";
 
 const { Title, Text } = Typography;
 
@@ -14,10 +16,35 @@ const MigrateClassModal = ({
   const [targetKeys, setTargetKeys] = useState([]); // promoted students
   const [nextClass, setNextClass] = useState("");
   const [nextSession, setNextSession] = useState("");
+  const [classes, setClasses] = useState([]);
+
+  const { token, API_BASE_URL } = useApp();
 
   const handleChange = (nextTargetKeys) => {
     setTargetKeys(nextTargetKeys);
   };
+
+  // Fetch classes
+  const getClass = async () => {
+    if (!token) return;
+
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/class-management/classes`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setClasses(res?.data?.data || []);
+      console.log("All class:", res);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    getClass();
+  }, []);
 
   const handleMigrate = () => {
     const promoted = students.filter((s) => targetKeys.includes(s.id));
@@ -48,11 +75,16 @@ const MigrateClassModal = ({
           <Select
             placeholder="Select next class"
             style={{ width: 180 }}
+            value={nextClass?.name || undefined} // 👈 use undefined when nothing is selected
             onChange={(value) => setNextClass(value)}
           >
-            <Select.Option value="JSS2">JSS2</Select.Option>
-            <Select.Option value="JSS3">JSS3</Select.Option>
-            <Select.Option value="SS1">SS1</Select.Option>
+            {classes
+              .filter((cls) => cls._id !== currentClass?._id) // exclude current class
+              .map((cls) => (
+                <Select.Option key={cls._id} value={cls._id}>
+                  {cls.name} ({cls.arm})
+                </Select.Option>
+              ))}
           </Select>
 
           <Select
@@ -70,10 +102,12 @@ const MigrateClassModal = ({
 
       {/* Transfer list */}
       <Transfer
-        dataSource={students.map((s) => ({
-          key: s.id,
-          title: s.name,
-        }))}
+        dataSource={students
+          .filter((s) => s.class?.name === currentClass) // only students from this class
+          .map((s) => ({
+            key: s._id,
+            title: s.studentName,
+          }))}
         targetKeys={targetKeys}
         onChange={handleChange}
         render={(item) => (
@@ -87,7 +121,7 @@ const MigrateClassModal = ({
         listStyle={{ width: 340, height: 360 }}
         titles={[
           `Current Class (${currentClass})`,
-          `Next Class (${nextClass || "Select class"})`,
+          `Next Class (${nextClass?.name || "Select class"})`,
         ]}
       />
 

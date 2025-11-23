@@ -16,7 +16,6 @@ import {
   CheckCircleOutlined,
   PlusOutlined,
   FormOutlined,
-  EyeOutlined,
 } from "@ant-design/icons";
 import EnterResult from "../../../components/result/EnterResult";
 import ProgressChart from "../../../components/progress/ProgressChart";
@@ -44,32 +43,51 @@ const MyClasses = () => {
   const [total, setTotal] = useState(0);
 
   const [messageApi, contextHolder] = message.useMessage();
-  const [subject, setsubjsect] = useState(null)
+  const [subject, setSubject] = useState(null);
 
   const getTeacherClassDetails = async (pageParam = 1) => {
     if (!token) return;
 
     try {
       setLoading(true);
+
+      // Fetch students
       const res = await axios.get(
         `${API_BASE_URL}/api/teacher/students?page=${pageParam}&limit=${limit}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      const students = res.data.students || [];
+      const classId = res.data.students[0]?.class?._id;
+      const subjectId = res.data.subject?._id;
 
-      setsubjsect( res?.data?.subject)
-      const response = res.data;
+      setSubject(res.data.subject);
 
-      messageApi.success(response.message || "Students fetched successfully");
+      // Fetch result status for this class and subject
+      const resultRes = await axios.get(
+        `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subjectId}&session=2025/2026&term=1`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      setStudents(response.students || []);
-      setTotal(response.pagination?.total || 0);
-      setPage(response.pagination?.page || 1);
+      // Merge student status
+      const studentsWithStatus = students.map((student) => {
+        const found = resultRes.data.students.find(
+          (s) => s.studentId === student._id
+        );
+        return {
+          ...student,
+          hasRecord: found?.status === "recorded",
+        };
+      });
+
+      setStudents(studentsWithStatus);
+      setTotal(res.data.pagination?.total || 0);
+      setPage(res.data.pagination?.page || 1);
+
+      message.success(res.data.message || "Students fetched successfully");
     } catch (error) {
-      console.error("Error:", error);
-      messageApi.error("Unable to fetch students");
+      console.error(error);
+      message.error("Unable to fetch students");
     } finally {
       setLoading(false);
     }
@@ -84,7 +102,19 @@ const MyClasses = () => {
     getTeacherClassDetails(newPage);
   };
 
-  // === Columns ===
+  const handleSubmit = (response) => {
+    if (response?.success) {
+      // Update the specific student row to show Entered
+      setStudents((prev) =>
+        prev.map((student) =>
+          student._id === activeStudent._id
+            ? { ...student, hasRecord: true }
+            : student
+        )
+      );
+    }
+  };
+
   const studentColumns = [
     { title: "Reg No", dataIndex: "admissionNumber" },
     { title: "Name", dataIndex: "fullName" },
@@ -99,6 +129,18 @@ const MyClasses = () => {
     { title: "Reg No", dataIndex: "admissionNumber" },
     { title: "Name", dataIndex: "fullName" },
     {
+      title: "Status",
+      width: 120,
+      render: (_, record) =>
+        record.hasRecord ? (
+          <span style={{ color: "green", fontWeight: 600 }}>
+            <CheckCircleOutlined /> Entered
+          </span>
+        ) : (
+          <span style={{ color: "red", fontWeight: 600 }}>Not Entered</span>
+        ),
+    },
+    {
       title: "Actions",
       width: 220,
       render: (_, record) => (
@@ -110,10 +152,8 @@ const MyClasses = () => {
             style={{ backgroundColor: "#52c41a" }}
             onClick={() => {
               setActiveStudent(record);
-              console.log(record)
-              setActiveSubjects(record.subjects );
+              setActiveSubjects(record.subjects);
               setIsResultModalOpen(true);
-              teacherSubject={subject}
             }}
           >
             Enter
@@ -129,19 +169,6 @@ const MyClasses = () => {
             }}
           >
             Edit
-          </Button>
-
-          <Button
-            size="small"
-            ghost
-            icon={<EyeOutlined />}
-            style={{ color: "#722ed1", borderColor: "#722ed1" }}
-            onClick={() => {
-              setActiveStudent(record);
-              setIsViewResultModalOpen(true);
-            }}
-          >
-            View
           </Button>
         </Space>
       ),
@@ -173,10 +200,6 @@ const MyClasses = () => {
   return (
     <div className="flex gap-6">
       {contextHolder}
-
-  
-
-      {/* Main Content */}
       <div className="flex-1">
         <Card className="shadow-md rounded-xl">
           <Tabs defaultActiveKey="1">
@@ -236,8 +259,8 @@ const MyClasses = () => {
                     position: ["bottomCenter"],
                     className: "custom-pagination",
                   }}
-                  columns={resultsColumns}
                   scroll={{ x: "max-content" }}
+                  columns={resultsColumns}
                 />
               )}
 
@@ -247,6 +270,7 @@ const MyClasses = () => {
                 student={activeStudent}
                 subjects={activeSubjects}
                 teacherSubject={subject}
+                onClick={handleSubmit}
               />
 
               <Modal
@@ -286,7 +310,6 @@ const MyClasses = () => {
                     position: ["bottomCenter"],
                     className: "custom-pagination",
                   }}
-                  className="custom-table"
                   scroll={{ x: "max-content" }}
                 />
               )}

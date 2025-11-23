@@ -27,7 +27,14 @@ const TeacherDashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const { token, API_BASE_URL } = useApp();
-  const [dashboardData, setDashboardData] = useState([]);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [statsData, setStatsData] = useState({
+    totalResults: 0,
+    resultsEntered: 0,
+    resultsLeft: 0,
+    totalStudents: 0,
+    totalClasses: 0,
+  });
   const [messageApi, contextHolder] = message.useMessage();
 
   const [announcements, setAnnouncements] = useState([
@@ -54,7 +61,7 @@ const TeacherDashboard = () => {
     },
   ]);
 
-  // Fetch user info
+  // Fetch teacher user info
   const getUser = async () => {
     if (!token) return;
     try {
@@ -70,18 +77,50 @@ const TeacherDashboard = () => {
     }
   };
 
-  // Fetch dashboard analytics
-  const getDashboardDetails = async () => {
+  // Fetch students to get classId and subjectId, then fetch dashboard stats
+  const getDashboardStats = async () => {
     if (!token) return;
+
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/teacher/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      messageApi.success(res.data?.message || "Dashboard data fetched successfully");
-      setDashboardData(res.data);
+
+      // 1️⃣ Fetch students
+      const res = await axios.get(
+        `${API_BASE_URL}/api/teacher/students?page=1&limit=20`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const students = res.data.students || [];
+      if (!students.length) return;
+
+      const classId = students[0]?.class?._id;
+      const subjectId = students[0]?.subjects?.[0]?._id || res.data.subject?._id;
+
+      // 2️⃣ Fetch dashboard results using classId and subjectId
+      if (classId && subjectId) {
+        const resultRes = await axios.get(
+          `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subjectId}&session=2025/2026&term=1`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (resultRes.data.success) {
+          const stats = resultRes.data.stats;
+
+          setStatsData({
+            totalResults: stats.totalStudents,
+            resultsEntered: stats.numberRecorded,
+            resultsLeft: stats.numberNotRecorded,
+            totalStudents: students.length,
+            totalClasses: new Set(students.map((s) => s.class._id)).size,
+          });
+
+          setDashboardData(resultRes.data);
+          messageApi.success(resultRes.data.message || "Dashboard fetched successfully");
+        }
+      }
     } catch (error) {
-      console.error("Error fetching dashboard details:", error);
+      console.error(error);
+      messageApi.error("Failed to fetch dashboard data");
     } finally {
       setLoading(false);
     }
@@ -89,7 +128,7 @@ const TeacherDashboard = () => {
 
   useEffect(() => {
     getUser();
-    getDashboardDetails();
+    getDashboardStats();
   }, []);
 
   const openMessage = (message) => {
@@ -103,24 +142,22 @@ const TeacherDashboard = () => {
 
   const unreadCount = announcements.filter((m) => !m.read).length;
 
-  // Compute total students from backend data
-  const totalStudents =
-    dashboardData?.data?.subjectAnalytics?.reduce(
-      (acc, item) => acc + (item.students?.length || 0),
-      0
-    ) || 0;
-
-  const resultsEntered = 0; // always 0 for now
-
-  // Final stats
-  const stats = {
-    students: totalStudents,
-    classes: dashboardData?.data?.subjectAnalytics?.length || 0,
-    totalResults: totalStudents,
-    resultsEntered: resultsEntered,
-    resultsLeft: totalStudents - resultsEntered,
-    messages: announcements.length,
-  };
+  // Stats cards
+  const stats = [
+    { title: "My Students", value: statsData.totalStudents, icon: <UserOutlined className="text-3xl !text-blue-500" /> },
+    { title: "My Classes", value: statsData.totalClasses, icon: <BookOutlined className="text-3xl !text-green-500" /> },
+    { title: "Total Results", value: statsData.totalResults, icon: <BarChartOutlined className="text-3xl !text-purple-500" /> },
+    { title: "Results Entered", value: statsData.resultsEntered, icon: <CheckCircleOutlined className="text-3xl !text-green-600" /> },
+    { title: "Results Left", value: statsData.resultsLeft, icon: <ClockCircleOutlined className="text-3xl !text-orange-500" /> },
+    {
+      title: "Messages",
+      value: announcements.length,
+      icon: <MessageOutlined className="text-3xl !text-pink-500" />,
+      extra: unreadCount > 0 && !loading && (
+        <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-2 py-[2px] rounded-full">{unreadCount} unread</span>
+      ),
+    },
+  ];
 
   // Welcome text
   const getWelcomeText = () => {
@@ -143,43 +180,7 @@ const TeacherDashboard = () => {
 
       {/* Stats cards */}
       <Row gutter={[16, 16]}>
-        {[
-          {
-            title: "My Students",
-            value: stats.students,
-            icon: <UserOutlined className="text-3xl !text-blue-500" />,
-          },
-          {
-            title: "My Classes",
-            value: stats.classes,
-            icon: <BookOutlined className="text-3xl !text-green-500" />,
-          },
-          {
-            title: "Total Results",
-            value: stats.totalResults,
-            icon: <BarChartOutlined className="text-3xl !text-purple-500" />,
-          },
-          {
-            title: "Results Entered",
-            value: stats.resultsEntered,
-            icon: <CheckCircleOutlined className="text-3xl !text-green-600" />,
-          },
-          {
-            title: "Results Left",
-            value: stats.resultsLeft,
-            icon: <ClockCircleOutlined className="text-3xl !text-orange-500" />,
-          },
-          {
-            title: "Messages",
-            value: stats.messages,
-            icon: <MessageOutlined className="text-3xl !text-pink-500" />,
-            extra: unreadCount > 0 && !loading && (
-              <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-2 py-[2px] rounded-full">
-                {unreadCount} unread
-              </span>
-            ),
-          },
-        ].map((stat, idx) => (
+        {stats.map((stat, idx) => (
           <Col xs={24} sm={12} md={6} key={idx}>
             <Card className="shadow-md rounded-xl relative">
               <Skeleton loading={loading} active avatar paragraph={{ rows: 1 }}>
@@ -203,13 +204,7 @@ const TeacherDashboard = () => {
           {loading ? (
             <div>
               {[1, 2, 3].map((i) => (
-                <Skeleton
-                  key={i}
-                  active
-                  title
-                  paragraph={{ rows: 1 }}
-                  className="mb-4"
-                />
+                <Skeleton key={i} active title paragraph={{ rows: 1 }} className="mb-4" />
               ))}
             </div>
           ) : (
@@ -230,11 +225,7 @@ const TeacherDashboard = () => {
                         </Tag>
                       </div>
                     }
-                    description={
-                      item.content.length > 60
-                        ? item.content.slice(0, 60) + "..."
-                        : item.content
-                    }
+                    description={item.content.length > 60 ? item.content.slice(0, 60) + "..." : item.content}
                   />
                 </List.Item>
               )}
@@ -248,11 +239,7 @@ const TeacherDashboard = () => {
         open={isModalOpen}
         title={selectedMessage?.title}
         onCancel={() => setIsModalOpen(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsModalOpen(false)}>
-            Close
-          </Button>,
-        ]}
+        footer={[<Button key="close" onClick={() => setIsModalOpen(false)}>Close</Button>]}
       >
         <p>{selectedMessage?.content}</p>
       </Modal>

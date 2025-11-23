@@ -60,7 +60,19 @@ const ClassManagement = () => {
   const [assignForm] = Form.useForm();
 
   const [isMigrateOpen, setIsMigrateOpen] = useState(false);
-  const [selectedClass, setSelectedClass] = useState("JSS1A");
+  const [selectedClass, setSelectedClass] = useState();
+
+  const [studentCountMap, setStudentCountMap] = useState({});
+
+  useEffect(() => {
+    const map = {};
+    students.forEach((s) => {
+      const className = s.class?.name;
+      if (!map[className]) map[className] = 0;
+      map[className] += 1;
+    });
+    setStudentCountMap(map);
+  }, [students]);
 
   // console.log(token);
 
@@ -420,10 +432,7 @@ const ClassManagement = () => {
       title: "Students",
       key: "students",
       render: (_, record) => {
-        // Count students in this class
-        const count = students.filter(
-          (s) => s.class?.name === record.name
-        ).length;
+        const count = studentCountMap[record.name] || 0;
         return (
           <span>
             {count} {count === 1 ? "student" : "students"}
@@ -431,7 +440,6 @@ const ClassManagement = () => {
         );
       },
     },
-
     {
       title: "Actions",
       key: "actions",
@@ -741,7 +749,9 @@ const ClassManagement = () => {
         onClose={() => setIsMigrateOpen(false)}
         students={students}
         onMigrate={handleMigrate}
-        className={selectedClass}
+        currentClass={selectedClass?.name} // pass name
+        currentSession="2025/2026" // or dynamic session
+        classes={classes} // pass all classes
       />
     </div>
   );

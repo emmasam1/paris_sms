@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Table, InputNumber, Tag, message } from "antd";
+import { Modal, Table, InputNumber, Tag, message, Select } from "antd";
+import axios from "axios";
+import { useApp } from "../../context/AppContext";
 
 const getGrade = (total) => {
   if (total >= 70) return "A";
@@ -10,37 +12,91 @@ const getGrade = (total) => {
   return "F";
 };
 
-const EnterResult = ({ open, onClose, student, subjects, teacherSubject }) => {
+const EnterResult = ({
+  open,
+  onClose,
+  student,
+  teacherSubject,
+}) => {
   const [studentScores, setStudentScores] = useState([]);
+  const { API_BASE_URL, token, loading, setLoading } = useApp();
+  const [messageApi, contextHolder] = message.useMessage();
 
-console.log(teacherSubject)
+  // NEW STATES
+  const [session, setSession] = useState(null);
+  const [term, setTerm] = useState(null);
 
-  // Load only subjects the student offers
-useEffect(() => {
+  // ===============================
+  // SAVE SCORE FUNCTION
+  // ===============================
+  const enterScore = async () => {
+    if (!student?._id) return message.error("No student selected");
+    if (!session) return message.error("Please select session");
+    if (!term) return message.error("Please select term");
 
-  if (subjects?.length) {
-    const scores = subjects.map((subj) => ({
-      key: subj._id,
-      subject:teacherSubject?.name,
-      subjectId: subj._id,
-      firstAssignment: 0,
-      secondAssignment: 0,
-      firstCATest: 0,
-      secondCATest: 0,
-      exam: 0,
-      total: 0,
-      grade: "F",
-    }));
-    setStudentScores(scores);
-  } else {
-    setStudentScores([]);
-  }
-}, [subjects]);
+    // only one subject score exists
+    const score = studentScores[0];
 
+    const payload = {
+      studentId: student._id,
+      subjectId: teacherSubject?._id,
+      session,
+      term: Number(term), // convert term to number
 
+      firstAssignment: score.firstAssignment,
+      secondAssignment: score.secondAssignment,
+      firstCA: score.firstCATest,
+      secondCA: score.secondCATest,
+      exam: score.exam,
+    };
 
+    try {
+      setLoading(true);
+      const res = await axios.post(
+        `${API_BASE_URL}/api/records/record-score`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      console.log(res);
+      if (onClick) onClick(res.data);
+      messageApi.success(res.data.message || "Result prepared successfully!");
+     
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // ===============================
+  // LOAD INITIAL EMPTY SCORES
+  // ===============================
+  useEffect(() => {
+    if (teacherSubject) {
+      setStudentScores([
+        {
+          key: teacherSubject._id,
+          subject: teacherSubject.name,
+          subjectId: teacherSubject._id,
+          firstAssignment: 0,
+          secondAssignment: 0,
+          firstCATest: 0,
+          secondCATest: 0,
+          exam: 0,
+          total: 0,
+          grade: "F",
+        },
+      ]);
+    }
+  }, [teacherSubject]);
 
+  // ===============================
+  // SCORE CHANGE
+  // ===============================
   const handleScoreChange = (key, field, value) => {
     setStudentScores((prev) =>
       prev.map((row) => {
@@ -64,22 +120,37 @@ useEffect(() => {
     );
   };
 
-  const handleSave = () => {
-    console.log("Saving Result:", {
-      studentId: student?._id,
-      name: student?.fullName,
-      scores: studentScores,
-    });
+  const resetForm = () => {
+    setSession(null);
+    setTerm(null);
 
-    message.success(`Scores saved for ${student?.fullName}`);
-    onClose();
+    // Reset scores to empty/default
+    if (teacherSubject) {
+      setStudentScores([
+        {
+          key: teacherSubject._id,
+          subject: teacherSubject.name,
+          subjectId: teacherSubject._id,
+          firstAssignment: 0,
+          secondAssignment: 0,
+          firstCATest: 0,
+          secondCATest: 0,
+          exam: 0,
+          total: 0,
+          grade: "F",
+        },
+      ]);
+    }
   };
 
+  // ===============================
+  // TABLE COLUMNS
+  // ===============================
   const scoreColumns = [
     { title: "Subject", dataIndex: "subject" },
 
     {
-      title: "1st Assignment (10%)",
+      title: "1st Ass (10%)",
       render: (_, r) => (
         <InputNumber
           min={0}
@@ -89,9 +160,8 @@ useEffect(() => {
         />
       ),
     },
-
     {
-      title: "2nd Assignment (10%)",
+      title: "2nd Ass (10%)",
       render: (_, r) => (
         <InputNumber
           min={0}
@@ -101,7 +171,6 @@ useEffect(() => {
         />
       ),
     },
-
     {
       title: "1st CA (20%)",
       render: (_, r) => (
@@ -113,7 +182,6 @@ useEffect(() => {
         />
       ),
     },
-
     {
       title: "2nd CA (20%)",
       render: (_, r) => (
@@ -125,7 +193,6 @@ useEffect(() => {
         />
       ),
     },
-
     {
       title: "Exam (40%)",
       render: (_, r) => (
@@ -169,23 +236,56 @@ useEffect(() => {
     <Modal
       title={`Enter Result – ${student?.fullName}`}
       open={open}
-      onCancel={onClose}
-      onOk={handleSave}
+      onCancel={() => {
+        resetForm();
+        onClose();
+      }}
+      okText="Enter Record" // <-- CHANGE BUTTON NAME
+      confirmLoading={loading} // <-- ADD LOADING SPINNER
+      onOk={enterScore}
       width={900}
     >
-      {student?.subjects?.length ? (
-        <Table
-          columns={scoreColumns}
-          dataSource={studentScores}
-          pagination={false}
-          rowKey="key"
-          bordered
-        />
-      ) : (
-        <p className="text-center text-gray-500">
-          This student is not offering any subject.
-        </p>
-      )}
+      {contextHolder}
+      {/* SESSION & TERM SELECT */}
+      <div className="flex gap-4 mb-4">
+        {/* Session */}
+        <div className="flex flex-col w-40">
+          <label className="font-semibold mb-1">Session</label>
+          <Select
+            placeholder="Select session"
+            value={session}
+            onChange={(v) => setSession(v)}
+          >
+            <Select.Option value="2024/2025">2024/2025</Select.Option>
+            <Select.Option value="2025/2026">2025/2026</Select.Option>
+            <Select.Option value="2026/2027">2026/2027</Select.Option>
+          </Select>
+        </div>
+
+        {/* Term */}
+        <div className="flex flex-col w-40">
+          <label className="font-semibold mb-1">Term</label>
+          <Select
+            placeholder="Select term"
+            value={term}
+            onChange={(v) => setTerm(v)}
+          >
+            <Select.Option value="1">First Term</Select.Option>
+            <Select.Option value="2">Second Term</Select.Option>
+            <Select.Option value="3">Third Term</Select.Option>
+          </Select>
+        </div>
+      </div>
+
+      {/* SCORE TABLE */}
+      <Table
+        columns={scoreColumns}
+        dataSource={studentScores}
+        pagination={false}
+        rowKey="key"
+        bordered
+        size="small"
+      />
     </Modal>
   );
 };

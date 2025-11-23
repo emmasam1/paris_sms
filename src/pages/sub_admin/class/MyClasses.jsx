@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Card, Table, Select, Button, Modal, Space, Tabs } from "antd";
+import {
+  Card,
+  Table,
+  Select,
+  Button,
+  Modal,
+  Space,
+  Tabs,
+  Skeleton,
+  message,
+} from "antd";
 import {
   EditOutlined,
   BarChartOutlined,
@@ -13,6 +23,8 @@ import EnterResult from "../../../components/result/EnterResult";
 import ProgressChart from "../../../components/progress/ProgressChart";
 import Attendance from "../../../components/attendance/Attendance";
 import ResultSheet from "../../../components/resultSheet/ResultSheet";
+import axios from "axios";
+import { useApp } from "../../../context/AppContext";
 
 const { TabPane } = Tabs;
 
@@ -42,6 +54,51 @@ const MyClasses = () => {
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isViewResultModalOpen, setIsViewResultModalOpen] = useState(false);
   const [activeStudent, setActiveStudent] = useState(null);
+
+  const { token, API_BASE_URL } = useApp();
+
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [total, setTotal] = useState(0);
+
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const getTeacherClassDetails = async (pageParam = 1) => {
+    if (!token) return;
+
+    try {
+      setLoading(true);
+      const res = await axios.get(
+        `${API_BASE_URL}/api/teacher/students?page=${pageParam}&limit=${limit}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const response = res.data;
+
+      console.log(res);
+
+      messageApi.success(response.message || "Students fetched successfully");
+
+      setStudents(response.students || []);
+      setTotal(response.pagination?.total || 0);
+      setPage(response.pagination?.page || 1);
+    } catch (error) {
+      console.error("Error:", error);
+      messageApi.error("Unable to fetch students");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getTeacherClassDetails(page);
+  }, []);
 
   const progressData = [
     { subject: "Mathematics", score: 75 },
@@ -99,6 +156,7 @@ const MyClasses = () => {
   return (
     <div>
       {/* Class Select Dropdown */}
+      {contextHolder}
       <Card className="!mb-5 shadow-md rounded-xl">
         <Select
           style={{ width: 250 }}
@@ -167,7 +225,10 @@ const MyClasses = () => {
                         type="primary"
                         size="small"
                         icon={<PlusOutlined />}
-                        style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+                        style={{
+                          backgroundColor: "#52c41a",
+                          borderColor: "#52c41a",
+                        }}
                         onClick={() => openResultModal(record)}
                       >
                         Enter
@@ -209,7 +270,10 @@ const MyClasses = () => {
               open={isViewResultModalOpen}
               onCancel={() => setIsViewResultModalOpen(false)}
               footer={[
-                <Button key="close" onClick={() => setIsViewResultModalOpen(false)}>
+                <Button
+                  key="close"
+                  onClick={() => setIsViewResultModalOpen(false)}
+                >
                   Close
                 </Button>,
               ]}
@@ -254,7 +318,10 @@ const MyClasses = () => {
               open={isProgressModalOpen}
               onCancel={() => setIsProgressModalOpen(false)}
               footer={[
-                <Button key="close" onClick={() => setIsProgressModalOpen(false)}>
+                <Button
+                  key="close"
+                  onClick={() => setIsProgressModalOpen(false)}
+                >
                   Close
                 </Button>,
               ]}

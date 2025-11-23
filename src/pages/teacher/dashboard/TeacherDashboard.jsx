@@ -45,14 +45,14 @@ const TeacherDashboard = () => {
   // console.log(API_BASE_URL)
 
   const getUser = async () => {
-     if (!token) return;
+    if (!token) return;
     try {
       setLoading(true);
-     const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+      const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(res.data.data);
-      // console.log("Dashboard user data:", res.data.data);
+      console.log("Dashboard user data:", res.data.data);
     } catch (error) {
       console.error("Error fetching user data:", error);
     } finally {

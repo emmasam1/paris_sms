@@ -22,8 +22,6 @@ const Login = () => {
         password: values.password,
       });
 
-      console.log(res)
-
       const { token, user } = res.data;
       messageApi.success(res?.data?.message || "Login successful!");
 
@@ -62,26 +60,50 @@ const Login = () => {
   };
 
   // ================= PARENT LOGIN ==================
-  const handleParentLogin = async (values) => {
-    try {
-      setLoading(true);
-      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-        pin: values.pin,
-      });
+  // const handleParentLogin = async (values) => {
+  //   try {
+  //     setLoading(true);
+  //     const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+  //       pin: values.pin,
+  //     });
 
-      const { token, user } = res.data;
-      messageApi.success(res?.data?.message || "Parent login successful!");
+  //     const { token, user } = res.data;
+  //     messageApi.success(res?.data?.message || "Parent login successful!");
 
-      setUser(user);
-      setToken(token);
-      navigate("/home");
-    } catch (err) {
-      console.error("Parent login error:", err);
-      messageApi.error(err.response?.data?.message || "Invalid parent PIN");
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     setUser(user);
+  //     setToken(token);
+  //     navigate("/home");
+  //   } catch (err) {
+  //     console.error("Parent login error:", err);
+  //     messageApi.error(err.response?.data?.message || "Invalid parent PIN");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // ================= PARENT LOGIN (DUMMY) ==================
+const handleParentLogin = async (values) => {
+
+  // Dummy PIN check
+  if (values.pin === "000000") {
+    messageApi.success("Parent login successful!");
+
+    // Set a dummy parent user
+    const dummyParent = {
+      role: "parent",
+      name: "Parent User",
+    };
+
+    setUser(dummyParent);
+    setToken("dummy-parent-token");
+
+    return navigate("/home");
+  }
+
+  // Wrong PIN
+  messageApi.error("Invalid parent PIN");
+};
+
 
   // ================= FORM SUBMIT ==================
   const onFinish = (values) => {
@@ -182,7 +204,7 @@ const Login = () => {
                   animate="visible"
                   exit="exit"
                 >
-                  <Form layout="vertical" onFinish={onFinish}>
+                  <Form layout="vertical" onFinish={handleParentLogin}>
                     <Form.Item
                       label={<span className="text-sm text-gray-600">Card PIN</span>}
                       name="pin"

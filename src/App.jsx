@@ -25,6 +25,7 @@ import SubAdminAttendance from "./pages/sub_admin/attendance/SubAdminAttendance"
 import Profile from "./components/profile/Profile";
 import PrivateRoute from "./privateRoute/PrivateRoute";
 import NotFound from "./components/notfound/NotFound";
+import Attendance from "./pages/teacher/attendance/Attendance";
 
 const App = () => {
   return (
@@ -77,7 +78,7 @@ const App = () => {
           <Route path="" element={<TeacherDashboard />} />
           <Route path="classes" element={<MyClasses />} />
           <Route path="settings" element={<Setting />} />
-          {/* <Route path="profile" element={<Profile />} /> */}
+          <Route path="attendance" element={<Attendance />} />
         </Route>
       </Route>
 

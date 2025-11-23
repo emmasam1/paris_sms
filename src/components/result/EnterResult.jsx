@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Table, InputNumber, Tag, message, Select } from "antd";
+import { Modal, Table, InputNumber, Tag, message } from "antd";
 
-const { Option } = Select;
-
-// Utility for grading
 const getGrade = (total) => {
   if (total >= 70) return "A";
   if (total >= 60) return "B";
@@ -13,223 +10,181 @@ const getGrade = (total) => {
   return "F";
 };
 
-/**
- * Props:
- * role - "admin" | "subadmin" | "teacher"
- * assignedSubjects - array of subjects (for teacher)
- * assignedClass - class name (for subadmin)
- * allClasses - list of classes (for admin)
- * allSubjects - list of all subjects (for admin)
- */
-const EnterResult = ({
-  open,
-  onClose,
-  student,
-  role,
-  assignedSubjects = [],
-  assignedClass = "",
-  allClasses = [],
-  allSubjects = [],
-}) => {
+const EnterResult = ({ open, onClose, student, subjects, subject }) => {
   const [studentScores, setStudentScores] = useState([]);
-  const [selectedClass, setSelectedClass] = useState(assignedClass || "");
-  const [subjectsForEntry, setSubjectsForEntry] = useState([]);
 
-  // Initialize based on role
-  useEffect(() => {
-    if (role === "teacher") {
-      setSubjectsForEntry(assignedSubjects);
-    } else if (role === "subadmin") {
-      setSubjectsForEntry(allSubjects);
-    } else if (role === "admin") {
-      setSubjectsForEntry(allSubjects);
-    }
-  }, [role, assignedSubjects, allSubjects]);
+console.log(subject)
 
-  // Prepare student scores table
-  useEffect(() => {
-    if (subjectsForEntry?.length) {
-      setStudentScores(
-        subjectsForEntry.map((subj) => ({
-          key: subj,
-          subject: subj,
-          firstAssignment: 0,
-          secondAssignment: 0,
-          firstCATest: 0,
-          secondCATest: 0,
-          exam: 0,
-          total: 0,
-          grade: "F",
-        }))
-      );
-    }
-  }, [subjectsForEntry]);
+  // Load only subjects the student offers
+useEffect(() => {
+  console.log("EnterResult received subjects:", subjects);
 
-  // Handle score change
+  if (subjects?.length) {
+    const scores = subjects.map((subj) => ({
+      key: subj._id,
+      subject:subject?.name,
+      subjectId: subj._id,
+      firstAssignment: 0,
+      secondAssignment: 0,
+      firstCATest: 0,
+      secondCATest: 0,
+      exam: 0,
+      total: 0,
+      grade: "F",
+    }));
+    setStudentScores(scores);
+  } else {
+    setStudentScores([]);
+  }
+}, [subjects]);
+
+
+
+
+
   const handleScoreChange = (key, field, value) => {
-    const updated = studentScores.map((row) => {
-      if (row.key === key) {
-        const newRow = { ...row, [field]: value || 0 };
+    setStudentScores((prev) =>
+      prev.map((row) => {
+        if (row.key === key) {
+          const updated = { ...row, [field]: value || 0 };
 
-        const total =
-          (newRow.firstAssignment || 0) +
-          (newRow.secondAssignment || 0) +
-          (newRow.firstCATest || 0) +
-          (newRow.secondCATest || 0) +
-          (newRow.exam || 0);
+          const total =
+            updated.firstAssignment +
+            updated.secondAssignment +
+            updated.firstCATest +
+            updated.secondCATest +
+            updated.exam;
 
-        newRow.total = total;
-        newRow.grade = getGrade(total);
-        return newRow;
-      }
-      return row;
-    });
-    setStudentScores(updated);
+          updated.total = total;
+          updated.grade = getGrade(total);
+
+          return updated;
+        }
+        return row;
+      })
+    );
   };
 
   const handleSave = () => {
-    console.log("Saved:", {
-      role,
-      class: selectedClass,
-      student,
+    console.log("Saving Result:", {
+      studentId: student?._id,
+      name: student?.fullName,
       scores: studentScores,
     });
-    message.success(`Scores saved for ${student?.name}`);
+
+    message.success(`Scores saved for ${student?.fullName}`);
     onClose();
   };
 
   const scoreColumns = [
-    { title: "Subject", dataIndex: "subject", key: "subject" },
+    { title: "Subject", dataIndex: "subject" },
+
     {
       title: "1st Assignment (10%)",
-      dataIndex: "firstAssignment",
-      render: (_, record) => (
+      render: (_, r) => (
         <InputNumber
           min={0}
           max={10}
-          value={record.firstAssignment}
-          onChange={(val) =>
-            handleScoreChange(record.key, "firstAssignment", val)
-          }
+          value={r.firstAssignment}
+          onChange={(v) => handleScoreChange(r.key, "firstAssignment", v)}
         />
       ),
     },
+
     {
       title: "2nd Assignment (10%)",
-      dataIndex: "secondAssignment",
-      render: (_, record) => (
+      render: (_, r) => (
         <InputNumber
           min={0}
           max={10}
-          value={record.secondAssignment}
-          onChange={(val) =>
-            handleScoreChange(record.key, "secondAssignment", val)
-          }
+          value={r.secondAssignment}
+          onChange={(v) => handleScoreChange(r.key, "secondAssignment", v)}
         />
       ),
     },
+
     {
-      title: "1st CA Test (20%)",
-      dataIndex: "firstCATest",
-      render: (_, record) => (
+      title: "1st CA (20%)",
+      render: (_, r) => (
         <InputNumber
           min={0}
           max={20}
-          value={record.firstCATest}
-          onChange={(val) =>
-            handleScoreChange(record.key, "firstCATest", val)
-          }
+          value={r.firstCATest}
+          onChange={(v) => handleScoreChange(r.key, "firstCATest", v)}
         />
       ),
     },
+
     {
-      title: "2nd CA Test (20%)",
-      dataIndex: "secondCATest",
-      render: (_, record) => (
+      title: "2nd CA (20%)",
+      render: (_, r) => (
         <InputNumber
           min={0}
           max={20}
-          value={record.secondCATest}
-          onChange={(val) =>
-            handleScoreChange(record.key, "secondCATest", val)
-          }
+          value={r.secondCATest}
+          onChange={(v) => handleScoreChange(r.key, "secondCATest", v)}
         />
       ),
     },
+
     {
       title: "Exam (40%)",
-      dataIndex: "exam",
-      render: (_, record) => (
+      render: (_, r) => (
         <InputNumber
           min={0}
           max={40}
-          value={record.exam}
-          onChange={(val) => handleScoreChange(record.key, "exam", val)}
+          value={r.exam}
+          onChange={(v) => handleScoreChange(r.key, "exam", v)}
         />
       ),
     },
-    {
-      title: "Total (100%)",
-      dataIndex: "total",
-      key: "total",
-    },
+
+    { title: "Total", dataIndex: "total" },
+
     {
       title: "Grade",
       dataIndex: "grade",
-      render: (grade) => {
-        const colors = {
-          A: "green",
-          B: "blue",
-          C: "orange",
-          D: "volcano",
-          E: "purple",
-          F: "red",
-        };
-        return <Tag color={colors[grade]}>{grade}</Tag>;
-      },
+      render: (g) => (
+        <Tag
+          color={
+            g === "A"
+              ? "green"
+              : g === "B"
+              ? "blue"
+              : g === "C"
+              ? "orange"
+              : g === "D"
+              ? "volcano"
+              : g === "E"
+              ? "purple"
+              : "red"
+          }
+        >
+          {g}
+        </Tag>
+      ),
     },
   ];
 
   return (
     <Modal
-      title={`Enter Scores for ${student?.name || "Student"}`}
+      title={`Enter Result – ${student?.fullName}`}
       open={open}
       onCancel={onClose}
       onOk={handleSave}
       width={900}
     >
-      {role === "admin" && (
-        <div className="mb-4">
-          <label className="block text-gray-600 font-medium mb-1">
-            Select Class
-          </label>
-          <Select
-            placeholder="Select Class"
-            value={selectedClass}
-            onChange={setSelectedClass}
-            className="w-full"
-          >
-            {allClasses.map((cls) => (
-              <Option key={cls} value={cls}>
-                {cls}
-              </Option>
-            ))}
-          </Select>
-        </div>
-      )}
-
-      {subjectsForEntry.length > 0 ? (
+      {student?.subjects?.length ? (
         <Table
           columns={scoreColumns}
           dataSource={studentScores}
           pagination={false}
           rowKey="key"
-          size="small"
           bordered
         />
       ) : (
         <p className="text-center text-gray-500">
-          No subjects assigned to you.
+          This student is not offering any subject.
         </p>
       )}
     </Modal>

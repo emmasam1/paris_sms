@@ -5,6 +5,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   UserOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import { Layout, Menu, theme, Grid, Dropdown, Space, Avatar } from "antd";
 import { Outlet, useLocation, useNavigate } from "react-router";
@@ -32,30 +33,45 @@ function getItem(label, key, icon, children) {
 }
 
 // Teacher Menu
-const items = [
-  getItem("Dashboard", "/teacher/dashboard", <DashboardOutlined />),
-  getItem("My Classes", "/teacher/dashboard/classes", <BookOutlined />),
-  // getItem("Students Progress", "/teacher/dashboard/students-progress", <TeamOutlined />),
-  // getItem("Results", "/teacher/dashboard/results", <FileTextOutlined />),
-  getItem("Settings", "/teacher/dashboard/settings", <SettingOutlined />),
-];
+// const items = [
+//   getItem("Dashboard", "/teacher/dashboard", <DashboardOutlined />),
+//   getItem("My Subject", "/teacher/dashboard/classes", <BookOutlined />),
+//   ...(user?.formClass
+//     ? [getItem("Attendance", "/teacher/dashboard/attendance", <CheckCircleOutlined />)]
+//     : []),
+//     getItem("Settings", "/teacher/dashboard/settings", <SettingOutlined />),
+//   ];
+  
+  
+  const routeTitles = {
+    "/teacher/dashboard": "Dashboard",
+    "/teacher/dashboard/classes": "My Subject",
+    "/teacher/dashboard/students-progress": "Students Progress",
+    "/teacher/dashboard/attendance": "Class Attendance",
+    // "/teacher/dashboard/results": "Results",
+    "/teacher/dashboard/settings": "Account Settings",
+    // "/teacher/dashboard/profile": "Profile",
+  };
+  
+  const TeacherDashboardLayout = () => {
+    const [collapsed, setCollapsed] = useState(false);
+    const screens = useBreakpoint();
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [user, setUser] = useState([]);
+    const { API_BASE_URL, clearSession, token, initialized, logout } = useApp();
 
-const routeTitles = {
-  "/teacher/dashboard": "Dashboard",
-  "/teacher/dashboard/classes": "My Classes",
-  "/teacher/dashboard/students-progress": "Students Progress",
-  // "/teacher/dashboard/results": "Results",
-  "/teacher/dashboard/settings": "Account Settings",
-  "/teacher/dashboard/profile": "Profile",
-};
 
-const TeacherDashboardLayout = () => {
-  const [collapsed, setCollapsed] = useState(false);
-  const screens = useBreakpoint();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [user, setUser] = useState([]);
-  const { API_BASE_URL, clearSession, token, initialized, logout } = useApp();
+    // Teacher Menu (moved inside component!)
+  const items = [
+    getItem("Dashboard", "/teacher/dashboard", <DashboardOutlined />),
+    getItem("My Subject", "/teacher/dashboard/classes", <BookOutlined />),
+    ...(user?.formClass
+      ? [getItem("Attendance", "/teacher/dashboard/attendance", <CheckCircleOutlined />)]
+      : []),
+    getItem("Settings", "/teacher/dashboard/settings", <SettingOutlined />),
+  ];
+
 
   const {
     token: { colorBgContainer, borderRadiusLG },

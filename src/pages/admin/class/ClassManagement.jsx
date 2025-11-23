@@ -86,7 +86,7 @@ const ClassManagement = () => {
         key: s._id,
         studentName: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
         arm: `${s.class?.arm || ""}`.trim(),
-        name: `${s.class?.name || ""}`.trim()
+        name: `${s.class?.name || ""}`.trim(),
       }));
 
       // messageApi.success(res.data?.message);
@@ -277,7 +277,6 @@ const ClassManagement = () => {
 
   // Open create/edit modal
   const openModal = (record = null) => {
-   
     setEditingClass(record);
     if (record) {
       form.setFieldsValue({

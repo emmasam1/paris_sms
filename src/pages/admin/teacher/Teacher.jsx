@@ -488,10 +488,7 @@ const Teacher = () => {
               Edit Staff
             </Menu.Item>
 
-            <Menu.Item
-              key="subject"
-              onClick={() => handleManageStaff(record)}
-            >
+            <Menu.Item key="subject" onClick={() => handleManageStaff(record)}>
               {record.subjects?.length > 0 ? (
                 // 🔴 Unassign Subject
                 <Button

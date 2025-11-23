@@ -203,14 +203,6 @@ const Student = () => {
     }
   };
 
-  // const openAssignSubjectsModal = (student) => {
-  //   setSelectedStudent(student);
-  //   setSelectedSubjects(student?.subjects?.map((s) => s._id) || []);
-
-  //   setOpenAssignSubjectsModal(true);
-  //   getAllSubjects();
-  //   getStdentSubjects(student);
-  // };
 
   const openAssignSubjectsModal = (student) => {
   setSelectedStudent(student);
@@ -240,6 +232,8 @@ const Student = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      console.log(res)
       setOpenAssignSubjectsModal(false);
       getStudents();
       messageApi.success(
@@ -350,26 +344,6 @@ const Student = () => {
   };
 
   //Get student subjects
-  // const getStdentSubjects = async (student) => {
-  //   const id = student?._id;
-
-  //   try {
-  //     const res = await axios.get(
-  //       `${API_BASE_URL}/api/student-management/students/${id}/subjects`,
-  //       {
-  //         headers: { Authorization: `Bearer ${token}` },
-  //       }
-  //     );
-  //     // setStdSunject(res?.data?.data || []);
-  //     // stdSubject.map((sub)=> console.log("student subjects", sub))
-
-  //     setStdSunject(res?.data?.data || []);
-  //     setSelectedSubjects(res?.data?.data?.map((s) => s?._id) || []);
-  //   } catch (error) {
-  //     console.log(error || "Error getting subjects");
-  //   }
-  // };
-
   const getStdentSubjects = async (student) => {
   const id = student?._id;
 
@@ -447,6 +421,33 @@ const Student = () => {
       formData.append("avatar", fileList[0].originFileObj);
     }
 
+    // ==========================================================
+    // 💡 START LOGGING THE DATA BEING SENT
+    // ==========================================================
+    console.log("--- Data being sent (FormData contents) ---");
+    
+    // Create an object to hold the key-value pairs for easy logging
+    const dataToLog = {};
+    let fileInfo = "No new file uploaded.";
+
+    // Use formData.forEach() or formData.entries() to iterate
+    for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+            // Log file details without logging the entire binary data
+            fileInfo = `File Name: ${value.name}, Size: ${(value.size / 1024).toFixed(2)} KB, Type: ${value.type}`;
+            dataToLog[key] = fileInfo;
+        } else {
+            // Log simple fields
+            dataToLog[key] = value;
+        }
+    }
+    
+    console.log(dataToLog);
+    console.log("------------------------------------------");
+    // ==========================================================
+    // 💡 END LOGGING THE DATA BEING SENT
+    // ==========================================================
+
     setLoading(true);
 
     try {
@@ -493,7 +494,7 @@ const Student = () => {
     } finally {
       setLoading(false);
     }
-  };
+};
 
   // 🧩 Render avatar in table
   const renderAvatar = (record) => {
@@ -1455,7 +1456,7 @@ const Student = () => {
           <Button
             key="confirm"
             type="primary"
-            loading={loading}
+            loading={importing}
             onClick={confirmImport}
           >
             Confirm Import

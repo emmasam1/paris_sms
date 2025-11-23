@@ -215,78 +215,6 @@ const ParentResult = ({ scores = exampleScores }) => {
     formTeacher: "Mrs. Ngozi Okoro",
   };
 
-  // Print (opens new window and prints)
-  // const handlePrint = () => {
-  //   if (!printRef.current) return;
-  //   const content = printRef.current.innerHTML;
-  //   const win = window.open("", "", "width=900,height=650");
-  //   win.document.write(`
-  //   <html>
-  //     <head>
-  //       <title>Student Result</title>
-  //       <style>
-  //         @page {
-  //           size: A4 portrait;
-  //           margin: 10mm;
-  //         }
-  //         @media print {
-  //           html, body {
-  //             width: 210mm;
-  //             height: 297mm;
-  //             margin: 0;
-  //             padding: 0;
-  //             font-family: Arial, sans-serif;
-  //             -webkit-print-color-adjust: exact !important;
-  //             print-color-adjust: exact !important;
-  //           }
-  //           body {
-  //             display: flex;
-  //             justify-content: center;
-  //             align-items: flex-start;
-  //             padding: 10mm;
-  //             box-sizing: border-box;
-  //           }
-  //           .print-container {
-  //             width: 190mm;
-  //             min-height: 277mm;
-  //             background: white;
-  //             border: 1px solid #000;
-  //             box-sizing: border-box;
-  //             zoom: 1;
-  //           }
-  //           table {
-  //             width: 100%;
-  //             border-collapse: collapse;
-  //             font-size: 10px;
-  //           }
-  //           th, td {
-  //             border: 1px solid #000;
-  //             padding: 3px;
-  //             text-align: center;
-  //           }
-  //           th {
-  //             font-weight: 700;
-  //             background: #fff;
-  //           }
-  //           .no-border td, .no-border th {
-  //             border: none !important;
-  //             padding: 1px 4px;
-  //             text-align: left;
-  //           }
-  //         }
-  //       </style>
-  //     </head>
-  //     <body>
-  //       <div class="print-container">${content}</div>
-  //     </body>
-  //   </html>
-  // `);
-  //   win.document.close();
-  //   win.focus();
-  //   setTimeout(() => win.print(), 400);
-  // };
-
-  // Save as PDF using html-to-image + jspdf (avoids html2canvas oklch error)
 
   const handlePDF = async () => {
     if (!printRef.current) return;
@@ -583,7 +511,7 @@ const ParentResult = ({ scores = exampleScores }) => {
           <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8">
             <div>
               <p>FORM TEACHER'S COMMENT: Keep up the good work.</p>
-              <p>
+              <p className="my-2">
                 FORM TEACHER'S NAME:{" "}
                 <span className="underline">{studentInfo.formTeacher}</span>
               </p>
@@ -593,7 +521,7 @@ const ParentResult = ({ scores = exampleScores }) => {
             </div>
             <div>
               <p>PRINCIPAL'S COMMENT: ____________________________</p>
-              <p>PRINCIPAL'S SIGNATURE: ____________________________</p>
+              <p className="my-2">PRINCIPAL'S SIGNATURE: ____________________________</p>
               <p>DATE: ____________________________</p>
             </div>
           </div>

@@ -246,7 +246,7 @@ const MyClasses = () => {
                 onClose={() => setIsResultModalOpen(false)}
                 student={activeStudent}
                 subjects={activeSubjects}
-                subject={subject}
+                teacherSubject={subject}
               />
 
               <Modal

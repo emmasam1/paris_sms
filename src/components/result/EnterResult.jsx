@@ -10,7 +10,7 @@ const getGrade = (total) => {
   return "F";
 };
 
-const EnterResult = ({ open, onClose, student, subjects, subject }) => {
+const EnterResult = ({ open, onClose, student, subjects, teacherSubject }) => {
   const [studentScores, setStudentScores] = useState([]);
 
 console.log(subject)
@@ -22,7 +22,7 @@ useEffect(() => {
   if (subjects?.length) {
     const scores = subjects.map((subj) => ({
       key: subj._id,
-      subject:subject?.name,
+      subject:teacherSubject?.name,
       subjectId: subj._id,
       firstAssignment: 0,
       secondAssignment: 0,

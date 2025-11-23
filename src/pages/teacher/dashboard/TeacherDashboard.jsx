@@ -28,7 +28,6 @@ const TeacherDashboard = () => {
   const [loading, setLoading] = useState(false);
   const { token, API_BASE_URL } = useApp();
   const [dashboardData, setDashboardData] = useState([]);
-
   const [messageApi, contextHolder] = message.useMessage();
 
   const [announcements, setAnnouncements] = useState([
@@ -55,8 +54,7 @@ const TeacherDashboard = () => {
     },
   ]);
 
-  // console.log(API_BASE_URL)
-
+  // Fetch user info
   const getUser = async () => {
     if (!token) return;
     try {
@@ -65,7 +63,6 @@ const TeacherDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(res.data.data);
-      // console.log("Dashboard user data:", res.data.data);
     } catch (error) {
       console.error("Error fetching user data:", error);
     } finally {
@@ -73,6 +70,7 @@ const TeacherDashboard = () => {
     }
   };
 
+  // Fetch dashboard analytics
   const getDashboardDetails = async () => {
     if (!token) return;
     try {
@@ -80,12 +78,10 @@ const TeacherDashboard = () => {
       const res = await axios.get(`${API_BASE_URL}/api/teacher/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      messageApi.success(
-        res.data?.message || "Dashboard data fetched successfully"
-      );
+      messageApi.success(res.data?.message || "Dashboard data fetched successfully");
       setDashboardData(res.data);
-      console.log("Dashboard details:", res.data);
     } catch (error) {
+      console.error("Error fetching dashboard details:", error);
     } finally {
       setLoading(false);
     }
@@ -106,136 +102,117 @@ const TeacherDashboard = () => {
   };
 
   const unreadCount = announcements.filter((m) => !m.read).length;
-// TOTAL STUDENTS (from backend)
-const totalStudents =
-  dashboardData?.data?.subjectAnalytics?.reduce(
-    (acc, item) => acc + (item.students?.length || 0),
-    0
-  ) || 0;
 
-// RESULTS ENTERED (always 0 for now)
-const resultsEntered = 0;
+  // Compute total students from backend data
+  const totalStudents =
+    dashboardData?.data?.subjectAnalytics?.reduce(
+      (acc, item) => acc + (item.students?.length || 0),
+      0
+    ) || 0;
 
-// FINAL STATS BLOCK
-const stats = {
-  students: totalStudents,          // My Students
-  classes: dashboardData?.data?.subjectAnalytics?.length || 0, // My Classes
-  totalResults: totalStudents,      // Total results = # of students
-  resultsEntered: resultsEntered,   // Always 0 for now
-  resultsLeft: totalStudents - resultsEntered, // Remaining results
-  messages: announcements.length,
-};
+  const resultsEntered = 0; // always 0 for now
 
+  // Final stats
+  const stats = {
+    students: totalStudents,
+    classes: dashboardData?.data?.subjectAnalytics?.length || 0,
+    totalResults: totalStudents,
+    resultsEntered: resultsEntered,
+    resultsLeft: totalStudents - resultsEntered,
+    messages: announcements.length,
+  };
 
-
-
-  // ---- FORM TEACHER WELCOME TEXT ----
+  // Welcome text
   const getWelcomeText = () => {
     if (!user) return "";
-
     const isFormTeacher = user.formClass?.name;
-
     if (isFormTeacher) {
       return `Welcome, ${user.formClass.name} ${user.formClass.arm} Form Teacher`;
     }
-
     return `Welcome ${user.title} ${user.firstName} ${user.lastName}`;
   };
 
   return (
     <div>
-      {/* ---- WELCOME SECTION ---- */}
       {contextHolder}
+
+      {/* Welcome */}
       <Skeleton loading={loading} active paragraph={false}>
         <h2 className="text-xl font-bold mb-4">{getWelcomeText()}</h2>
       </Skeleton>
 
-      <Skeleton loading={loading} active>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={6}>
-            <Card className="shadow-md rounded-xl">
-              <div className="flex items-center space-x-4">
-                <UserOutlined className="text-3xl !text-blue-500" />
-                <div>
-                  <p className="text-gray-500">My Students</p>
-                  <p className="text-xl font-bold">{stats.students}</p>
-                </div>
-              </div>
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} md={6}>
-            <Card className="shadow-md rounded-xl">
-              <div className="flex items-center space-x-4">
-                <BookOutlined className="text-3xl !text-green-500" />
-                <div>
-                  <p className="text-gray-500">My Classes</p>
-                  <p className="text-xl font-bold">{stats.classes}</p>
-                </div>
-              </div>
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} md={6}>
-            <Card className="shadow-md rounded-xl">
-              <div className="flex items-center space-x-4">
-                <BarChartOutlined className="text-3xl !text-purple-500" />
-                <div>
-                  <p className="text-gray-500">Total Results</p>
-                  <p className="text-xl font-bold">{stats.totalResults}</p>
-                </div>
-              </div>
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} md={6}>
-            <Card className="shadow-md rounded-xl">
-              <div className="flex items-center space-x-4">
-                <CheckCircleOutlined className="text-3xl !text-green-600" />
-                <div>
-                  <p className="text-gray-500">Results Entered</p>
-                  <p className="text-xl font-bold">{stats.resultsEntered}</p>
-                </div>
-              </div>
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} md={6}>
-            <Card className="shadow-md rounded-xl">
-              <div className="flex items-center space-x-4">
-                <ClockCircleOutlined className="text-3xl !text-orange-500" />
-                <div>
-                  <p className="text-gray-500">Results Left</p>
-                  <p className="text-xl font-bold">{stats.resultsLeft}</p>
-                </div>
-              </div>
-            </Card>
-          </Col>
-
-          <Col xs={24} sm={12} md={6}>
+      {/* Stats cards */}
+      <Row gutter={[16, 16]}>
+        {[
+          {
+            title: "My Students",
+            value: stats.students,
+            icon: <UserOutlined className="text-3xl !text-blue-500" />,
+          },
+          {
+            title: "My Classes",
+            value: stats.classes,
+            icon: <BookOutlined className="text-3xl !text-green-500" />,
+          },
+          {
+            title: "Total Results",
+            value: stats.totalResults,
+            icon: <BarChartOutlined className="text-3xl !text-purple-500" />,
+          },
+          {
+            title: "Results Entered",
+            value: stats.resultsEntered,
+            icon: <CheckCircleOutlined className="text-3xl !text-green-600" />,
+          },
+          {
+            title: "Results Left",
+            value: stats.resultsLeft,
+            icon: <ClockCircleOutlined className="text-3xl !text-orange-500" />,
+          },
+          {
+            title: "Messages",
+            value: stats.messages,
+            icon: <MessageOutlined className="text-3xl !text-pink-500" />,
+            extra: unreadCount > 0 && !loading && (
+              <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-2 py-[2px] rounded-full">
+                {unreadCount} unread
+              </span>
+            ),
+          },
+        ].map((stat, idx) => (
+          <Col xs={24} sm={12} md={6} key={idx}>
             <Card className="shadow-md rounded-xl relative">
-              <div className="flex items-center space-x-4">
-                <MessageOutlined className="text-3xl !text-pink-500" />
-                <div className="flex-1 relative">
-                  <p className="text-gray-500">Messages</p>
-                  <p className="text-xl font-bold">{stats.messages}</p>
-
-                  {unreadCount > 0 && (
-                    <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-2 py-[2px] rounded-full">
-                      {unreadCount} unread
-                    </span>
-                  )}
+              <Skeleton loading={loading} active avatar paragraph={{ rows: 1 }}>
+                <div className="flex items-center space-x-4">
+                  {stat.icon}
+                  <div className="flex-1 relative">
+                    <p className="text-gray-500">{stat.title}</p>
+                    <p className="text-xl font-bold">{stat.value}</p>
+                    {stat.extra}
+                  </div>
                 </div>
-              </div>
+              </Skeleton>
             </Card>
           </Col>
-        </Row>
-      </Skeleton>
+        ))}
+      </Row>
 
       {/* Announcements */}
-      <Skeleton loading={loading} active>
-        <div className="mt-8">
-          <Card title="Announcements" className="shadow-md rounded-xl">
+      <div className="mt-8">
+        <Card title="Announcements" className="shadow-md rounded-xl">
+          {loading ? (
+            <div>
+              {[1, 2, 3].map((i) => (
+                <Skeleton
+                  key={i}
+                  active
+                  title
+                  paragraph={{ rows: 1 }}
+                  className="mb-4"
+                />
+              ))}
+            </div>
+          ) : (
             <List
               itemLayout="horizontal"
               dataSource={announcements}
@@ -262,9 +239,9 @@ const stats = {
                 </List.Item>
               )}
             />
-          </Card>
-        </div>
-      </Skeleton>
+          )}
+        </Card>
+      </div>
 
       {/* Modal */}
       <Modal

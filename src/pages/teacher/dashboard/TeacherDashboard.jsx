@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Card, Row, Col, Modal, Button, Tag, List, Skeleton } from "antd";
+import {
+  Card,
+  Row,
+  Col,
+  Modal,
+  Button,
+  Tag,
+  List,
+  Skeleton,
+  message,
+} from "antd";
 import {
   UserOutlined,
   BookOutlined,
@@ -17,6 +27,9 @@ const TeacherDashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const { token, API_BASE_URL } = useApp();
+  const [dashboardData, setDashboardData] = useState([]);
+
+  const [messageApi, contextHolder] = message.useMessage();
 
   const [announcements, setAnnouncements] = useState([
     {
@@ -52,7 +65,7 @@ const TeacherDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(res.data.data);
-      console.log("Dashboard user data:", res.data.data);
+      // console.log("Dashboard user data:", res.data.data);
     } catch (error) {
       console.error("Error fetching user data:", error);
     } finally {
@@ -60,8 +73,27 @@ const TeacherDashboard = () => {
     }
   };
 
+  const getDashboardDetails = async () => {
+    if (!token) return;
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API_BASE_URL}/api/teacher/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      messageApi.success(
+        res.data?.message || "Dashboard data fetched successfully"
+      );
+      setDashboardData(res.data);
+      console.log("Dashboard details:", res.data);
+    } catch (error) {
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     getUser();
+    getDashboardDetails();
   }, []);
 
   const openMessage = (message) => {
@@ -74,15 +106,28 @@ const TeacherDashboard = () => {
   };
 
   const unreadCount = announcements.filter((m) => !m.read).length;
+// TOTAL STUDENTS (from backend)
+const totalStudents =
+  dashboardData?.data?.subjectAnalytics?.reduce(
+    (acc, item) => acc + (item.students?.length || 0),
+    0
+  ) || 0;
 
-  const stats = {
-    students: 120,
-    classes: 4,
-    totalResults: 36,
-    resultsEntered: 20,
-    resultsLeft: 16,
-    messages: announcements.length,
-  };
+// RESULTS ENTERED (always 0 for now)
+const resultsEntered = 0;
+
+// FINAL STATS BLOCK
+const stats = {
+  students: totalStudents,          // My Students
+  classes: dashboardData?.data?.subjectAnalytics?.length || 0, // My Classes
+  totalResults: totalStudents,      // Total results = # of students
+  resultsEntered: resultsEntered,   // Always 0 for now
+  resultsLeft: totalStudents - resultsEntered, // Remaining results
+  messages: announcements.length,
+};
+
+
+
 
   // ---- FORM TEACHER WELCOME TEXT ----
   const getWelcomeText = () => {
@@ -100,6 +145,7 @@ const TeacherDashboard = () => {
   return (
     <div>
       {/* ---- WELCOME SECTION ---- */}
+      {contextHolder}
       <Skeleton loading={loading} active paragraph={false}>
         <h2 className="text-xl font-bold mb-4">{getWelcomeText()}</h2>
       </Skeleton>

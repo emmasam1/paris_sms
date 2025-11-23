@@ -13,11 +13,10 @@ const getGrade = (total) => {
 const EnterResult = ({ open, onClose, student, subjects, teacherSubject }) => {
   const [studentScores, setStudentScores] = useState([]);
 
-console.log(subject)
+console.log(teacherSubject)
 
   // Load only subjects the student offers
 useEffect(() => {
-  console.log("EnterResult received subjects:", subjects);
 
   if (subjects?.length) {
     const scores = subjects.map((subj) => ({

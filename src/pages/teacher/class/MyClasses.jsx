@@ -113,7 +113,7 @@ const MyClasses = () => {
               console.log(record)
               setActiveSubjects(record.subjects );
               setIsResultModalOpen(true);
-              subject={subject}
+              teacherSubject={subject}
             }}
           >
             Enter

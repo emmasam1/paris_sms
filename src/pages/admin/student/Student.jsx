@@ -190,18 +190,21 @@ const Student = () => {
   };
 
   const getAllSubjects = async () => {
-    try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/subject-management/subjects`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  try {
+    const res = await axios.get(
+      `${API_BASE_URL}/api/subject-management/subjects?limit=100000`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      setSubjects(res?.data?.data || []);
-    } catch (error) {
-      console.error(error);
-      message.error("Failed to fetch subjects");
-    }
-  };
+    console.log("all subjects", res);
+
+    setSubjects(res?.data?.data || []);
+  } catch (error) {
+    console.error(error);
+    message.error("Failed to fetch subjects");
+  }
+};
+
 
 
   const openAssignSubjectsModal = (student) => {

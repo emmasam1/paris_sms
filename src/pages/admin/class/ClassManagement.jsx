@@ -198,7 +198,7 @@ const ClassManagement = () => {
       };
 
       const res = await axios.post(
-        `${API_BASE_URL}/api/class-management/students/assign-class`,
+        `${API_BASE_URL}/api/class-management/students/assign-class?limit=100000`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );

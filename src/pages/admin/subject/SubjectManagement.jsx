@@ -378,11 +378,21 @@ const SubjectManagement = () => {
       title: "Assigned Teacher",
       dataIndex: "assignedLevels",
       key: "assignedTeacher",
-      render: (assignedLevels) =>
-        assignedLevels?.length
-          ? assignedLevels.map((i) => i?.teacher?.fullName).join(", ")
-          : "--",
+      render: (assignedLevels) => {
+        if (!assignedLevels?.length) return "--";
+
+        // Extract teacher names
+        const teacherNames = assignedLevels
+          .map((i) => i?.teacher?.fullName)
+          .filter(Boolean);
+
+        // Remove duplicates
+        const uniqueTeachers = [...new Set(teacherNames)];
+
+        return uniqueTeachers.join(", ");
+      },
     },
+
     {
       title: "Assigned Level",
       dataIndex: "assignedLevels",
@@ -396,20 +406,34 @@ const SubjectManagement = () => {
       title: "Academic Year",
       dataIndex: "assignedLevels",
       key: "academicYear",
-      render: (assignedLevels) =>
-        assignedLevels?.length
-          ? assignedLevels.map((i) => i?.academicYear).join(", ")
-          : "--",
+      render: (assignedLevels) => {
+        if (!assignedLevels?.length) return "--";
+
+        const years = assignedLevels
+          .map((i) => i?.academicYear)
+          .filter(Boolean);
+
+        const uniqueYears = [...new Set(years)];
+
+        return uniqueYears.join(", ");
+      },
     },
+
     {
       title: "Term",
       dataIndex: "assignedLevels",
       key: "term",
-      render: (assignedLevels) =>
-        assignedLevels?.length
-          ? assignedLevels.map((i) => i?.term).join(", ")
-          : "--",
+      render: (assignedLevels) => {
+        if (!assignedLevels?.length) return "--";
+
+        const terms = assignedLevels.map((i) => i?.term).filter(Boolean);
+
+        const uniqueTerms = [...new Set(terms)];
+
+        return uniqueTerms.join(", ");
+      },
     },
+
     {
       title: "Levels Offered",
       dataIndex: "levelsOffered",

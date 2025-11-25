@@ -489,33 +489,17 @@ const Teacher = () => {
             </Menu.Item>
 
             <Menu.Item key="subject" onClick={() => handleManageStaff(record)}>
-              {record.subjects?.length > 0 ? (
-                // 🔴 Unassign Subject
-                <Button
-                  className="!border-0 !p-0 hover:!text-black hover:!bg-transparent flex items-center gap-1"
-                  loading={loading}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeSubject(record);
-                  }}
-                  icon={<MinusOutlined />}
-                >
-                  Unassign Subject
-                </Button>
-              ) : (
-                // 🟢 Assign Subject
-                <Button
-                  className="!border-0 !p-0 hover:!text-black hover:!bg-transparent flex items-center gap-1"
-                  loading={loading}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    assignSubject(record);
-                  }}
-                  icon={<PlusOutlined />}
-                >
-                  Assign Subject
-                </Button>
-              )}
+              <Button
+                className="!border-0 !p-0 hover:!text-black hover:!bg-transparent flex items-center gap-1"
+                loading={loading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  assignSubject(record);
+                }}
+                icon={<PlusOutlined />}
+              >
+                Assign Subject
+              </Button>
             </Menu.Item>
 
             <Menu.Item

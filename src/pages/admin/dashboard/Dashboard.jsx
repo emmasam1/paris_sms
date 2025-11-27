@@ -52,6 +52,8 @@ const Dashboard = () => {
   const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
   const [sendMessage, setSendMessage] = useState(false);
   const [analytics, setAnalytics] = useState(null);
+  const [chatDetali, setChatDetail] = useState(null)
+
   const [messageApi, contextHolder] = message.useMessage();
 
 
@@ -202,7 +204,7 @@ useEffect(() => {
     { month: "Jun", amount: 1100000 },
   ];
 
-  setAnalytics((prev) => ({
+  setChatDetail((prev) => ({
     ...prev,
     studentGrowth: prev?.studentGrowth?.length ? prev.studentGrowth : dummyStudentGrowth,
     revenueGrowth: prev?.revenueGrowth?.length ? prev.revenueGrowth : dummyRevenueGrowth,
@@ -361,7 +363,7 @@ useEffect(() => {
                   headStyle={{ borderBottom: "none" }}
                 >
                   <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={analytics?.studentGrowth || []}>
+                    <LineChart data={chatDetali?.studentGrowth || []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
@@ -386,7 +388,7 @@ useEffect(() => {
                   headStyle={{ borderBottom: "none" }}
                 >
                   <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={analytics?.revenueGrowth || []}>
+                    <LineChart data={chatDetali?.revenueGrowth || []}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />

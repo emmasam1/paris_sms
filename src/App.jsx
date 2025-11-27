@@ -51,6 +51,9 @@ const App = () => {
         <Route path="/profile" element={<Profile />} />
       </Route>
 
+       {/* ===== SChool Owner Routes =====
+        <Route element={<PrivateRoute allowedRoles={["principal"]} />}></Route> */}
+
       {/* ===== Admin Routes ===== */}
       <Route
         element={

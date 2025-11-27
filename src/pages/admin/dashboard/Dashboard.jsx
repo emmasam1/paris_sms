@@ -23,6 +23,16 @@ import {
   UploadOutlined,
   IdcardOutlined,
 } from "@ant-design/icons";
+
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  // Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { motion } from "framer-motion";
 import { useApp } from "../../../context/AppContext";
 import { useNavigate } from "react-router";
@@ -36,7 +46,7 @@ import CreateMessage from "../../../components/message/CreateMessage";
 const { Title } = Typography;
 
 const Dashboard = () => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
   const [isPinModalVisible, setIsPinModalVisible] = useState(false);
   const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
@@ -44,7 +54,8 @@ const Dashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [messageApi, contextHolder] = message.useMessage();
 
-  const { API_BASE_URL, token } = useApp();
+
+  const { API_BASE_URL, token, user } = useApp();
   const navigate = useNavigate();
 
   // ===== Dummy activity data =====
@@ -145,23 +156,59 @@ const Dashboard = () => {
       route: "/admin/dashboard/class-management",
       tooltip: "View all school classes",
     },
-    {
-      icon: <KeyOutlined className="text-3xl !text-yellow-500" />,
-      label: "Total PINs",
-      value: analytics?.pinsGenerated ?? 0,
-      route: "/admin/dashboard/pin-management",
-      tooltip: "Manage generated PINs",
-    },
-    {
-      icon: <DollarOutlined className="text-3xl !text-emerald-500" />,
-      label: "Revenue",
-      value: analytics?.totalRevenue
-        ? `₦${analytics.totalRevenue.toLocaleString()}`
-        : "₦0",
-      // route: "/dashboard/finance",
-      tooltip: "View revenue reports",
-    },
+    ...(user?.role === "principal"
+      ? [
+          {
+            icon: <KeyOutlined className="text-3xl !text-yellow-500" />,
+            label: "Total PINs",
+            value: analytics?.pinsGenerated ?? 0,
+            route: "/admin/dashboard/pin-management",
+            tooltip: "Manage generated PINs",
+          },
+        ]
+      : []),
+    ...(user?.role === "principal"
+      ? [
+          {
+            icon: <DollarOutlined className="text-3xl !text-emerald-500" />,
+            label: "Revenue",
+            value: analytics?.totalRevenue
+              ? `₦${analytics.totalRevenue.toLocaleString()}`
+              : "₦0",
+            tooltip: "View revenue reports",
+          },
+        ]
+      : []), // if not principal → add nothing
   ];
+
+useEffect(() => {
+  if (user?.role !== "principal") return;
+
+  const dummyStudentGrowth = [
+    { month: "Jan", count: 120 },
+    { month: "Feb", count: 145 },
+    { month: "Mar", count: 160 },
+    { month: "Apr", count: 180 },
+    { month: "May", count: 200 },
+    { month: "Jun", count: 230 },
+  ];
+
+  const dummyRevenueGrowth = [
+    { month: "Jan", amount: 520000 },
+    { month: "Feb", amount: 610000 },
+    { month: "Mar", amount: 700000 },
+    { month: "Apr", amount: 820000 },
+    { month: "May", amount: 960000 },
+    { month: "Jun", amount: 1100000 },
+  ];
+
+  setAnalytics((prev) => ({
+    ...prev,
+    studentGrowth: prev?.studentGrowth?.length ? prev.studentGrowth : dummyStudentGrowth,
+    revenueGrowth: prev?.revenueGrowth?.length ? prev.revenueGrowth : dummyRevenueGrowth,
+  }));
+}, [user]);
+
 
   return (
     <div className="space-y-6">
@@ -289,6 +336,75 @@ const Dashboard = () => {
           </div>
         )}
       </Card>
+
+      {/* ===== Principal Only: Growth Charts ===== */}
+      {user?.role === "principal" && (
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mt-6"
+        >
+          {/* ==== Dummy Data ==== */}
+   
+
+          <Card className="shadow-md rounded-xl border-none">
+            <Title level={4}>School Growth Analytics</Title>
+
+            <Row gutter={[16, 16]}>
+              {/* Student Growth Chart */}
+              <Col xs={24} md={12}>
+                <Card
+                  title="Student Growth"
+                  className="rounded-xl border-none"
+                  bodyStyle={{ padding: 10 }}
+                  headStyle={{ borderBottom: "none" }}
+                >
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={analytics?.studentGrowth || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#3b82f6"
+                        strokeWidth={3}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card>
+              </Col>
+
+              {/* Revenue Growth Chart */}
+              <Col xs={24} md={12}>
+                <Card
+                  title="Revenue Growth"
+                  className="rounded-xl border-none"
+                  bodyStyle={{ padding: 10 }}
+                  headStyle={{ borderBottom: "none" }}
+                >
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={analytics?.revenueGrowth || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="amount"
+                        stroke="#10b981"
+                        strokeWidth={3}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card>
+              </Col>
+            </Row>
+          </Card>
+        </motion.div>
+      )}
 
       {/* ===== Recent Activity ===== */}
       <Card className="shadow-md rounded-xl">

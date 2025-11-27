@@ -55,6 +55,14 @@
   color: #FFFFFF !important;
   font-weight: bold;
 }
+
+.recharts-wrapper:focus,
+.recharts-surface:focus {
+  outline: none !important;
+  border: none !important;
+}
+
+
 /* 
 
 :root {

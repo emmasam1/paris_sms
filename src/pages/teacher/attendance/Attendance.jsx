@@ -30,6 +30,7 @@ const Attendance = ({ className }) => {
   const [attendance, setAttendance] = useState({});
   const [viewRecords, setViewRecords] = useState({});
   const [summary, setSummary] = useState(null);
+  const [students, setStudents] = useState([]);
 
   const [studentsList, setStudentsList] = useState([]); // FIXED NAME
   const [loading, setLoading] = useState(true);
@@ -42,13 +43,17 @@ const Attendance = ({ className }) => {
     try {
       setLoading(true);
 
-      const res = await axios.get(`${API_BASE_URL}/api/teacher/dashboard`, {
+      const res = await axios.get(`${API_BASE_URL}/api/teacher/form-class`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("from attendance", res);
+      const classData = res?.data?.data;
+      const studentsArray = classData?.students || [];
 
-      setStudentsList(res.data.data?.formClassStudents || []);
+      setStudents(studentsArray); // used by your table
+      setStudentsList(studentsArray); // important for submit
+      // console.log("Class details:", classData);
+
       messageApi.success("Students loaded");
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -184,7 +189,7 @@ const Attendance = ({ className }) => {
           ) : (
             <>
               <Table
-                dataSource={studentsList.map((s) => ({
+                dataSource={students.map((s) => ({
                   id: s._id,
                   regNo: s.admissionNumber,
                   name: s.fullName,

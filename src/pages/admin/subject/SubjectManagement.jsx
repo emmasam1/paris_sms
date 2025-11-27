@@ -15,6 +15,7 @@ import {
   Skeleton,
   Menu,
   Dropdown,
+  Tabs,
 } from "antd";
 import {
   PlusOutlined,
@@ -29,6 +30,7 @@ import { useApp } from "../../../context/AppContext";
 import axios from "axios";
 
 const { Option } = Select;
+const { TabPane } = Tabs;
 const LEVELS = ["PRIMARY", "JSS", "SSS"];
 
 const SubjectManagement = () => {
@@ -49,6 +51,7 @@ const SubjectManagement = () => {
   const [editingKey, setEditingKey] = useState(null);
   const [loading, setLoading] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
+  const [assignments, setAssignments] = useState([]);
 
   // Pagination
   const [pagination, setPagination] = useState({
@@ -119,7 +122,7 @@ const SubjectManagement = () => {
         levelName: cls.level, // 🔥 this is the string you need: "SSS"
       }));
 
-      console.log("data from class", mapped);
+      // console.log("data from class", mapped);
     } catch (error) {
       console.error(error);
       messageApi.error(
@@ -208,7 +211,7 @@ const SubjectManagement = () => {
       );
 
       const result = res.data;
-      console.log("subjects", result);
+      // console.log("subjects", result);
       setSubjects(result?.data || []);
       setPagination({
         current: result?.pagination?.page || 1,
@@ -225,13 +228,41 @@ const SubjectManagement = () => {
     }
   };
 
+  // Fetch all assigned teachers for a subject
+  const getSubjectLevels = async () => {
+    try {
+      setLoading(true);
+
+      const res = await axios.get(
+        `${API_BASE_URL}/api/subject-management/subject-levels`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setAssignments(res?.data?.data);
+      // console.log("assigned teachers", res);
+      return res.data; // { success, message, data }
+    } catch (error) {
+      console.log("Error fetching assigned subject levels:", error);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 🔹 Assign subject to teacher
   const handleAssignClick = async (values) => {
     setLoading(true);
+    if (!selectedSubject?._id) {
+      return message.error("No subject selected");
+    }
+
     const payload = {
-      subjectId: selectedSubject?._id,
       teacherId: values.teacherId,
-      level: values.level,
+      subjects: [selectedSubject._id], // fixed
+      levels: values.levels, // now array of selected levels
       academicYear: values.academicYear,
       term: values.term,
     };
@@ -255,25 +286,6 @@ const SubjectManagement = () => {
     }
   };
 
-  // 🔹 Unassign subject from teacher
-  const handleUnassignClick = async (record) => {
-    console.log(record);
-
-    if (!token) return;
-    try {
-      await axios.patch(
-        `${API_BASE_URL}/api/subject-management/subjects/${record.id}/unassign`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      message.success("Subject unassigned successfully");
-      getAllSubjects(pagination.current, pagination.pageSize);
-    } catch (error) {
-      console.error(error);
-      message.error("Failed to unassign subject");
-    }
-  };
-
   //Get teachers
   const getTeachers = async () => {
     try {
@@ -283,7 +295,7 @@ const SubjectManagement = () => {
       );
 
       const result = res.data.data || [];
-      console.log(result);
+      // console.log(result);
       setStaff(result);
     } catch (error) {
       console.error(error);
@@ -295,6 +307,7 @@ const SubjectManagement = () => {
     getAllSubjects();
     getTeachers();
     getClass();
+    getSubjectLevels();
   }, []);
 
   // 🔹 Handle pagination
@@ -323,7 +336,7 @@ const SubjectManagement = () => {
 
       const result = res.data.data || [];
 
-      console.log("Assigned raw:", result);
+      // console.log("Assigned raw:", result);
 
       // 🔥 TRANSFORM assigned subjects into table format
       const formatted = result.map((item) => ({
@@ -374,65 +387,6 @@ const SubjectManagement = () => {
       key: "isCore",
       render: (val) => (val ? "Yes" : "No"),
     },
-    {
-      title: "Assigned Teacher",
-      dataIndex: "assignedLevels",
-      key: "assignedTeacher",
-      render: (assignedLevels) => {
-        if (!assignedLevels?.length) return "--";
-
-        // Extract teacher names
-        const teacherNames = assignedLevels
-          .map((i) => i?.teacher?.fullName)
-          .filter(Boolean);
-
-        // Remove duplicates
-        const uniqueTeachers = [...new Set(teacherNames)];
-
-        return uniqueTeachers.join(", ");
-      },
-    },
-
-    {
-      title: "Assigned Level",
-      dataIndex: "assignedLevels",
-      key: "assignedLevel",
-      render: (assignedLevels) =>
-        assignedLevels?.length
-          ? assignedLevels.map((i) => i?.level).join(", ")
-          : "--",
-    },
-    {
-      title: "Academic Year",
-      dataIndex: "assignedLevels",
-      key: "academicYear",
-      render: (assignedLevels) => {
-        if (!assignedLevels?.length) return "--";
-
-        const years = assignedLevels
-          .map((i) => i?.academicYear)
-          .filter(Boolean);
-
-        const uniqueYears = [...new Set(years)];
-
-        return uniqueYears.join(", ");
-      },
-    },
-
-    {
-      title: "Term",
-      dataIndex: "assignedLevels",
-      key: "term",
-      render: (assignedLevels) => {
-        if (!assignedLevels?.length) return "--";
-
-        const terms = assignedLevels.map((i) => i?.term).filter(Boolean);
-
-        const uniqueTerms = [...new Set(terms)];
-
-        return uniqueTerms.join(", ");
-      },
-    },
 
     {
       title: "Levels Offered",
@@ -458,28 +412,13 @@ const SubjectManagement = () => {
             </Menu.Item>
 
             {/* 🔹 Assign / Unassign Subject */}
-            {!isAssigned ? (
-              <Menu.Item key="assign" onClick={() => showAssignModal(record)}>
-                <Space>
-                  <BookOutlined style={{ color: "#1890ff" }} />
-                  <span>Assign Subject To Teacher</span>
-                </Space>
-              </Menu.Item>
-            ) : (
-              <Menu.Item key="unassign">
-                <Popconfirm
-                  title="Are you sure you want to unassign this subject?"
-                  onConfirm={() => handleUnassignClick(record)}
-                  okText="Yes"
-                  cancelText="No"
-                >
-                  <Space>
-                    <StopOutlined style={{ color: "red" }} />
-                    <span>Unassign Subject</span>
-                  </Space>
-                </Popconfirm>
-              </Menu.Item>
-            )}
+
+            <Menu.Item key="assign" onClick={() => showAssignModal(record)}>
+              <Space>
+                <BookOutlined style={{ color: "#1890ff" }} />
+                <span>Assign Subject To Teacher</span>
+              </Space>
+            </Menu.Item>
 
             {/* 🔹 Delete */}
             <Menu.Item key="delete">
@@ -506,10 +445,49 @@ const SubjectManagement = () => {
     },
   ];
 
+  const assignmentColumns = [
+    {
+      title: "S/N",
+      render: (_, __, index) => index + 1,
+    },
+    {
+      title: "Teacher",
+      dataIndex: "teacher",
+      render: (t) => t?.fullName || "--",
+    },
+    {
+      title: "Email",
+      dataIndex: "teacher",
+      render: (t) => t?.email || "--",
+    },
+    {
+      title: "Subject",
+      dataIndex: "subject",
+      render: (s) => s?.name || "--",
+    },
+    {
+      title: "Code",
+      dataIndex: "subject",
+      render: (s) => s?.code || "--",
+    },
+    {
+      title: "Level",
+      dataIndex: "level",
+    },
+    {
+      title: "Academic Year",
+      dataIndex: "academicYear",
+    },
+    {
+      title: "Term",
+      dataIndex: "term",
+    },
+  ];
+
   return (
     <>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center gap-2 w-full md:w-1/3 mb-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 !items-center">
+        <div className="flex !items-center gap-2 w-full md:w-1/3">
           <Input
             placeholder="Search subject by name"
             prefix={<SearchOutlined />}
@@ -537,7 +515,7 @@ const SubjectManagement = () => {
           </Button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex !items-center gap-3">
           <Select
             allowClear
             placeholder="Search subject by class"
@@ -585,34 +563,54 @@ const SubjectManagement = () => {
           </Button>
         </div>
       </div>
+      <Tabs>
+        <TabPane tab="Assign Subject" key="1">
+          {tableLoading ? (
+            <Skeleton active paragraph={{ rows: 7 }} />
+          ) : (
+            // ✅ Update rowKey to match backend
+            <Table
+              dataSource={subjects}
+              columns={columns}
+              bordered
+              size="small"
+              rowKey="_id"
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
+                showSizeChanger: true,
+                position: ["bottomCenter"],
+                className: "custom-pagination",
+              }}
+              onChange={handleTableChange}
+              scroll={{ x: "max-content" }}
+            />
+          )}
+        </TabPane>
+        <TabPane tab="Assigned Teachers" key="2">
+          <Table
+            columns={assignmentColumns}
+            dataSource={assignments}
+            rowKey={(item) => item._id}
+            bordered
+            size="small"
+            pagination={{
+              pageSize: 5,
+              showSizeChanger: true,
+              position: ["bottomCenter"],
+              className: "custom-pagination",
+            }}
+            scroll={{ x: "max-content" }}
+          />
+        </TabPane>
+      </Tabs>
       <div className="p-4 bg-white shadow-md rounded-lg">
         {contextHolder}
 
         {/* 🔹 Header */}
 
         {/* 🔹 Table */}
-        {tableLoading ? (
-          <Skeleton active paragraph={{ rows: 7 }} />
-        ) : (
-          // ✅ Update rowKey to match backend
-          <Table
-            dataSource={subjects}
-            columns={columns}
-            bordered
-            size="small"
-            rowKey="_id"
-            pagination={{
-              current: pagination.current,
-              pageSize: pagination.pageSize,
-              total: pagination.total,
-              showSizeChanger: false,
-              position: ["bottomCenter"],
-              className: "custom-pagination",
-            }}
-            onChange={handleTableChange}
-            scroll={{ x: "max-content" }}
-          />
-        )}
 
         {/* 🔹 Add/Edit Subject Modal */}
         <Modal
@@ -729,11 +727,18 @@ const SubjectManagement = () => {
           }`}
           open={isAssignModalOpen}
           onOk={() => form.submit()}
-          onCancel={handleCancel}
+          onCancel={() => {
+            form.resetFields(); // ✅ reset when closing
+            handleCancel();
+          }}
           confirmLoading={loading}
           okText="Assign"
         >
-          <Form form={form} layout="vertical" onFinish={handleAssignClick}>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleAssignClick} // <-- This builds correct payload
+          >
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
@@ -755,11 +760,13 @@ const SubjectManagement = () => {
 
               <Col span={12}>
                 <Form.Item
-                  name="level"
-                  label="Level"
-                  rules={[{ required: true, message: "Please select a level" }]}
+                  name="levels"
+                  label="Levels"
+                  rules={[
+                    { required: true, message: "Please select level(s)" },
+                  ]}
                 >
-                  <Select placeholder="Select level">
+                  <Select mode="multiple" placeholder="Select levels">
                     {(selectedSubject?.levelsOffered || []).map((lvl) => (
                       <Option key={lvl} value={lvl}>
                         {lvl}

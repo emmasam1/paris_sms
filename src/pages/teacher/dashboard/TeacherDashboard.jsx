@@ -86,10 +86,11 @@ const TeacherDashboard = () => {
 
       // 1️⃣ Fetch students
       const res = await axios.get(
-        `${API_BASE_URL}/api/teacher/students?page=1&limit=20`,
+        `${API_BASE_URL}/api/teacher/students`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
+      // console.log("res from teachers dashboard", res)
+      // `${API_BASE_URL}/api/teacher/students?page=1&limit=20`,
       const students = res.data.students || [];
       if (!students.length) return;
 
@@ -102,6 +103,8 @@ const TeacherDashboard = () => {
           `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subjectId}&session=2025/2026&term=1`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+
+        console.log(resultRes)
 
         if (resultRes.data.success) {
           const stats = resultRes.data.stats;

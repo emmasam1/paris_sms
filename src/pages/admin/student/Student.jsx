@@ -343,7 +343,7 @@ const Student = () => {
   const openDetails = (record) => {
     setDetailsStudent(record);
     setIsDetailsOpen(true);
-    // console.log(record)
+    console.log(record)
   };
 
   //Get student subjects

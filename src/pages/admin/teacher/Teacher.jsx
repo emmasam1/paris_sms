@@ -487,21 +487,6 @@ const Teacher = () => {
             >
               Edit Staff
             </Menu.Item>
-
-            <Menu.Item key="subject" onClick={() => handleManageStaff(record)}>
-              <Button
-                className="!border-0 !p-0 hover:!text-black hover:!bg-transparent flex items-center gap-1"
-                loading={loading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  assignSubject(record);
-                }}
-                icon={<PlusOutlined />}
-              >
-                Assign Subject
-              </Button>
-            </Menu.Item>
-
             <Menu.Item
               key="manage"
               icon={<SettingOutlined />}

@@ -17,6 +17,7 @@ const EnterResult = ({
   onClose,
   student,
   teacherSubject,
+  onClick
 }) => {
   const [studentScores, setStudentScores] = useState([]);
   const { API_BASE_URL, token, loading, setLoading } = useApp();
@@ -49,6 +50,8 @@ const EnterResult = ({
       secondCA: score.secondCATest,
       exam: score.exam,
     };
+
+    console.log(payload)
 
     try {
       setLoading(true);

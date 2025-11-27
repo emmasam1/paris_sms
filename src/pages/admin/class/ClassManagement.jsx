@@ -67,9 +67,9 @@ const ClassManagement = () => {
   useEffect(() => {
     const map = {};
     students.forEach((s) => {
-      const className = s.class?.name;
-      if (!map[className]) map[className] = 0;
-      map[className] += 1;
+      const classId = s.class?._id;
+      if (!classId) return;
+      map[classId] = (map[classId] || 0) + 1;
     });
     setStudentCountMap(map);
   }, [students]);
@@ -214,7 +214,7 @@ const ClassManagement = () => {
   };
 
   // 🔹 Handle AntD table pagination change
-  const handleTableChange = (paginationConfig) => {
+ const handleTableChange = (paginationConfig) => {
     getClass(paginationConfig.current);
   };
 
@@ -300,9 +300,6 @@ const ClassManagement = () => {
     }
     setIsModalOpen(true);
   };
-
-  // console.log(token);
-  // console.log(API_BASE_URL);
 
   // Save single class
   const handleSave = async (values) => {
@@ -432,7 +429,7 @@ const ClassManagement = () => {
       title: "Students",
       key: "students",
       render: (_, record) => {
-        const count = studentCountMap[record.name] || 0;
+        const count = studentCountMap[record._id] || 0;
         return (
           <span>
             {count} {count === 1 ? "student" : "students"}
@@ -440,6 +437,7 @@ const ClassManagement = () => {
         );
       },
     },
+
     {
       title: "Actions",
       key: "actions",
@@ -550,7 +548,9 @@ const ClassManagement = () => {
             pageSize: pagination.pageSize,
             position: ["bottomCenter"],
             className: "custom-pagination",
-            showSizeChanger: false,
+            // showSizeChanger: true,
+            // pageSizeOptions: ["10", "20", "50", "100"],
+            position: ["bottomLeft"],
           }}
           onChange={handleTableChange}
           scroll={{ x: "max-content" }}

@@ -1,5 +1,5 @@
 // ParentResult.jsx
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Card, Table, Button, Space } from "antd";
 import {
   FilePdfOutlined,
@@ -9,59 +9,59 @@ import {
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { useNavigate } from "react-router";
-import logo from "../../assets/logo.jpeg"; // adjust path if needed
+import logo from "../../assets/logo.jpeg";
+import axios from "axios";
+import { useApp } from "../../context/AppContext";
+import SmartScholaLoader from "../../components/loader/SmartScholaLoader";
 
 // Grading helper (keeps original grading boundaries you provided)
-function computeGradeAndRemark(total) {
-  if (total >= 80) return { grade: "A1", remark: "EXCELLENT" };
-  if (total >= 70) return { grade: "B2", remark: "BRILLIANT" };
-  if (total >= 65) return { grade: "B3", remark: "MERIT" };
-  if (total >= 60) return { grade: "C4", remark: "VERY GOOD" };
-  if (total >= 50) return { grade: "C5", remark: "CREDIT" };
-  if (total >= 45) return { grade: "C6", remark: "PASS" };
-  if (total >= 40) return { grade: "D7", remark: "FAIR" };
-  if (total >= 30) return { grade: "E8", remark: "FAIL" };
-  return { grade: "F9", remark: "FAIL" };
-}
+// function computeGradeAndRemark(total) {
+//   if (total >= 80) return { grade: "A1", remark: "EXCELLENT" };
+//   if (total >= 70) return { grade: "B2", remark: "BRILLIANT" };
+//   if (total >= 65) return { grade: "B3", remark: "MERIT" };
+//   if (total >= 60) return { grade: "C4", remark: "VERY GOOD" };
+//   if (total >= 50) return { grade: "C5", remark: "CREDIT" };
+//   if (total >= 45) return { grade: "C6", remark: "PASS" };
+//   if (total >= 40) return { grade: "D7", remark: "FAIR" };
+//   if (total >= 30) return { grade: "E8", remark: "FAIL" };
+//   return { grade: "F9", remark: "FAIL" };
+// }
 
 /* Example subjects and scores (you can pass real data via props) */
-const pdfSubjects = [
-  "MATHEMATICS",
-  "ENGLISH LANGUAGE",
-  "DIGITAL TECHNOLOGIES",
-  "INTERMEDIATE SCIENCE",
-  "SOCIAL AND CITIZENSHIP STUDIES (SCS)",
-  "CREATIVE AND CULTURAL ARTS (CCA)",
-  "HISTORY",
-  "PHYSICAL AND HEALTH EDUCATION (PHE)",
-  "HAUSA",
-  "RELIGIOUS STUDIES (IRS/CRS)",
-  "TRADE",
-  "BUSINESS STUDIES",
-  "FRENCH",
-];
+// const pdfSubjects = [
+//   "MATHEMATICS",
+//   "ENGLISH LANGUAGE",
+//   "DIGITAL TECHNOLOGIES",
+//   "INTERMEDIATE SCIENCE",
+//   "SOCIAL AND CITIZENSHIP STUDIES (SCS)",
+//   "CREATIVE AND CULTURAL ARTS (CCA)",
+//   "HISTORY",
+//   "PHYSICAL AND HEALTH EDUCATION (PHE)",
+//   "HAUSA",
+//   "RELIGIOUS STUDIES (IRS/CRS)",
+//   "TRADE",
+//   "BUSINESS STUDIES",
+//   "FRENCH",
+// ];
 
-const exampleScores = pdfSubjects.map((s, i) => {
-  const ass1 = [9, 8, 9, 7, 8, 9, 8, 9, 7, 10, 8, 9, 9][i % 13];
-  const ass2 = [9, 9, 8, 8, 7, 9, 9, 8, 9, 9, 8, 9, 9][i % 13];
-  const test1 = [18, 17, 19, 16, 17, 18, 17, 19, 18, 20, 17, 18, 18][i % 13];
-  const test2 = [19, 18, 20, 17, 18, 19, 18, 20, 19, 20, 18, 19, 19][i % 13];
-  const exam = [38, 36, 39, 35, 36, 37, 36, 38, 37, 40, 35, 38, 38][i % 13];
-  const total = ass1 + ass2 + test1 + test2 + exam;
-  const { grade, remark } = computeGradeAndRemark(total);
-  return {
-    key: `${i + 1}`,
-    subject: s,
-    ass1,
-    ass2,
-    test1,
-    test2,
-    exam,
-    total,
-    grade,
-    remarks: remark,
-  };
-});
+// const exampleScores = pdfSubjects.map((s, i) => {
+//   const ass1 = [9, 8, 9, 7, 8, 9, 8, 9, 7, 10, 8, 9, 9][i % 13];
+//   const ass2 = [9, 9, 8, 8, 7, 9, 9, 8, 9, 9, 8, 9, 9][i % 13];
+//   const test1 = [18, 17, 19, 16, 17, 18, 17, 19, 18, 20, 17, 18, 18][i % 13];
+//   const test2 = [19, 18, 20, 17, 18, 19, 18, 20, 19, 20, 18, 19, 19][i % 13];
+//   const exam = [38, 36, 39, 35, 36, 37, 36, 38, 37, 40, 35, 38, 38][i % 13];
+//   const total = ass1 + ass2 + test1 + test2 + exam;
+//   // const { grade, remark } = computeGradeAndRemark(total);
+//   return {
+//     key: `${i + 1}`,
+//     subject: s,
+//     ass1,
+//     ass2,
+//     test1,
+//     test2,
+//     exam,
+//   };
+// });
 
 const affectiveDomainData = [
   { key: "1", domain: "ATTENTIVENESS", rating: "A+", score: 5 },
@@ -101,9 +101,40 @@ const ratingKeyData = [
   { key: "6", rating: "0=E", remark: "POOR" },
 ];
 
-const ParentResult = ({ scores = exampleScores }) => {
+const ParentResult = () => {
   const navigate = useNavigate();
   const printRef = useRef(null);
+  const [result, setResult] = useState([]);
+
+  const { API_BASE_URL, token, loading, setLoading } = useApp();
+
+  //Get Student Result
+  const getStudentsResult = async () => {
+    try {
+      setLoading(true);
+
+      const res = await axios.get(
+        `${API_BASE_URL}/api/results?studentId=69269a7a67720935eb65f6be&session=2025/2026&term=1`,
+        {
+          headers: {
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MjYwOTFlNmMwYjVjZTEwZjE1MWZmZiIsInJvbGUiOiJ0ZWFjaGVyIiwiaWF0IjoxNzY0MTAyOTQ5LCJleHAiOjE3NjQ3MDc3NDl9.-J60IlBo0qwYiYyuM6OK9qrkBCGPqPZkiS31Q_n8ggE`,
+          },
+        }
+      );
+
+      setResult(res.data?.data || []);
+
+      console.log("RESULT:", res.data);
+    } catch (error) {
+      console.log("Error get result", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getStudentsResult();
+  }, []);
 
   const columns = [
     {
@@ -112,33 +143,33 @@ const ParentResult = ({ scores = exampleScores }) => {
       key: "subject",
       align: "left",
       width: 200,
-      render: (t) => <span className="font-medium">{t}</span>,
+      render: (subject) => <span className="font-medium">{subject.name}</span>,
     },
     {
       title: "1st Ass. 10%",
-      dataIndex: "ass1",
-      key: "ass1",
+      dataIndex: "firstCA",
+      key: "firstCA",
       align: "center",
       width: 70,
     },
     {
       title: "2nd Ass. 10%",
-      dataIndex: "ass2",
-      key: "ass2",
+      dataIndex: "secondCA",
+      key: "secondCA",
       align: "center",
       width: 70,
     },
     {
       title: "1st Test 20%",
-      dataIndex: "test1",
-      key: "test1",
+      dataIndex: "firstAssignment",
+      key: "firstAssignment",
       align: "center",
       width: 70,
     },
     {
       title: "2nd Test 20%",
-      dataIndex: "test2",
-      key: "test2",
+      dataIndex: "secondAssignment",
+      key: "secondAssignment",
       align: "center",
       width: 70,
     },
@@ -166,8 +197,8 @@ const ParentResult = ({ scores = exampleScores }) => {
     },
     {
       title: "REMARKS",
-      dataIndex: "remarks",
-      key: "remarks",
+      dataIndex: "remark",
+      key: "remark",
       align: "center",
       width: 80,
     },
@@ -190,31 +221,26 @@ const ParentResult = ({ scores = exampleScores }) => {
     },
   ];
 
-  const totalScore = scores.reduce((acc, r) => acc + (Number(r.total) || 0), 0);
-  const totalScoreObtainable = scores.length * 100;
-  const finalAverage = scores.length
-    ? (totalScore / scores.length).toFixed(2)
-    : "0.00";
-  const totalGrade = scores.filter((r) => r.grade).length;
+  // const totalScore = scores.reduce((acc, r) => acc + (Number(r.total) || 0), 0);
+  // const totalScoreObtainable = scores.length * 100;
+  // const finalAverage = scores.length
+  //   ? (totalScore / scores.length).toFixed(2)
+  //   : "0.00";
+  // const totalGrade = scores.filter((r) => r.grade).length;
 
   const studentInfo = {
-    name: "JOHN DOE",
-    admissionNo: "ST/001/JSS2",
-    className: "JSS 2A",
-    gender: "Male",
     termStarted: "15TH SEPT., 2025",
     termEnded: "13TH DEC., 2024",
     nextTermBegins: "13TH JAN., 2025",
     schoolOpened: "60",
     present: "58",
     absent: "2",
-    noOfSubjects: pdfSubjects.length,
+    // noOfSubjects: pdfSubjects.length,
     totalNoInClass: "35",
     noOfArm: "A",
     classAverage: "55.50",
     formTeacher: "Mrs. Ngozi Okoro",
   };
-
 
   const handlePDF = async () => {
     if (!printRef.current) return;
@@ -262,271 +288,324 @@ const ParentResult = ({ scores = exampleScores }) => {
     "[&_.ant-table-cell]:text-[15px] [&_.ant-table-cell]:p-1 [&_.ant-table-thead>tr>th]:font-bold [&_.ant-table-thead>tr>th]:text-[13px] [&_.ant-table]:border-black [&_.ant-table-tbody>tr>td]:border-black [&_.ant-table-thead>tr>th]:border-black [&_.ant-table-cell]:text-[13px]";
 
   return (
-    <div className="p-6">
-      <Card
-        title={
-          <div className="flex items-center justify-between w-full">
-            <h2 className="text-2xl font-bold uppercase">
-              Student Result Sheet
-            </h2>
-            <div className="flex gap-2">
-              <Space>
-                <Button
-                  danger
-                  icon={<CloseOutlined />}
-                  onClick={() => navigate("/home")}
-                >
-                  Close
-                </Button>
-                {/* <Button icon={<PrinterOutlined />} onClick={handlePrint}>
+    <div className="p-6 relative">
+      {loading ? (
+        <SmartScholaLoader />
+      ) : (
+        <Card
+          title={
+            <div className="flex items-center justify-between w-full">
+              <h2 className="text-2xl font-bold uppercase">
+                Student Result Sheet
+              </h2>
+              <div className="flex gap-2">
+                <Space>
+                  <Button
+                    danger
+                    icon={<CloseOutlined />}
+                    onClick={() => navigate("/home")}
+                  >
+                    Close
+                  </Button>
+                  {/* <Button icon={<PrinterOutlined />} onClick={handlePrint}>
                   Print
                 </Button> */}
-                <Button
-                  type="primary"
-                  icon={<FilePdfOutlined />}
-                  onClick={handlePDF}
-                >
-                  Save PDF
-                </Button>
-              </Space>
+                  <Button
+                    type="primary"
+                    icon={<FilePdfOutlined />}
+                    onClick={handlePDF}
+                  >
+                    Save PDF
+                  </Button>
+                </Space>
+              </div>
             </div>
-          </div>
-        }
-        className="rounded-2xl shadow-md"
-      >
-        <div
-          ref={printRef}
-          className="bg-white p-4 mx-auto"
-          // style={{ width: "210mm", minHeight: "297mm" }}
+          }
+          className="rounded-2xl shadow-md"
         >
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-[150px] h-[150px] flex-shrink-0">
+          <div
+            ref={printRef}
+            className="bg-white p-4 mx-auto relative overflow-hidden"
+            // style={{ width: "210mm", minHeight: "297mm" }}
+          >
+            {/* Watermark Behind Content */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: 0.1,
+                zIndex: 20,
+                pointerEvents: "none",
+                userSelect: "none",
+              }}
+            >
               <img
                 src={logo}
-                alt="School logo"
-                className="w-full h-full object-contain header-logo"
-                crossOrigin="anonymous"
+                alt="Watermark"
+                style={{
+                  width: "60%",
+                  maxWidth: 500,
+                  filter: "grayscale(100%)",
+                }}
               />
             </div>
 
-            <div className="flex-1 text-center">
-              <h1 className="text-3xl font-extrabold uppercase leading-tight">
-                PARIS AFRICANA INTERNATIONAL SCHOOL
-              </h1>
-              <p className="font-bold mt-1 text-[14px] leading-tight">
-                NO: 5 PARIS AFRICANA ROAD OFF TANKO-ALMAKURA ROAD VIA SANI
-                ABACHA ROAD, MARARABA
-              </p>
-              <p className="text-xl font-extrabold text-[#990099] uppercase leading-tight">
-                MOTTO: KNOWLEDGE AND DISCIPLINE
-              </p>
-              <p className="font-extrabold mt-1 text-xl leading-tight">
-                JUNIOR SECONDARY SCHOOL
-              </p>
-              <p className="font-bold mt-1 text-xl leading-tight">
-                END OF FIRST TERM RESULT FOR 2025/2026 ACADEMIC SESSION
-              </p>
-            </div>
-          </div>
-
-          {/* Student Info and Attendance */}
-          <div className="grid grid-cols-12 gap-y-1 mb-3 text-xs font-semibold border border-black p-1">
-            <div className="col-span-8 grid grid-cols-2 gap-y-1">
-              <div className="text-xl">
-                NAME: <span className="font-bold">{studentInfo.name}</span>
-              </div>
-              <div className="text-xl">
-                ADMISSION NO:{" "}
-                <span className="font-bold">{studentInfo.admissionNo}</span>
-              </div>
-              <div className="text-xl">
-                GENDER: <span className="font-bold">{studentInfo.gender}</span>
-              </div>
-              <div className="text-xl">
-                CLASS:{" "}
-                <span className="font-bold">{studentInfo.className}</span>
-              </div>
-            </div>
-
-            <div className="col-span-4 grid grid-cols-1 gap-y-1 text-[10px] border-l border-black pl-2">
-              <div className="font-bold text-xl">ATTENDANCE</div>
-              <div className="text-[12px]">
-                NO. OF TIMES SCHOOL OPENED:{" "}
-                <span className="font-extrabold">
-                  {studentInfo.schoolOpened}
-                </span>
-              </div>
-              <div className="text-[12px]">
-                NO. OF TIMES PRESENT:{" "}
-                <span className="font-extrabold">{studentInfo.present}</span>
-              </div>
-              <div className="text-[12px]">
-                NO. OF TIMES ABSENT:{" "}
-                <span className="font-extrabold">{studentInfo.absent}</span>
-              </div>
-            </div>
-
-            <div className="col-span-12 grid grid-cols-3 gap-x-2 border-t border-black pt-1 text-[12px]">
-              <div>
-                TERM STARTED:{" "}
-                <span className="font-extrabold">
-                  {studentInfo.termStarted}
-                </span>
-              </div>
-              <div>
-                TERM ENDED:{" "}
-                <span className="font-extrabold">{studentInfo.termEnded}</span>
-              </div>
-              <div>
-                NEXT TERM BEGINS:{" "}
-                <span className="font-extrabold">
-                  {studentInfo.nextTermBegins}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Subject Table */}
-          <Table
-            columns={columns}
-            dataSource={scores}
-            pagination={false}
-            bordered
-            size="small"
-            rowKey="key"
-            className={`${customTableStyle} !text-[12px]`}
-          />
-
-          {/* Summary and Grading/Rating */}
-          <div className="grid grid-cols-12 gap-x-4 mt-2 text-xs">
-            <div className="col-span-5 grid grid-cols-2 gap-y-1">
-              <div className="col-span-2 font-bold underline">SUMMARY</div>
-              <div>NO. OF SUBJECTS OFFERED:</div>
-              <div className="font-bold">{studentInfo.noOfSubjects}</div>
-
-              <div>TOTAL SCORE OBTAINED:</div>
-              <div className="font-bold">{totalScore}</div>
-
-              <div>TOTAL SCORE OBTAINABLE:</div>
-              <div className="font-bold">{totalScoreObtainable}</div>
-
-              <div>FINAL AVERAGE:</div>
-              <div className="font-bold">{finalAverage}</div>
-
-              <div>CLASS AVERAGE:</div>
-              <div className="font-bold">{studentInfo.classAverage}</div>
-
-              <div>TOTAL GRADE:</div>
-              <div className="font-bold">{totalGrade}</div>
-
-              <div>NO. OF ARM:</div>
-              <div className="font-bold">{studentInfo.noOfArm}</div>
-
-              <div>TOTAL NO. IN CLASS:</div>
-              <div className="font-bold">{studentInfo.totalNoInClass}</div>
-
-              <div className="col-span-2 mt-2">
-                <Table
-                  columns={[
-                    {
-                      title: "GRADE",
-                      dataIndex: "grade",
-                      key: "grade",
-                      align: "center",
-                      width: 60,
-                      render: (g) => <b>{g}</b>,
-                    },
-                    {
-                      title: "RATE",
-                      dataIndex: "rate",
-                      key: "rate",
-                      align: "center",
-                    },
-                  ]}
-                  dataSource={gradeLegendData}
-                  pagination={false}
-                  bordered
-                  size="small"
-                  rowKey="key"
-                />
-              </div>
-            </div>
-
-            <div className="col-span-7 grid grid-cols-2 gap-x-2">
-              <div>
-                <Table
-                  columns={domainColumns}
-                  dataSource={affectiveDomainData}
-                  pagination={false}
-                  bordered
-                  size="small"
-                  rowKey="key"
-                />
-              </div>
-              <div>
-                <Table
-                  columns={domainColumns}
-                  dataSource={psychomotorDomainData}
-                  pagination={false}
-                  bordered
-                  size="small"
-                  rowKey="key"
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-[150px] h-[150px] flex-shrink-0">
+                <img
+                  src={logo}
+                  alt="School logo"
+                  className="w-full h-full object-contain header-logo"
+                  crossOrigin="anonymous"
                 />
               </div>
 
-              <div className="col-span-2 mt-2">
-                <Table
-                  columns={[
-                    {
-                      title: "RATING",
-                      dataIndex: "rating",
-                      key: "rating",
-                      align: "center",
-                      width: 80,
-                      render: (t) => <b>{t}</b>,
-                    },
-                    {
-                      title: "REMARK",
-                      dataIndex: "remark",
-                      key: "remark",
-                      align: "center",
-                    },
-                  ]}
-                  dataSource={ratingKeyData.map((r) => ({
-                    key: r.key,
-                    rating: r.rating,
-                    remark: r.remark,
-                  }))}
-                  pagination={false}
-                  bordered
-                  size="small"
-                  rowKey="key"
-                />
+              <div className="flex-1 text-center">
+                <h1 className="text-3xl font-extrabold uppercase leading-tight">
+                  {result?.school?.name}
+                </h1>
+                <p className="font-bold mt-1 text-[14px] leading-tight uppercase">
+                  {result?.school?.address}
+                </p>
+                <p className="text-xl font-extrabold text-[#990099] uppercase leading-tight">
+                  MOTTO: KNOWLEDGE AND DISCIPLINE
+                </p>
+                <p className="font-extrabold mt-1 text-xl leading-tight">
+                  {result?.studentSnapshot?.className?.startsWith("JSS")
+                    ? "JUNIOR SECONDARY SCHOOL"
+                    : "SENIOR SECONDARY SCHOOL"}
+                </p>
+
+                <p className="font-bold mt-1 text-xl leading-tight">
+                  END OF FIRST TERM RESULT FOR {result?.session} ACADEMIC
+                  SESSION
+                </p>
+              </div>
+            </div>
+
+            {/* Student Info and Attendance */}
+            <div className="grid grid-cols-12 gap-y-1 mb-3 text-xs font-semibold border border-black p-1">
+              <div className="col-span-8 grid grid-cols-2 gap-y-1">
+                <div className="text-xl">
+                  NAME:{" "}
+                  <span className="font-bold">
+                    {result?.studentSnapshot?.fullName}
+                  </span>
+                </div>
+                <div className="text-xl">
+                  ADMISSION NO:{" "}
+                  <span className="font-bold">
+                    {result?.studentSnapshot?.admissionNumber}
+                  </span>
+                </div>
+                <div className="text-xl">
+                  GENDER:{" "}
+                  <span className="font-bold capitalize">
+                    {result?.studentSnapshot?.gender}
+                  </span>
+                </div>
+                <div className="text-xl">
+                  CLASS:{" "}
+                  <span className="font-bold uppercase">
+                    {result?.studentSnapshot?.className}{" "}
+                    {result?.studentSnapshot?.classArm}
+                  </span>
+                </div>
+              </div>
+
+              <div className="col-span-4 grid grid-cols-1 gap-y-1 text-[10px] border-l border-black pl-2">
+                <div className="font-bold text-xl">ATTENDANCE</div>
+                <div className="text-[12px]">
+                  NO. OF TIMES SCHOOL OPENED:{" "}
+                  <span className="font-extrabold">
+                    {studentInfo.schoolOpened}
+                  </span>
+                </div>
+                <div className="text-[12px]">
+                  NO. OF TIMES PRESENT:{" "}
+                  <span className="font-extrabold">{studentInfo.present}</span>
+                </div>
+                <div className="text-[12px]">
+                  NO. OF TIMES ABSENT:{" "}
+                  <span className="font-extrabold">{studentInfo.absent}</span>
+                </div>
+              </div>
+
+              <div className="col-span-12 grid grid-cols-3 gap-x-2 border-t border-black pt-1 text-[12px]">
+                <div>
+                  TERM STARTED:{" "}
+                  <span className="font-extrabold">
+                    {studentInfo.termStarted}
+                  </span>
+                </div>
+                <div>
+                  TERM ENDED:{" "}
+                  <span className="font-extrabold">
+                    {studentInfo.termEnded}
+                  </span>
+                </div>
+                <div>
+                  NEXT TERM BEGINS:{" "}
+                  <span className="font-extrabold">
+                    {studentInfo.nextTermBegins}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Subject Table */}
+            <Table
+              columns={columns}
+              dataSource={result.subjects}
+              pagination={false}
+              bordered
+              size="small"
+              rowKey={(record) => record._id}
+              className={`${customTableStyle} !text-[12px]`}
+            />
+
+            {/* Summary and Grading/Rating */}
+            <div className="grid grid-cols-12 gap-x-4 mt-2 text-xs">
+              <div className="col-span-5 grid grid-cols-2 gap-y-1">
+                <div className="col-span-2 font-bold underline">SUMMARY</div>
+                <div>NO. OF SUBJECTS OFFERED:</div>
+                <div className="font-bold">
+                  {result?.summary?.totalSubjects}
+                </div>
+
+                <div>TOTAL SCORE OBTAINED:</div>
+                <div className="font-bold">
+                  {result?.summary?.totalScoreObtained}
+                </div>
+
+                <div>TOTAL SCORE OBTAINABLE:</div>
+                <div className="font-bold">
+                  {result?.summary?.totalScoreObtainable}
+                </div>
+
+                <div>FINAL AVERAGE:</div>
+                <div className="font-bold">{result?.summary?.finalAverage}</div>
+
+                <div>CLASS AVERAGE:</div>
+                <div className="font-bold">{result?.summary?.classAverage}</div>
+
+                <div>TOTAL GRADE:</div>
+                <div className="font-bold">null</div>
+
+                <div>NO. OF ARM:</div>
+                <div className="font-bold">{studentInfo.noOfArm}</div>
+
+                <div>TOTAL NO. IN CLASS:</div>
+                <div className="font-bold">{studentInfo.totalNoInClass}</div>
+
+                <div className="col-span-2 mt-2">
+                  <Table
+                    columns={[
+                      {
+                        title: "GRADE",
+                        dataIndex: "grade",
+                        key: "grade",
+                        align: "center",
+                        width: 60,
+                        render: (g) => <b>{g}</b>,
+                      },
+                      {
+                        title: "RATE",
+                        dataIndex: "rate",
+                        key: "rate",
+                        align: "center",
+                      },
+                    ]}
+                    dataSource={gradeLegendData}
+                    pagination={false}
+                    bordered
+                    size="small"
+                    rowKey="key"
+                  />
+                </div>
+              </div>
+
+              <div className="col-span-7 grid grid-cols-2 gap-x-2">
+                <div>
+                  <Table
+                    columns={domainColumns}
+                    dataSource={affectiveDomainData}
+                    pagination={false}
+                    bordered
+                    size="small"
+                    rowKey="key"
+                  />
+                </div>
+                <div>
+                  <Table
+                    columns={domainColumns}
+                    dataSource={psychomotorDomainData}
+                    pagination={false}
+                    bordered
+                    size="small"
+                    rowKey="key"
+                  />
+                </div>
+
+                <div className="col-span-2 mt-2">
+                  <Table
+                    columns={[
+                      {
+                        title: "RATING",
+                        dataIndex: "rating",
+                        key: "rating",
+                        align: "center",
+                        width: 80,
+                        render: (t) => <b>{t}</b>,
+                      },
+                      {
+                        title: "REMARK",
+                        dataIndex: "remark",
+                        key: "remark",
+                        align: "center",
+                      },
+                    ]}
+                    dataSource={ratingKeyData.map((r) => ({
+                      key: r.key,
+                      rating: r.rating,
+                      remark: r.remark,
+                    }))}
+                    pagination={false}
+                    bordered
+                    size="small"
+                    rowKey="key"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Signatures */}
+            <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8">
+              <div>
+                <p>FORM TEACHER'S COMMENT: {result?.teacherRemark}.</p>
+                <p className="my-2">
+                  FORM TEACHER'S NAME:{" "}
+                  <span className="underline">{studentInfo.formTeacher}</span>
+                </p>
+                <p>
+                  DATE: <span className="underline">13TH DEC., 2024</span>
+                </p>
+              </div>
+              <div>
+                <p>PRINCIPAL'S COMMENT: ____________________________</p>
+                <p className="my-2">
+                  PRINCIPAL'S SIGNATURE: ____________________________
+                </p>
+                <p>DATE: ____________________________</p>
               </div>
             </div>
           </div>
-
-          {/* Signatures */}
-          <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8">
-            <div>
-              <p>FORM TEACHER'S COMMENT: Keep up the good work.</p>
-              <p className="my-2">
-                FORM TEACHER'S NAME:{" "}
-                <span className="underline">{studentInfo.formTeacher}</span>
-              </p>
-              <p>
-                DATE: <span className="underline">13TH DEC., 2024</span>
-              </p>
-            </div>
-            <div>
-              <p>PRINCIPAL'S COMMENT: ____________________________</p>
-              <p className="my-2">PRINCIPAL'S SIGNATURE: ____________________________</p>
-              <p>DATE: ____________________________</p>
-            </div>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
     </div>
   );
 };

@@ -61,7 +61,7 @@ function getItem(label, key, icon, children) {
     const [user, setUser] = useState([]);
     const { API_BASE_URL, clearSession, token, initialized, logout } = useApp();
 
-
+// console.log(user)
     // Teacher Menu (moved inside component!)
   const items = [
     getItem("Dashboard", "/teacher/dashboard", <DashboardOutlined />),
@@ -101,7 +101,7 @@ function getItem(label, key, icon, children) {
       navigate("/profile");
     }
   };
-
+// console.log(token, API_BASE_URL)
   // Fetch user profile
   const getUser = async () => {
     if (!token) return;

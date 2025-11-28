@@ -36,7 +36,7 @@ const MigrateClassModal = ({
         }
       );
       setClasses(res?.data?.data || []);
-      console.log("All class:", res);
+      // console.log("All class:", res);
     } catch (error) {
       console.error(error);
     }

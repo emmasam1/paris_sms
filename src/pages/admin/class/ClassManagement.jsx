@@ -85,7 +85,7 @@ const ClassManagement = () => {
   const getStudents = async () => {
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/student-management/student`,
+        `${API_BASE_URL}/api/student-management/student?limit=100`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -146,7 +146,7 @@ const ClassManagement = () => {
         pageSize,
       });
 
-      console.log(res);
+      // console.log(res);
       messageApi.success(res?.data?.message || "Classes fetched successfully");
     } catch (error) {
       console.error(error);
@@ -198,11 +198,12 @@ const ClassManagement = () => {
       };
 
       const res = await axios.post(
-        `${API_BASE_URL}/api/class-management/students/assign-class?limit=100000`,
+        `${API_BASE_URL}/api/class-management/students/assign-class?limit=30`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log(res, "student addes");
+      getClass();
+      await getStudents();
       message.success(res?.data?.message || "Students added successfully!");
       setIsAddStudentModalOpen(false);
     } catch (error) {
@@ -214,7 +215,7 @@ const ClassManagement = () => {
   };
 
   // 🔹 Handle AntD table pagination change
- const handleTableChange = (paginationConfig) => {
+  const handleTableChange = (paginationConfig) => {
     getClass(paginationConfig.current);
   };
 
@@ -391,7 +392,7 @@ const ClassManagement = () => {
   const openClassModal = (record) => {
     setCurrentClass(record);
     setIsAddStudentModalOpen(true);
-    console.log(record);
+    // console.log(record);
   };
 
   // Table columns
@@ -550,7 +551,7 @@ const ClassManagement = () => {
             className: "custom-pagination",
             // showSizeChanger: true,
             // pageSizeOptions: ["10", "20", "50", "100"],
-            position: ["bottomLeft"],
+            // position: ["bottomLeft"],
           }}
           onChange={handleTableChange}
           scroll={{ x: "max-content" }}
@@ -598,8 +599,12 @@ const ClassManagement = () => {
             rules={[{ required: true, message: "Please select level" }]}
           >
             <Select placeholder="Select Levels">
-              <Option value="SSS">SSS</Option>
-              <Option value="JSS">JSS</Option>
+              <Option value="SS1">SSS1</Option>
+              <Option value="SS2">SSS2</Option>
+              <Option value="SS3">SSS3</Option>
+              <Option value="JSS1">JSS1</Option>
+              <Option value="JSS2">JSS2</Option>
+              <Option value="JSS3">JSS3</Option>
               <Option value="PRIMARY">PRIMARY</Option>
               <Option value="NURSERY">NURSERY</Option>
             </Select>
@@ -689,11 +694,13 @@ const ClassManagement = () => {
                 option.children.toLowerCase().includes(input.toLowerCase())
               }
             >
-              {students.map((s) => (
-                <Select.Option key={s._id} value={s._id}>
-                  {s.studentName} - {s.name} {s.arm}
-                </Select.Option>
-              ))}
+              {students
+                .filter((s) => !s.class || s.class === null) // ✅ Only students with no class
+                .map((s) => (
+                  <Select.Option key={s._id} value={s._id}>
+                    {s.studentName} - {s.name} {s.arm}
+                  </Select.Option>
+                ))}
             </Select>
           </Form.Item>
 

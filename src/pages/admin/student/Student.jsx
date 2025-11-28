@@ -65,7 +65,7 @@ const Student = () => {
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 20, // use your backend’s default page size
+    pageSize: 25, // use your backend’s default page size
     total: 0,
   });
 
@@ -145,7 +145,7 @@ const Student = () => {
       if (classId) params.append("classId", classId);
 
       const res = await axios.get(
-        `${API_BASE_URL}/api/student-management/student?${params.toString()}`,
+        `${API_BASE_URL}/api/student-management/student??limit=40&${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -161,7 +161,7 @@ const Student = () => {
       setPagination({
         current: res?.data?.pagination?.page || page,
         total: res?.data?.pagination?.total || studentsWithFullName.length,
-        pageSize: 20,
+        pageSize: 40,
       });
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -236,7 +236,7 @@ const Student = () => {
         }
       );
 
-      console.log(res)
+      // console.log(res)
       setOpenAssignSubjectsModal(false);
       getStudents();
       messageApi.success(
@@ -355,6 +355,8 @@ const Student = () => {
       `${API_BASE_URL}/api/student-management/students/${id}/subjects`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
+
+    // console.log(res)
 
     const subjectsArr = res?.data?.data || [];
     setStdSunject(subjectsArr);

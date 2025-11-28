@@ -13,6 +13,10 @@ import {
   message,
   Tabs,
   Skeleton,
+  Modal,
+  Form,
+  InputNumber,
+  Typography,
 } from "antd";
 import dayjs from "dayjs";
 import axios from "axios";
@@ -20,10 +24,10 @@ import { useApp } from "../../../context/AppContext";
 
 const { Option } = Select;
 const { Panel } = Collapse;
+const { Title, Text } = Typography;
 
 const Attendance = ({ className }) => {
   const today = dayjs().format("YYYY-MM-DD");
-
   const { token, API_BASE_URL } = useApp();
 
   const [selectedDate, setSelectedDate] = useState(today);
@@ -31,18 +35,21 @@ const Attendance = ({ className }) => {
   const [viewRecords, setViewRecords] = useState({});
   const [summary, setSummary] = useState(null);
   const [students, setStudents] = useState([]);
-
-  const [studentsList, setStudentsList] = useState([]); // FIXED NAME
+  const [studentsList, setStudentsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Modal states
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [selectedStudentStats, setSelectedStudentStats] = useState(null);
+
   const [messageApi, contextHolder] = message.useMessage();
+  const [form] = Form.useForm();
 
   // === FETCH STUDENTS ===
   const getMyClassStudents = async () => {
     if (!token) return;
     try {
       setLoading(true);
-
       const res = await axios.get(`${API_BASE_URL}/api/teacher/form-class`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -50,9 +57,8 @@ const Attendance = ({ className }) => {
       const classData = res?.data?.data;
       const studentsArray = classData?.students || [];
 
-      setStudents(studentsArray); // used by your table
-      setStudentsList(studentsArray); // important for submit
-      // console.log("Class details:", classData);
+      setStudents(studentsArray);
+      setStudentsList(studentsArray);
 
       messageApi.success("Students loaded");
     } catch (error) {
@@ -76,15 +82,12 @@ const Attendance = ({ className }) => {
   const handleSubmit = () => {
     if (studentsList.length === 0)
       return message.warning("No students in class.");
-
     if (Object.keys(attendance).length === 0)
       return message.warning("Mark at least one student.");
-
-    if (viewRecords[selectedDate]) {
+    if (viewRecords[selectedDate])
       return message.error(
         `Attendance for ${selectedDate} is already recorded.`
       );
-    }
 
     const formatted = studentsList.map((stu) => ({
       id: stu._id,
@@ -104,12 +107,28 @@ const Attendance = ({ className }) => {
     message.success(`Attendance submitted for ${selectedDate}`);
   };
 
+  // === OPEN MODAL WITH MANUAL ATTENDANCE ===
+  const openAttendanceModal = (record) => {
+    setSelectedStudentStats({
+      name: record.fullName,
+      regNo: record.admissionNumber,
+    });
+    form.resetFields();
+    setAttendanceModalOpen(true);
+  };
+
+  const handleManualSubmit = (values) => {
+    message.success(
+      `Manual attendance submitted for ${selectedStudentStats.name}!`
+    );
+    setAttendanceModalOpen(false);
+  };
+
   // === TABLE COLUMNS ===
   const markColumns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     { title: "Reg No", dataIndex: "regNo", key: "regNo" },
     { title: "Student Name", dataIndex: "name", key: "name" },
-
     {
       title: "Status",
       key: "status",
@@ -131,6 +150,15 @@ const Attendance = ({ className }) => {
             <Tag color="blue">Excused</Tag>
           </Radio>
         </Radio.Group>
+      ),
+    },
+    {
+      title: "Take Manual Attendance",
+      key: "manual",
+      render: (_, record) => (
+        <Button type="link" onClick={() => openAttendanceModal(record)}>
+          Take Manual Attendance
+        </Button>
       ),
     },
   ];
@@ -180,7 +208,6 @@ const Attendance = ({ className }) => {
             <>
               <Skeleton active />
               <Skeleton active />
-              <Skeleton active />
             </>
           ) : studentsList.length === 0 ? (
             <p className="text-gray-400 text-center">
@@ -200,7 +227,6 @@ const Attendance = ({ className }) => {
                 pagination={{
                   position: ["bottomCenter"],
                   className: "custom-pagination",
-                  showSizeChanger: false,
                 }}
                 size="small"
                 scroll={{ x: "max-content" }}
@@ -217,12 +243,6 @@ const Attendance = ({ className }) => {
                   </Row>
                 </Card>
               )}
-
-              <div className="text-right mt-4">
-                <Button type="primary" onClick={handleSubmit}>
-                  Submit Attendance
-                </Button>
-              </div>
             </>
           )}
         </Tabs.TabPane>
@@ -247,11 +267,9 @@ const Attendance = ({ className }) => {
                     bordered
                     pagination={{
                       position: ["bottomCenter"],
-                      className: "custom-pagination",
                       showSizeChanger: false,
                     }}
                     size="small"
-                    scroll={{ x: "max-content" }}
                   />
                 </Panel>
               ))}
@@ -259,6 +277,59 @@ const Attendance = ({ className }) => {
           )}
         </Tabs.TabPane>
       </Tabs>
+
+   
+      {/* MANUAL ATTENDANCE MODAL */}
+      <Modal
+        open={attendanceModalOpen}
+        onCancel={() => setAttendanceModalOpen(false)}
+        footer={null}
+        title="Take Manual Attendance"
+      >
+        {selectedStudentStats && (
+          <div>
+            <Title level={5}>{selectedStudentStats.name}</Title>
+            <Text type="secondary">Reg No: {selectedStudentStats.regNo}</Text>
+
+            <Form
+              form={form}
+              layout="vertical"
+              className="mt-4"
+              onFinish={handleManualSubmit}
+            >
+              <Form.Item
+                label="No. of Times School Opened"
+                name="opened"
+                rules={[{ required: true, message: "Please input this value" }]}
+              >
+                <InputNumber min={0} style={{ width: "100%" }} />
+              </Form.Item>
+
+              <Form.Item
+                label="No. of Times Present"
+                name="present"
+                rules={[{ required: true, message: "Please input this value" }]}
+              >
+                <InputNumber min={0} style={{ width: "100%" }} />
+              </Form.Item>
+
+              <Form.Item
+                label="No. of Times Absent"
+                name="absent"
+                rules={[{ required: true, message: "Please input this value" }]}
+              >
+                <InputNumber min={0} style={{ width: "100%" }} />
+              </Form.Item>
+
+              <Form.Item>
+                <Button type="primary" htmlType="submit" block>
+                  Submit
+                </Button>
+              </Form.Item>
+            </Form>
+          </div>
+        )}
+      </Modal>
     </Card>
   );
 };

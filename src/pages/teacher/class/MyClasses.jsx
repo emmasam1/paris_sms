@@ -61,6 +61,8 @@ const MyClasses = () => {
   const [limit, setLimit] = useState(20);
   const [total, setTotal] = useState(0);
 
+  // console.log(token, API_BASE_URL);
+
   // ---------------------------
   // Fetch teacher-levels/classes (structure)
   // ---------------------------
@@ -74,6 +76,8 @@ const MyClasses = () => {
       const res = await axios.get(`${API_BASE_URL}/api/teacher/students`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+     messageApi.success(res.data.message)
 
       const allLevels = res?.data?.data || [];
       setTeacherData(allLevels);
@@ -93,7 +97,7 @@ const MyClasses = () => {
       }
 
       // 2️⃣ Get classId + subjectId for STATUS fetch
-      const classId = allLevels?.[0]?.class?._id;
+      const classId = allLevels?.[0]?.classes?.[0]?.class?._id;
       const subjectId = responseSubject?._id;
 
       if (classId && subjectId) {
@@ -132,7 +136,7 @@ const MyClasses = () => {
       }
     } catch (err) {
       console.error("getTeacherClassDetails error:", err);
-      messageApi.error("Unable to fetch teacher class details.");
+      // messageApi.error("Unable to fetch teacher class details.");
     } finally {
       setLoading(false);
     }
@@ -167,10 +171,11 @@ const MyClasses = () => {
   // ---------------------------
   const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
     if (!token || !selectedLevel || !selectedArm) return;
+
     try {
       setLoading(true);
 
-      // We call the API with level & arm + pagination params (if the API supports them)
+      // 1️⃣ Fetch students
       const url = new URL(`${API_BASE_URL}/api/teacher/students`);
       url.searchParams.append("level", selectedLevel);
       url.searchParams.append("arm", selectedArm);
@@ -181,76 +186,71 @@ const MyClasses = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log(res);
-
-      // Some endpoints return an array where the first element contains classes/students
-      // Handle several possible shapes robustly:
       const data = res?.data;
-      // Priority: if API returns `data` array with classes -> use that
-      if (data?.data && Array.isArray(data.data) && data.data.length > 0) {
-        // Many responses include the level object as data[0] and classes inside it:
+      let classStudents = [];
+
+      if (data?.data?.length) {
         const levelObj = data.data[0];
 
-        // if levelObj has 'classes' and one of the classes matches arm, extract that class students
-        if (levelObj?.classes && Array.isArray(levelObj.classes)) {
-          // find class by arm
-          const matchedClass = levelObj.classes.find(
-            (c) => (c.class?.arm || c.class?.name) === selectedArm
-          );
+        const matchedClass = levelObj.classes?.find(
+          (c) => (c.class?.arm || c.class?.name) === selectedArm
+        );
 
-          const classStudents = matchedClass?.students || [];
-          setStudents(classStudents);
-
-          // if API returns pagination info, set it
-          const pagination = data?.pagination || res?.data?.pagination;
-          if (pagination) {
-            setPage(pagination.page || pageParam);
-            setLimit(pagination.limit || limitParam);
-            setTotal(pagination.total || classStudents.length);
-          } else {
-            // fallback to totalStudents if provided
-            const totalStudents =
-              matchedClass?.totalStudents ??
-              levelObj?.totalStudents ??
-              classStudents.length;
-            setTotal(totalStudents);
-            setPage(pageParam);
-            setLimit(limitParam);
-          }
-
-          return;
-        }
-
-        // fallback: if data.data[0].students exists
-        if (levelObj?.students) {
-          setStudents(levelObj.students);
-          setTotal(levelObj.students.length);
-          return;
-        }
+        classStudents = matchedClass?.students || [];
+      } else if (data?.students) {
+        classStudents = data.students;
       }
 
-      // Another shape: direct students in root (res.data.students)
-      if (data?.students) {
-        setStudents(data.students);
-        const pagination = data?.pagination;
-        if (pagination) {
-          setPage(pagination.page || pageParam);
-          setLimit(pagination.limit || limitParam);
-          setTotal(pagination.total || data.students.length);
-        } else {
-          setTotal(data.students.length);
-        }
+      // 2️⃣ Extract classId and subjectId for status fetch
+      const classId = data?.data?.[0]?.classes?.find(
+        (c) => (c.class?.arm || c.class?.name) === selectedArm
+      )?.class?._id;
+
+      const subjectId =
+        data?.data?.[0]?.subject || teacherData?.[0]?.subject || null;
+
+      const realSubjectId = subjectId?._id ?? subjectId;
+
+      if (!classId || !realSubjectId) {
+        console.warn("Missing classId or subjectId. Cannot fetch status.");
+        setStudents(classStudents);
         return;
       }
 
-      // If nothing matched, empty results
-      setStudents([]);
-      setTotal(0);
+      // 3️⃣ Fetch result statuses
+      const scoreRes = await axios.get(
+        `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${realSubjectId}&session=2025/2026&term=1`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const statusList = scoreRes.data.students || [];
+
+      // 4️⃣ Merge status into fetched students
+      const mergedStudents = classStudents.map((stu) => {
+        const found = statusList.find((s) => s.studentId === stu._id);
+        return {
+          ...stu,
+          hasRecord: found?.status === "recorded",
+        };
+      });
+
+      // 5️⃣ Save final merged list
+      setStudents(mergedStudents);
+
+      // pagination
+      const pagination = data?.pagination;
+      if (pagination) {
+        setPage(pagination.page);
+        setLimit(pagination.limit);
+        setTotal(pagination.total);
+      } else {
+        setTotal(mergedStudents.length);
+      }
     } catch (err) {
-      console.error("fetchStudentsForClass error:", err);
-      messageApi.error("Unable to fetch students for selected class.");
-      setStudents([]);
-      setTotal(0);
+      console.error("fetchStudentsForClass ERROR:", err);
+      // messageApi.error("Unable to fetch students.");
     } finally {
       setLoading(false);
     }

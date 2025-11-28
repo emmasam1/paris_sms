@@ -385,6 +385,9 @@ const ParentResult = () => {
                   SESSION
                 </p>
               </div>
+
+              {/* image */}
+              <div className="bg-red-300 w-[150px] h-[150px] flex-shrink-0"></div>
             </div>
 
             {/* Student Info and Attendance */}

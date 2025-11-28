@@ -196,7 +196,7 @@ const Student = () => {
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    console.log("all subjects", res);
+    // console.log("all subjects", res);
 
     setSubjects(res?.data?.data || []);
   } catch (error) {
@@ -429,7 +429,7 @@ const Student = () => {
     // ==========================================================
     // 💡 START LOGGING THE DATA BEING SENT
     // ==========================================================
-    console.log("--- Data being sent (FormData contents) ---");
+    // console.log("--- Data being sent (FormData contents) ---");
     
     // Create an object to hold the key-value pairs for easy logging
     const dataToLog = {};

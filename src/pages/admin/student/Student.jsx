@@ -65,7 +65,7 @@ const Student = () => {
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 25, // use your backend’s default page size
+    pageSize: 20, // use your backend’s default page size
     total: 0,
   });
 
@@ -138,18 +138,17 @@ const Student = () => {
   const getStudents = async (page = 1, search = "", classId = "") => {
     setLoading(true);
     try {
-      // Build query parameters correctly
       const params = new URLSearchParams();
       params.append("page", page);
+      params.append("limit", pagination.pageSize); // <-- FIXED
+
       if (search) params.append("search", search);
       if (classId) params.append("classId", classId);
 
       const res = await axios.get(
-        `${API_BASE_URL}/api/student-management/student??limit=40&${params.toString()}`,
+        `${API_BASE_URL}/api/student-management/student?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      // console.log(res)
 
       const studentsWithFullName = (res?.data?.data || []).map((s) => ({
         ...s,
@@ -158,10 +157,11 @@ const Student = () => {
       }));
 
       setStudents(studentsWithFullName);
+
       setPagination({
         current: res?.data?.pagination?.page || page,
-        total: res?.data?.pagination?.total || studentsWithFullName.length,
-        pageSize: 40,
+        total: res?.data?.pagination?.total || 0,
+        pageSize: res?.data?.pagination?.limit || pagination.pageSize,
       });
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -190,34 +190,31 @@ const Student = () => {
   };
 
   const getAllSubjects = async () => {
-  try {
-    const res = await axios.get(
-      `${API_BASE_URL}/api/subject-management/subjects?limit=100000`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/subject-management/subjects?limit=100000`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    // console.log("all subjects", res);
+      console.log("all subjects", res);
 
-    setSubjects(res?.data?.data || []);
-  } catch (error) {
-    console.error(error);
-    message.error("Failed to fetch subjects");
-  }
-};
-
-
+      setSubjects(res?.data?.data || []);
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to fetch subjects");
+    }
+  };
 
   const openAssignSubjectsModal = (student) => {
-  setSelectedStudent(student);
+    setSelectedStudent(student);
 
-  // FIX: extract only the IDs
-  setSelectedSubjects(student?.subjects?.map(s => s._id) || []);
+    // FIX: extract only the IDs
+    setSelectedSubjects(student?.subjects?.map((s) => s._id) || []);
 
-  setOpenAssignSubjectsModal(true);
-  getAllSubjects();
-  getStdentSubjects(student);
-};
-
+    setOpenAssignSubjectsModal(true);
+    getAllSubjects();
+    getStdentSubjects(student);
+  };
 
   const assignSubject = async () => {
     const id = selectedStudent?._id;
@@ -236,7 +233,7 @@ const Student = () => {
         }
       );
 
-      // console.log(res)
+      // console.log(res);
       setOpenAssignSubjectsModal(false);
       getStudents();
       messageApi.success(
@@ -343,32 +340,28 @@ const Student = () => {
   const openDetails = (record) => {
     setDetailsStudent(record);
     setIsDetailsOpen(true);
-    console.log(record)
+    // console.log(record)
   };
 
   //Get student subjects
   const getStdentSubjects = async (student) => {
-  const id = student?._id;
+    const id = student?._id;
 
-  try {
-    const res = await axios.get(
-      `${API_BASE_URL}/api/student-management/students/${id}/subjects`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/student-management/students/${id}/subjects`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    // console.log(res)
+      const subjectsArr = res?.data?.data || [];
+      setStdSunject(subjectsArr);
 
-    const subjectsArr = res?.data?.data || [];
-    setStdSunject(subjectsArr);
-
-    // FIX: set selected subject IDs
-    setSelectedSubjects(subjectsArr.map(sub => sub._id));
-
-  } catch (error) {
-    console.log(error || "Error getting subjects");
-  }
-};
-
+      // FIX: set selected subject IDs
+      setSelectedSubjects(subjectsArr.map((sub) => sub._id));
+    } catch (error) {
+      console.log(error || "Error getting subjects");
+    }
+  };
 
   //Get Class
   const getClass = async () => {
@@ -378,7 +371,7 @@ const Student = () => {
 
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/class-management/classes`,
+        `${API_BASE_URL}/api/class-management/classes?limit=50`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -429,24 +422,26 @@ const Student = () => {
     // ==========================================================
     // 💡 START LOGGING THE DATA BEING SENT
     // ==========================================================
-    // console.log("--- Data being sent (FormData contents) ---");
-    
+    console.log("--- Data being sent (FormData contents) ---");
+
     // Create an object to hold the key-value pairs for easy logging
     const dataToLog = {};
     let fileInfo = "No new file uploaded.";
 
     // Use formData.forEach() or formData.entries() to iterate
     for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
-            // Log file details without logging the entire binary data
-            fileInfo = `File Name: ${value.name}, Size: ${(value.size / 1024).toFixed(2)} KB, Type: ${value.type}`;
-            dataToLog[key] = fileInfo;
-        } else {
-            // Log simple fields
-            dataToLog[key] = value;
-        }
+      if (value instanceof File) {
+        // Log file details without logging the entire binary data
+        fileInfo = `File Name: ${value.name}, Size: ${(
+          value.size / 1024
+        ).toFixed(2)} KB, Type: ${value.type}`;
+        dataToLog[key] = fileInfo;
+      } else {
+        // Log simple fields
+        dataToLog[key] = value;
+      }
     }
-    
+
     console.log(dataToLog);
     console.log("------------------------------------------");
     // ==========================================================
@@ -499,7 +494,7 @@ const Student = () => {
     } finally {
       setLoading(false);
     }
-};
+  };
 
   // 🧩 Render avatar in table
   const renderAvatar = (record) => {
@@ -1005,13 +1000,11 @@ const Student = () => {
             className="w-40"
             loading={isLoadingClasses}
             value={selectedClass}
+            dropdownMatchSelectWidth={false} // <- key change
             onChange={(value) => {
               setSelectedClass(value);
-              if (value) {
-                getStudents(1, "", value); // fetch students for the selected class
-              } else {
-                getStudents(); // reset to all students
-              }
+              if (value) getStudents(1, "", value);
+              else getStudents();
             }}
           >
             {classes.map((c) => (

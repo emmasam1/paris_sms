@@ -52,7 +52,7 @@ const ClassManagement = () => {
 
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 7,
+    pageSize: 15,
     total: 0,
   });
 
@@ -118,7 +118,7 @@ const ClassManagement = () => {
 
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/class-management/classes`,
+        `${API_BASE_URL}/api/class-management/classes?limit=100`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -133,12 +133,13 @@ const ClassManagement = () => {
       }));
 
       // 🔹 simulate pagination
-      const pageSize = 7;
+      const pageSize = 20;
       const start = (page - 1) * pageSize;
       const end = start + pageSize;
       const paginated = mapped.slice(start, end);
 
       setClasses(paginated);
+      await getStudents();
 
       setPagination({
         current: page,
@@ -334,7 +335,7 @@ const ClassManagement = () => {
           level: values.level,
         };
 
-        console.log(payload);
+        // console.log(payload);
 
         res = await axios.post(
           `${API_BASE_URL}/api/class-management/classes`,
@@ -345,7 +346,7 @@ const ClassManagement = () => {
         message.success(res?.data?.message || "Class created successfully!");
       }
 
-      console.log(res);
+      // console.log(res);
 
       // ✅ After success
       setIsModalOpen(false);

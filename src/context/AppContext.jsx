@@ -1,6 +1,7 @@
 // src/context/AppContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import CryptoJS from "crypto-js";
+import { useNavigate } from "react-router";
 
 const AppContext = createContext();
 
@@ -8,14 +9,14 @@ export const AppProvider = ({ children }) => {
   const API_BASE_URL = "https://scholas-v2.onrender.com";
   const SECRET_KEY = import.meta.env.VITE_SECRET_KEY || "fallback-secret-key";
 
+  const navigate = useNavigate(); // ✅ FIXED
+
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  // console.log("user from content", token, API_BASE_URL)
-
-  // 🔐 Encrypt helper
+  // 🔐 Encrypt
   const encryptData = (data) => {
     try {
       return CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString();
@@ -25,7 +26,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // 🔓 Decrypt helper
+  // 🔓 Decrypt
   const decryptData = (cipherText) => {
     try {
       const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
@@ -37,7 +38,7 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // ✅ Load saved session (only once)
+  // Load session
   useEffect(() => {
     try {
       const encUser = sessionStorage.getItem("user");
@@ -51,7 +52,7 @@ export const AppProvider = ({ children }) => {
           setUser(savedUser);
           setToken(savedToken);
         } else {
-          sessionStorage.clear(); // corrupted session → clear it
+          sessionStorage.clear();
         }
       }
     } catch (error) {
@@ -62,7 +63,7 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
-  // ✅ Persist session on change
+  // Save session on changes
   useEffect(() => {
     if (user && token) {
       sessionStorage.setItem("user", encryptData(user));
@@ -70,14 +71,14 @@ export const AppProvider = ({ children }) => {
     }
   }, [user, token]);
 
-  // ✅ Logout
+  // ✅ Logout (fixed)
   const logout = () => {
     sessionStorage.clear();
     setUser(null);
     setToken(null);
+    navigate("/"); // ✅ FIXED
   };
 
-  // ✅ Context value
   const value = {
     API_BASE_URL,
     SECRET_KEY,
@@ -94,5 +95,4 @@ export const AppProvider = ({ children }) => {
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
-// ✅ useApp hook
 export const useApp = () => useContext(AppContext);

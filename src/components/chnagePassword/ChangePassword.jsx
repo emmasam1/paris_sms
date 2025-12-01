@@ -5,7 +5,7 @@ import { EyeInvisibleOutlined, EyeTwoTone } from "@ant-design/icons";
 import { useApp } from "../../context/AppContext";
 
 const ChangePassword = () => {
-  const { API_BASE_URL, token, loading, setLoading } = useApp();
+  const { API_BASE_URL, token, loading, setLoading, logout } = useApp();
   const [open, setOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -63,7 +63,6 @@ const ChangePassword = () => {
     try {
       setLoading(true);
 
-      // send only required fields
       const payload = {
         oldPassword: formData.oldPassword,
         newPassword: formData.newPassword,
@@ -78,6 +77,12 @@ const ChangePassword = () => {
       );
 
       messageApi.success(res.data.message || "Password changed successfully!");
+
+      // 🔥 AUTO LOGOUT USER
+      setTimeout(() => {
+        logout(); // <-- LOGOUT FUNCTION FROM CONTEXT
+      }, 1000);
+
       setOpen(false);
 
       // reset form
@@ -101,7 +106,9 @@ const ChangePassword = () => {
       {contextHolder}
 
       <Modal
-        title={<p className="text-xl font-semibold text-center">Change Password</p>}
+        title={
+          <p className="text-xl font-semibold text-center">Change Password</p>
+        }
         open={open}
         footer={null}
         maskClosable={false}
@@ -110,7 +117,6 @@ const ChangePassword = () => {
         className="rounded-xl"
       >
         <div className="flex flex-col gap-4 mt-4">
-          
           {/* CURRENT PASSWORD */}
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-1">Current Password</label>
@@ -161,7 +167,9 @@ const ChangePassword = () => {
               onChange={handleChange}
             />
             {errors.confirmPassword && (
-              <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
+              <p className="text-red-500 text-xs mt-1">
+                {errors.confirmPassword}
+              </p>
             )}
           </div>
 

@@ -58,8 +58,8 @@ function getItem(label, key, icon, children) {
     const screens = useBreakpoint();
     const location = useLocation();
     const navigate = useNavigate();
-    const [user, setUser] = useState([]);
-    const { API_BASE_URL, clearSession, token, initialized, logout } = useApp();
+    // const [user, setUser] = useState([]);
+    const { API_BASE_URL, clearSession, token, initialized, logout, user, setUser } = useApp();
 
 // console.log(user)
     // Teacher Menu (moved inside component!)

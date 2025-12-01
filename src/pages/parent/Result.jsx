@@ -114,10 +114,10 @@ const ParentResult = () => {
       setLoading(true);
 
       const res = await axios.get(
-        `${API_BASE_URL}/api/results?studentId=69269a7a67720935eb65f6be&session=2025/2026&term=1`,
+        `${API_BASE_URL}/api/results?studentId=692d848776c272a5d84a17e5&session=2025/2026&term=1`,
         {
           headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MjYwOTFlNmMwYjVjZTEwZjE1MWZmZiIsInJvbGUiOiJ0ZWFjaGVyIiwiaWF0IjoxNzY0MTAyOTQ5LCJleHAiOjE3NjQ3MDc3NDl9.-J60IlBo0qwYiYyuM6OK9qrkBCGPqPZkiS31Q_n8ggE`,
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MmMwMjdiODgyYTkwMDkwYjIzMWRiYyIsInJvbGUiOiJ0ZWFjaGVyIiwiaWF0IjoxNzY0NjA2NTIyLCJleHAiOjE3NjUyMTEzMjJ9.TbMGc2s5-5aUNunX8Ad9TP59Gew248axPxXMGOjkmTo`,
           },
         }
       );
@@ -497,7 +497,7 @@ const ParentResult = () => {
                 <div className="font-bold">{result?.summary?.classAverage}</div>
 
                 <div>TOTAL GRADE:</div>
-                <div className="font-bold">null</div>
+                <div className="font-bold">{result?.summary?.overallGrade}</div>
 
                 <div>NO. OF ARM:</div>
                 <div className="font-bold">{studentInfo.noOfArm}</div>

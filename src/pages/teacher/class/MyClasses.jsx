@@ -128,9 +128,9 @@ const MyClasses = () => {
           };
         });
 
-        console.log("result", resultRes);
-        console.log("responce from class", res);
-        console.log("has r", hasRecord);
+        // console.log("result", resultRes);
+        // console.log("responce from class", res);
+        // console.log("has r", hasRecord);
 
         setTeacherData(studentsWithStatus);
       }

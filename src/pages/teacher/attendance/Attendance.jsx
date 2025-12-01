@@ -24,11 +24,12 @@ import { useApp } from "../../../context/AppContext";
 
 const { Option } = Select;
 const { Panel } = Collapse;
-const { Title, Text } = Typography;
 
 const Attendance = ({ className }) => {
   const today = dayjs().format("YYYY-MM-DD");
-  const { token, API_BASE_URL } = useApp();
+  const { token, API_BASE_URL, loading, setLoading } = useApp();
+
+  console.log(token)
 
   const [selectedDate, setSelectedDate] = useState(today);
   const [attendance, setAttendance] = useState({});
@@ -36,7 +37,10 @@ const Attendance = ({ className }) => {
   const [summary, setSummary] = useState(null);
   const [students, setStudents] = useState([]);
   const [studentsList, setStudentsList] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  const [bulkData, setBulkData] = useState({});
+  const [bulkSession, setBulkSession] = useState(null);
+  const [bulkTerm, setBulkTerm] = useState(null);
 
   // Modal states
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
@@ -60,6 +64,8 @@ const Attendance = ({ className }) => {
       setStudents(studentsArray);
       setStudentsList(studentsArray);
 
+      // console.log(res);
+
       messageApi.success("Students loaded");
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -72,6 +78,57 @@ const Attendance = ({ className }) => {
   useEffect(() => {
     getMyClassStudents();
   }, []);
+
+  const updateBulk = (id, field, value) => {
+    setBulkData((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value,
+      },
+    }));
+  };
+
+  const submitBulkAttendance = async () => {
+    if (!bulkSession || !bulkTerm)
+      return message.error("Please select session & term!");
+
+    const records = students.map((s) => ({
+      studentId: s._id,
+      no_of_times_opened: bulkData[s._id]?.opened || 0,
+      no_of_times_present: bulkData[s._id]?.present || 0,
+      no_of_times_absent: bulkData[s._id]?.absent || 0,
+    }));
+
+    const payload = {
+      session: bulkSession,
+      term: bulkTerm,
+      records,
+    };
+
+    console.log(payload);
+
+    try {
+      setLoading(true);
+      const res = await axios.post(
+        `${API_BASE_URL}/api/attendance/bulk`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      messageApi.success(res.data.message || "Bulk attendance submitted!");
+      setBulkData({});
+      setBulkSession(null);
+      setBulkTerm(null);
+    } catch (error) {
+      console.log(error);
+      messageApi.error("Failed to submit bulk attendance");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // === MARK ATTENDANCE ===
   const handleAttendanceChange = (studentId, status) => {
@@ -107,23 +164,45 @@ const Attendance = ({ className }) => {
     message.success(`Attendance submitted for ${selectedDate}`);
   };
 
-  // === OPEN MODAL WITH MANUAL ATTENDANCE ===
-  const openAttendanceModal = (record) => {
-    // setSelectedStudentStats({
-    //   name: record.fullName,
-    //   regNo: record.admissionNumber,
-    // });
-    console.log(record)
-    form.resetFields();
-    setAttendanceModalOpen(true);
-    setSelectedStudentStats(record)
+  const handleManualSubmit = async (values) => {
+    if (!selectedStudentStats) return;
+
+    const payload = {
+      studentId: selectedStudentStats.id,
+      session: values.session,
+      term: values.term,
+      no_of_times_opened: values.opened,
+      no_of_times_present: values.present,
+      no_of_times_absent: values.absent,
+    };
+
+    try {
+      setLoading(true);
+      const res = await axios.post(
+        `${API_BASE_URL}/api/attendance/single`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      console.log(res);
+      messageApi.success(res.data.message);
+    } catch (error) {
+      console.log("ERROR:", error);
+    } finally {
+      setLoading(false);
+    }
+
+    message.success("Manual attendance logged!");
+    setAttendanceModalOpen(false);
   };
 
-  const handleManualSubmit = (record) => {
-    message.success(
-      `Manual attendance submitted for ${selectedStudentStats.name}!`
-    );
-    setAttendanceModalOpen(false);
+  // === OPEN MODAL WITH MANUAL ATTENDANCE ===
+  const openAttendanceModal = (record) => {
+    // console.log(record);
+    form.resetFields();
+    setAttendanceModalOpen(true);
+    setSelectedStudentStats(record);
   };
 
   // === TABLE COLUMNS ===
@@ -184,27 +263,40 @@ const Attendance = ({ className }) => {
   ];
 
   return (
-    <Card>
+    <Card className="shadow-md rounded-xl p-4 bg-white">
       {contextHolder}
 
-      {/* DATE SELECT */}
-      <Select
-        value={selectedDate}
-        style={{ marginBottom: 16 }}
-        onChange={setSelectedDate}
-      >
-        {[...Array(7)].map((_, i) => {
-          const date = dayjs().subtract(i, "day").format("YYYY-MM-DD");
-          return (
-            <Option key={date} value={date}>
-              {date}
-            </Option>
-          );
-        })}
-      </Select>
+      {/* HEADER */}
+      <div className="mb-4">
+        <Typography.Title level={4} className="!mb-1">
+          Attendance Management
+        </Typography.Title>
+        <Typography.Text type="secondary">
+          Select a date, mark attendance, or view records.
+        </Typography.Text>
+      </div>
 
-      <Tabs defaultActiveKey="1">
-        {/* MARK ATTENDANCE */}
+      {/* DATE SELECT */}
+      <div className="mb-4 flex items-center gap-3">
+        <Typography.Text strong>Select Date:</Typography.Text>
+        <Select
+          value={selectedDate}
+          className="min-w-[160px]"
+          onChange={setSelectedDate}
+        >
+          {[...Array(7)].map((_, i) => {
+            const date = dayjs().subtract(i, "day").format("YYYY-MM-DD");
+            return (
+              <Option key={date} value={date}>
+                {date}
+              </Option>
+            );
+          })}
+        </Select>
+      </div>
+
+      <Tabs defaultActiveKey="1" className="mt-3">
+        {/* ======================= MARK ATTENDANCE ======================= */}
         <Tabs.TabPane tab="Mark Attendance" key="1">
           {loading ? (
             <>
@@ -212,7 +304,7 @@ const Attendance = ({ className }) => {
               <Skeleton active />
             </>
           ) : studentsList.length === 0 ? (
-            <p className="text-gray-400 text-center">
+            <p className="text-gray-400 text-center mt-6">
               No students in this class.
             </p>
           ) : (
@@ -226,6 +318,7 @@ const Attendance = ({ className }) => {
                 columns={markColumns}
                 rowKey="id"
                 bordered
+                className="rounded-lg overflow-hidden"
                 pagination={{
                   position: ["bottomCenter"],
                   className: "custom-pagination",
@@ -235,7 +328,11 @@ const Attendance = ({ className }) => {
               />
 
               {summary && (
-                <Card className="mt-4 bg-gray-50">
+                <Card className="mt-4 bg-gray-50 shadow-sm rounded-xl">
+                  <Typography.Title level={5} className="mb-3">
+                    Attendance Summary
+                  </Typography.Title>
+
                   <Row gutter={16}>
                     {Object.entries(summary).map(([key, val]) => (
                       <Col span={6} key={key}>
@@ -249,14 +346,111 @@ const Attendance = ({ className }) => {
           )}
         </Tabs.TabPane>
 
-        {/* VIEW ATTENDANCE */}
-        <Tabs.TabPane tab="View Attendance" key="2">
+        {/* ======================= BULK ATTENDANCE ======================= */}
+        <Tabs.TabPane tab="Bulk Attendance" key="2">
+          <Card className="mb-4 p-4 bg-gray-50 rounded-xl">
+            <Typography.Title level={5}>Bulk Attendance Setup</Typography.Title>
+            <Typography.Text type="secondary">
+              Select session and term before entering student values.
+            </Typography.Text>
+
+            <Row gutter={16} className="mt-3">
+              <Col span={12}>
+                <Form.Item label="Session" required>
+                  <Select
+                    placeholder="Select session"
+                    onChange={setBulkSession}
+                  >
+                    <Option value="2024/2025">2024/2025</Option>
+                    <Option value="2025/2026">2025/2026</Option>
+                    <Option value="2026/2027">2026/2027</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col span={12}>
+                <Form.Item label="Term" required>
+                  <Select placeholder="Select term" onChange={setBulkTerm}>
+                    <Option value={1}>First Term</Option>
+                    <Option value={2}>Second Term</Option>
+                    <Option value={3}>Third Term</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+          </Card>
+
+          <Table
+            dataSource={studentsList}
+            rowKey="_id"
+            bordered
+            className="rounded-lg overflow-hidden"
+            size="small"
+            pagination={false}
+            columns={[
+              {
+                title: "Student",
+                dataIndex: "fullName",
+                className: "font-medium",
+              },
+              {
+                title: "Attendance Stats",
+                render: (r) => (
+                  <div
+                    style={{
+                      display: "flex !important",
+                      gap: "8px",
+                      width: "100%",
+                    }}
+                  >
+                    <InputNumber
+                      min={0}
+                      placeholder="Opened"
+                      // style={{ width: "33%" }}
+                      value={bulkData[r._id]?.opened || null}
+                      onChange={(v) => updateBulk(r._id, "opened", v)}
+                    />
+
+                    <InputNumber
+                      min={0}
+                      placeholder="Present"
+                      // style={{ width: "33%" }}
+                      value={bulkData[r._id]?.present || null}
+                      onChange={(v) => updateBulk(r._id, "present", v)}
+                    />
+
+                    <InputNumber
+                      min={0}
+                      placeholder="Absent"
+                      // style={{ width: "33%" }}
+                      value={bulkData[r._id]?.absent || null}
+                      onChange={(v) => updateBulk(r._id, "absent", v)}
+                    />
+                  </div>
+                ),
+              },
+            ]}
+          />
+
+          <Button
+            type="primary"
+            onClick={submitBulkAttendance}
+            className="mt-4 rounded-lg py-2"
+            block
+            loading={loading}
+          >
+            Submit Bulk Attendance
+          </Button>
+        </Tabs.TabPane>
+
+        {/* ======================= VIEW ATTENDANCE ======================= */}
+        <Tabs.TabPane tab="View Attendance" key="3">
           {Object.keys(viewRecords).length === 0 ? (
             <p className="text-gray-400 text-center mt-6">
               No attendance records yet.
             </p>
           ) : (
-            <Collapse accordion>
+            <Collapse accordion className="rounded-xl overflow-hidden">
               {Object.entries(viewRecords).map(([date, records]) => (
                 <Panel
                   header={`${date} (${records.length} students)`}
@@ -267,9 +461,9 @@ const Attendance = ({ className }) => {
                     columns={viewColumns}
                     rowKey="id"
                     bordered
+                    className="rounded-md"
                     pagination={{
                       position: ["bottomCenter"],
-                      showSizeChanger: false,
                     }}
                     size="small"
                   />
@@ -280,56 +474,125 @@ const Attendance = ({ className }) => {
         </Tabs.TabPane>
       </Tabs>
 
-   
-      {/* MANUAL ATTENDANCE MODAL */}
+      {/* ========== MANUAL ATTENDANCE MODAL ========== */}
       <Modal
         open={attendanceModalOpen}
         onCancel={() => setAttendanceModalOpen(false)}
         footer={null}
-        title="Take Manual Attendance"
+        title={
+          <Typography.Title level={4}>
+            Manual Attendance – {selectedStudentStats?.name}
+          </Typography.Title>
+        }
       >
         {selectedStudentStats && (
-          <div>
-            <Title level={5}>{selectedStudentStats.fullName}</Title>
-            <Text type="secondary">Reg No: {selectedStudentStats.regNo}</Text>
-
-            <Form
-              form={form}
-              layout="vertical"
-              className="mt-4"
-              onFinish={handleManualSubmit}
-            >
-              <Form.Item
-                label="No. of Times School Opened"
-                name="opened"
-                rules={[{ required: true, message: "Please input this value" }]}
-              >
-                <InputNumber min={0} style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item
-                label="No. of Times Present"
-                name="present"
-                rules={[{ required: true, message: "Please input this value" }]}
-              >
-                <InputNumber min={0} style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item
-                label="No. of Times Absent"
-                name="absent"
-                rules={[{ required: true, message: "Please input this value" }]}
-              >
-                <InputNumber min={0} style={{ width: "100%" }} />
-              </Form.Item>
-
-              <Form.Item>
-                <Button type="primary" htmlType="submit" block>
-                  Submit
-                </Button>
-              </Form.Item>
-            </Form>
-          </div>
+          <Form
+            form={form}
+            layout="vertical"
+            className="mt-4"
+            onFinish={handleManualSubmit}
+          >
+            {" "}
+            <Row gutter={16}>
+              {" "}
+              {/* SESSION */}{" "}
+              <Col span={12}>
+                {" "}
+                <Form.Item
+                  label="Session"
+                  name="session"
+                  rules={[
+                    { required: true, message: "Please select a session" },
+                  ]}
+                >
+                  {" "}
+                  <Select placeholder="Select session">
+                    {" "}
+                    <Option value="2024/2025">2024/2025</Option>{" "}
+                    <Option value="2025/2026">2025/2026</Option>{" "}
+                    <Option value="2026/2027">2026/2027</Option>{" "}
+                  </Select>{" "}
+                </Form.Item>{" "}
+              </Col>{" "}
+              {/* TERM */}{" "}
+              <Col span={12}>
+                {" "}
+                <Form.Item
+                  label="Term"
+                  name="term"
+                  rules={[{ required: true, message: "Please select a term" }]}
+                >
+                  {" "}
+                  <Select placeholder="Select term">
+                    {" "}
+                    <Option value={1}>First Term</Option>{" "}
+                    <Option value={2}>Second Term</Option>{" "}
+                    <Option value={3}>Third Term</Option>{" "}
+                  </Select>{" "}
+                </Form.Item>{" "}
+              </Col>{" "}
+            </Row>{" "}
+            <Row gutter={16}>
+              {" "}
+              <Col span={12}>
+                {" "}
+                <Form.Item
+                  label="No. of Times School Opened"
+                  name="opened"
+                  rules={[
+                    { required: true, message: "Please input this value" },
+                  ]}
+                >
+                  {" "}
+                  <InputNumber min={0} style={{ width: "100%" }} />{" "}
+                </Form.Item>{" "}
+              </Col>{" "}
+              <Col span={12}>
+                {" "}
+                <Form.Item
+                  label="No. of Times Present"
+                  name="present"
+                  rules={[
+                    { required: true, message: "Please input this value" },
+                  ]}
+                >
+                  {" "}
+                  <InputNumber min={0} style={{ width: "100%" }} />{" "}
+                </Form.Item>{" "}
+              </Col>{" "}
+            </Row>{" "}
+            <Row gutter={16}>
+              {" "}
+              <Col span={12}>
+                {" "}
+                <Form.Item
+                  label="No. of Times Absent"
+                  name="absent"
+                  rules={[
+                    { required: true, message: "Please input this value" },
+                  ]}
+                >
+                  {" "}
+                  <InputNumber min={0} style={{ width: "100%" }} />{" "}
+                </Form.Item>{" "}
+              </Col>{" "}
+              <Col span={12}>
+                {" "}
+                <Form.Item label=" ">
+                  {" "}
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    block
+                    loading={loading}
+                  >
+                    {" "}
+                    Submit{" "}
+                  </Button>{" "}
+                </Form.Item>{" "}
+              </Col>{" "}
+            </Row>{" "}
+          </Form>
         )}
       </Modal>
     </Card>

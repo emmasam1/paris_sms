@@ -196,7 +196,7 @@ const Student = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("all subjects", res);
+      // console.log("all subjects", res);
 
       setSubjects(res?.data?.data || []);
     } catch (error) {
@@ -1158,38 +1158,6 @@ const Student = () => {
           </Row>
 
           <Row gutter={16}>
-            {/* <Col span={12}>
-              <Form.Item
-                label="Admission Number"
-                name="admissionNumber"
-                rules={[
-                  { required: true, message: "Please enter admission number" },
-                ]}
-              >
-                <Input />
-              </Form.Item>
-            </Col> */}
-
-            <Col span={12}>
-              <Form.Item label="Roll Number" name="rollNumber">
-                <Input />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label="Date of Birth"
-                name="dob"
-                rules={[
-                  { required: true, message: "Please enter date of birth" },
-                ]}
-              >
-                <Input type="date" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
             <Col span={12}>
               <Form.Item
                 label="Gender"
@@ -1251,14 +1219,14 @@ const Student = () => {
               </Form.Item>
             </Col>
           </Row>
-
+{/* 
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item label="House" name="house">
                 <Input placeholder="e.g. Blue House" />
               </Form.Item>
             </Col>
-          </Row>
+          </Row> */}
 
           <Title level={5} className="mb-2 text-center">
             Parent Information
@@ -1269,9 +1237,9 @@ const Student = () => {
               <Form.Item
                 label="Parent Email"
                 name="parentEmail"
-                rules={[
-                  { required: true, message: "Please enter parent email" },
-                ]}
+                // rules={[
+                //   { required: true, message: "Please enter parent email" },
+                // ]}
               >
                 <Input type="email" />
               </Form.Item>
@@ -1280,9 +1248,9 @@ const Student = () => {
               <Form.Item
                 label="Parent Phone"
                 name="parentPhone"
-                rules={[
-                  { required: true, message: "Please enter parent phone" },
-                ]}
+                // rules={[
+                //   { required: true, message: "Please enter parent phone" },
+                // ]}
               >
                 <Input />
               </Form.Item>
@@ -1294,9 +1262,9 @@ const Student = () => {
               <Form.Item
                 label="Parent Address"
                 name="parentAddress"
-                rules={[
-                  { required: true, message: "Please enter parent address" },
-                ]}
+                // rules={[
+                //   { required: true, message: "Please enter parent address" },
+                // ]}
               >
                 <Input.TextArea rows={2} />
               </Form.Item>

@@ -23,7 +23,6 @@ const Login = () => {
       });
 
       const { token, user } = res.data;
-      messageApi.success(res?.data?.message || "Login successful!");
 
       // ✅ Save user and token to context (auto-encrypted by AppContext)
       setUser(user);
@@ -51,59 +50,41 @@ const Login = () => {
         default:
           messageApi.warning("Unknown role. Please contact admin.");
       }
+
+      messageApi.success(res?.data?.message || "Login successful!");
+      // console.log(res)
     } catch (err) {
       console.error("Login error:", err);
-      messageApi.error(err.response?.data?.message || "Login failed. Try again.");
+      messageApi.error(
+        err.response?.data?.message || "Login failed. Try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // ================= PARENT LOGIN ==================
-  // const handleParentLogin = async (values) => {
-  //   try {
-  //     setLoading(true);
-  //     const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-  //       pin: values.pin,
-  //     });
-
-  //     const { token, user } = res.data;
-  //     messageApi.success(res?.data?.message || "Parent login successful!");
-
-  //     setUser(user);
-  //     setToken(token);
-  //     navigate("/home");
-  //   } catch (err) {
-  //     console.error("Parent login error:", err);
-  //     messageApi.error(err.response?.data?.message || "Invalid parent PIN");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   // ================= PARENT LOGIN (DUMMY) ==================
-const handleParentLogin = async (values) => {
+  const handleParentLogin = async (values) => {
+    // Dummy PIN check
+    if (values.pin === "000000") {
+      messageApi.success("Parent login successful!");
 
-  // Dummy PIN check
-  if (values.pin === "000000") {
-    messageApi.success("Parent login successful!");
+      // Set a dummy parent user
+      const dummyParent = {
+        role: "parent",
+        name: "Parent User",
+      };
 
-    // Set a dummy parent user
-    const dummyParent = {
-      role: "parent",
-      name: "Parent User",
-    };
+      setUser(dummyParent);
+      setToken("dummy-parent-token");
 
-    setUser(dummyParent);
-    setToken("dummy-parent-token");
+      return navigate("/home");
+    }
 
-    return navigate("/home");
-  }
-
-  // Wrong PIN
-  messageApi.error("Invalid parent PIN");
-};
-
+    // Wrong PIN
+    messageApi.error("Invalid parent PIN");
+  };
 
   // ================= FORM SUBMIT ==================
   const onFinish = (values) => {
@@ -160,9 +141,13 @@ const handleParentLogin = async (values) => {
                 >
                   <Form layout="vertical" onFinish={onFinish}>
                     <Form.Item
-                      label={<span className="text-sm text-gray-600">Email</span>}
+                      label={
+                        <span className="text-sm text-gray-600">Email</span>
+                      }
                       name="username"
-                      rules={[{ required: true, message: "Please enter email" }]}
+                      rules={[
+                        { required: true, message: "Please enter email" },
+                      ]}
                     >
                       <Input
                         prefix={<UserOutlined className="text-gray-400" />}
@@ -172,9 +157,13 @@ const handleParentLogin = async (values) => {
                     </Form.Item>
 
                     <Form.Item
-                      label={<span className="text-sm text-gray-600">Password</span>}
+                      label={
+                        <span className="text-sm text-gray-600">Password</span>
+                      }
                       name="password"
-                      rules={[{ required: true, message: "Please enter password" }]}
+                      rules={[
+                        { required: true, message: "Please enter password" },
+                      ]}
                     >
                       <Input.Password
                         prefix={<LockOutlined className="text-gray-400" />}
@@ -206,9 +195,16 @@ const handleParentLogin = async (values) => {
                 >
                   <Form layout="vertical" onFinish={handleParentLogin}>
                     <Form.Item
-                      label={<span className="text-sm text-gray-600">Card PIN</span>}
+                      label={
+                        <span className="text-sm text-gray-600">Card PIN</span>
+                      }
                       name="pin"
-                      rules={[{ required: true, message: "Please enter your Card PIN" }]}
+                      rules={[
+                        {
+                          required: true,
+                          message: "Please enter your Card PIN",
+                        },
+                      ]}
                     >
                       <Input.Password
                         prefix={<IdcardOutlined className="text-gray-400" />}

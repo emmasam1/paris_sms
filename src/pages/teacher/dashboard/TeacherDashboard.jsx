@@ -20,13 +20,14 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 import { useApp } from "../../../context/AppContext";
+import ChangePassword from "../../../components/chnagePassword/ChangePassword";
 
 const TeacherDashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
-  const [user, setUser] = useState(null);
+  // const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
-  const { token, API_BASE_URL } = useApp();
+  const { token, API_BASE_URL, user, setUser } = useApp();
   const [dashboardData, setDashboardData] = useState(null);
   const [statsData, setStatsData] = useState({
     totalResults: 0,
@@ -77,6 +78,8 @@ const TeacherDashboard = () => {
     }
   };
 
+  // console.log(token, API_BASE_URL)
+
   // Fetch students to get classId and subjectId, then fetch dashboard stats
   const getDashboardStats = async () => {
     if (!token) return;
@@ -85,17 +88,17 @@ const TeacherDashboard = () => {
       setLoading(true);
 
       // 1️⃣ Fetch students
-      const res = await axios.get(
-        `${API_BASE_URL}/api/teacher/students`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await axios.get(`${API_BASE_URL}/api/teacher/students`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       // console.log("res from teachers dashboard", res)
       // `${API_BASE_URL}/api/teacher/students?page=1&limit=20`,
       const students = res.data.students || [];
       if (!students.length) return;
 
       const classId = students[0]?.class?._id;
-      const subjectId = students[0]?.subjects?.[0]?._id || res.data.subject?._id;
+      const subjectId =
+        students[0]?.subjects?.[0]?._id || res.data.subject?._id;
 
       // 2️⃣ Fetch dashboard results using classId and subjectId
       if (classId && subjectId) {
@@ -104,7 +107,7 @@ const TeacherDashboard = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        console.log(resultRes)
+        console.log(resultRes);
 
         if (resultRes.data.success) {
           const stats = resultRes.data.stats;
@@ -118,7 +121,9 @@ const TeacherDashboard = () => {
           });
 
           setDashboardData(resultRes.data);
-          messageApi.success(resultRes.data.message || "Dashboard fetched successfully");
+          messageApi.success(
+            resultRes.data.message || "Dashboard fetched successfully"
+          );
         }
       }
     } catch (error) {
@@ -147,17 +152,39 @@ const TeacherDashboard = () => {
 
   // Stats cards
   const stats = [
-    { title: "My Students", value: statsData.totalStudents, icon: <UserOutlined className="text-3xl !text-blue-500" /> },
-    { title: "My Classes", value: statsData.totalClasses, icon: <BookOutlined className="text-3xl !text-green-500" /> },
-    { title: "Total Results", value: statsData.totalResults, icon: <BarChartOutlined className="text-3xl !text-purple-500" /> },
-    { title: "Results Entered", value: statsData.resultsEntered, icon: <CheckCircleOutlined className="text-3xl !text-green-600" /> },
-    { title: "Results Left", value: statsData.resultsLeft, icon: <ClockCircleOutlined className="text-3xl !text-orange-500" /> },
+    {
+      title: "My Students",
+      value: statsData.totalStudents,
+      icon: <UserOutlined className="text-3xl !text-blue-500" />,
+    },
+    {
+      title: "My Classes",
+      value: statsData.totalClasses,
+      icon: <BookOutlined className="text-3xl !text-green-500" />,
+    },
+    {
+      title: "Total Results",
+      value: statsData.totalResults,
+      icon: <BarChartOutlined className="text-3xl !text-purple-500" />,
+    },
+    {
+      title: "Results Entered",
+      value: statsData.resultsEntered,
+      icon: <CheckCircleOutlined className="text-3xl !text-green-600" />,
+    },
+    {
+      title: "Results Left",
+      value: statsData.resultsLeft,
+      icon: <ClockCircleOutlined className="text-3xl !text-orange-500" />,
+    },
     {
       title: "Messages",
       value: announcements.length,
       icon: <MessageOutlined className="text-3xl !text-pink-500" />,
       extra: unreadCount > 0 && !loading && (
-        <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-2 py-[2px] rounded-full">{unreadCount} unread</span>
+        <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-2 py-[2px] rounded-full">
+          {unreadCount} unread
+        </span>
       ),
     },
   ];
@@ -171,11 +198,14 @@ const TeacherDashboard = () => {
     }
     return `Welcome ${user.title} ${user.firstName} ${user.lastName}`;
   };
+  
+  // console.log(user)
 
   return (
     <div>
       {contextHolder}
 
+      {user?.needsPasswordChange === true ? <ChangePassword /> : null}
       {/* Welcome */}
       <Skeleton loading={loading} active paragraph={false}>
         <h2 className="text-xl font-bold mb-4">{getWelcomeText()}</h2>
@@ -207,7 +237,13 @@ const TeacherDashboard = () => {
           {loading ? (
             <div>
               {[1, 2, 3].map((i) => (
-                <Skeleton key={i} active title paragraph={{ rows: 1 }} className="mb-4" />
+                <Skeleton
+                  key={i}
+                  active
+                  title
+                  paragraph={{ rows: 1 }}
+                  className="mb-4"
+                />
               ))}
             </div>
           ) : (
@@ -228,7 +264,11 @@ const TeacherDashboard = () => {
                         </Tag>
                       </div>
                     }
-                    description={item.content.length > 60 ? item.content.slice(0, 60) + "..." : item.content}
+                    description={
+                      item.content.length > 60
+                        ? item.content.slice(0, 60) + "..."
+                        : item.content
+                    }
                   />
                 </List.Item>
               )}
@@ -242,7 +282,11 @@ const TeacherDashboard = () => {
         open={isModalOpen}
         title={selectedMessage?.title}
         onCancel={() => setIsModalOpen(false)}
-        footer={[<Button key="close" onClick={() => setIsModalOpen(false)}>Close</Button>]}
+        footer={[
+          <Button key="close" onClick={() => setIsModalOpen(false)}>
+            Close
+          </Button>,
+        ]}
       >
         <p>{selectedMessage?.content}</p>
       </Modal>

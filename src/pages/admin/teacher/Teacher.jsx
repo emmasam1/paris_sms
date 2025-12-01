@@ -30,6 +30,7 @@ import {
   MoreOutlined,
   PlusOutlined,
   MinusOutlined,
+  SwapOutlined,
 } from "@ant-design/icons";
 import teacher_img from "../../../assets/teacher.jpg";
 import { useApp } from "../../../context/AppContext";
@@ -50,11 +51,16 @@ const Teacher = () => {
   const [classes, setClasses] = useState([]);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
+  const { API_BASE_URL, token, initialized, loading, setLoading, user } =
+    useApp();
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
   const [assignLoading, setAssignLoading] = useState(false);
+
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  // const [selectedStaff, setSelectedStaff] = useState(null);
+  const [roleValue, setRoleValue] = useState("");
 
   const [staff, setStaff] = useState([]);
   const [isFetching, setIsFetching] = useState(true);
@@ -135,7 +141,7 @@ const Teacher = () => {
 
       const result = res.data.data || [];
       messageApi.success(res?.data?.message);
-      console.log(result);
+      // console.log(result);
       setStaff(result);
       setPagination({
         current: res.data.pagination?.page || 1,
@@ -150,6 +156,12 @@ const Teacher = () => {
     }
   };
 
+  const openRoleModal = (staff) => {
+    setSelectedStaff(staff);
+    setRoleValue(staff.role); // pre-fill current role
+    setIsRoleModalOpen(true);
+  };
+
   // ✅ Debounced search
   useEffect(() => {
     if (!initialized || !token) return;
@@ -161,23 +173,22 @@ const Teacher = () => {
 
   // ✅ Avatar fallback
   const renderAvatar = (record) => {
-    const avatarUrl = record?.avatar;
-
+    if (record.avatar) {
+      return (
+        <img
+          src={record.avatar}
+          alt="student"
+          className="w-10 h-10 rounded-full object-cover"
+        />
+      );
+    }
+    const initials = `${record.firstName?.[0] || ""}${
+      record.lastName?.[0] || ""
+    }`;
     return (
-      <div className="flex items-center justify-center">
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={`${record.firstName || "Staff"}'s avatar`}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 text-gray-500 text-sm font-semibold">
-            {record?.firstName?.[0]?.toUpperCase() || "?"}
-            {record?.lastName?.[0]?.toUpperCase() || "?"}
-          </div>
-        )}
-      </div>
+      <Avatar style={{ backgroundColor: "#1677ff", color: "#fff" }}>
+        {initials.toUpperCase()}
+      </Avatar>
     );
   };
 
@@ -222,6 +233,7 @@ const Teacher = () => {
             },
           }
         );
+        console.log(res)
         messageApi.success(res?.data?.message || "Staff updated successfully");
       } else {
         // Register new staff
@@ -259,7 +271,7 @@ const Teacher = () => {
 
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/class-management/classes`,
+        `${API_BASE_URL}/api/class-management/classes?limit=50`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -337,20 +349,19 @@ const Teacher = () => {
     }
   };
 
-  const toggleBlock = (record) => {
-    setTeachers((prev) =>
-      prev.map((t) =>
-        t.key === record.key
-          ? { ...t, status: t.status === "active" ? "blocked" : "active" }
-          : t
-      )
-    );
-    message.info(
-      `${record.name} ${
-        record.status === "active" ? "blocked" : "unblocked"
-      } successfully`
-    );
-  };
+// const toggleBlock = (record) => {
+//   setStaff((prev) =>
+//     prev.map((t) =>
+//       t._id === record._id
+//         ? { ...t, status: t.status === "active" ? "blocked" : "active" }
+//         : t
+//     )
+//   );
+
+//   const newStatus = record.status === "active" ? "blocked" : "active";
+//   message.info(`${record.firstName} ${record.lastName} is now ${newStatus}`);
+// };
+
 
   const handleImageChange = (info) => {
     const file = info.file.originFileObj;
@@ -412,7 +423,7 @@ const Teacher = () => {
         ) : record.role === "teacher" ? (
           <p>Teacher</p>
         ) : (
-          role
+          record.role === "school_admin" ? <p>School Admin</p> : role
         );
       },
     },
@@ -453,7 +464,7 @@ const Teacher = () => {
         status === "active" ? (
           <Tag color="green">Active</Tag>
         ) : (
-          <Tag color="red">Blocked</Tag>
+          <Tag color="green">Active</Tag>
         ),
     },
     {
@@ -467,7 +478,7 @@ const Teacher = () => {
               key="view"
               icon={<EyeOutlined />}
               onClick={() => {
-                console.log(record);
+                // console.log(record);
                 setSelectedTeacher(record);
                 setIsDetailsOpen(true);
               }}
@@ -487,6 +498,15 @@ const Teacher = () => {
             >
               Edit Staff
             </Menu.Item>
+            {user?.role === "principal" && (
+              <Menu.Item
+                key="changeRole"
+                icon={<SwapOutlined />}
+                onClick={() => openRoleModal(record)}
+              >
+                Change Staff Role
+              </Menu.Item>
+            )}
             <Menu.Item
               key="manage"
               icon={<SettingOutlined />}
@@ -812,6 +832,24 @@ const Teacher = () => {
             ).values(),
           ]}
         />
+      </Modal>
+
+      {/* Change Role Modal */}
+      <Modal
+        title="Change Staff Role"
+        open={isRoleModalOpen}
+        onCancel={() => setIsRoleModalOpen(false)}
+        // onOk={changeStaffRole}
+        confirmLoading={loading}
+      >
+        <Select
+          className="w-full"
+          value={roleValue}
+          onChange={(v) => setRoleValue(v)}
+        >
+          <Option value="teacher">Teacher</Option>
+          <Option value="class_admin">Class Admin</Option>
+        </Select>
       </Modal>
     </div>
   );

@@ -31,7 +31,8 @@ import axios from "axios";
 
 const { Option } = Select;
 const { TabPane } = Tabs;
-const LEVELS = ["PRIMARY", "JSS", "SSS"];
+const LEVELS = ["JSS1", "JSS2", "JSS3", "SS1", "SS2", "SS3"];
+
 
 const SubjectManagement = () => {
   const [searchText, setSearchText] = useState("");
@@ -608,9 +609,7 @@ const SubjectManagement = () => {
       <div className="p-4 bg-white shadow-md rounded-lg">
         {contextHolder}
 
-        {/* 🔹 Header */}
-
-        {/* 🔹 Table */}
+  
 
         {/* 🔹 Add/Edit Subject Modal */}
         <Modal

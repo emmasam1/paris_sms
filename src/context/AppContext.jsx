@@ -13,6 +13,8 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
+  // console.log("user from content", token, API_BASE_URL)
+
   // 🔐 Encrypt helper
   const encryptData = (data) => {
     try {

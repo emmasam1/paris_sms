@@ -42,6 +42,7 @@ import UploadResult from "../../../components/uploadresult/UploadResult";
 import GeneratePin from "../../../components/generatepin/GeneratePin";
 import CreateClass from "../../../components/createclass/CreateClass";
 import CreateMessage from "../../../components/message/CreateMessage";
+import ChangePassword from "../../../components/chnagePassword/ChangePassword";
 
 const { Title } = Typography;
 
@@ -215,6 +216,10 @@ useEffect(() => {
   return (
     <div className="space-y-6">
       {contextHolder}
+
+      {/* {user?.needsPasswordChange === true ? (
+        <ChangePassword />
+      ) : (null)} */}
 
       {/* ===== Stats Section ===== */}
       <Row gutter={[16, 16]}>

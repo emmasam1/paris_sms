@@ -217,9 +217,9 @@ useEffect(() => {
     <div className="space-y-6">
       {contextHolder}
 
-      {/* {user?.needsPasswordChange === true ? (
+      {user?.needsPasswordChange === true ? (
         <ChangePassword />
-      ) : (null)} */}
+      ) : (null)}
 
       {/* ===== Stats Section ===== */}
       <Row gutter={[16, 16]}>

@@ -69,7 +69,7 @@ const ChangePassword = () => {
         newPassword: formData.newPassword,
       };
 
-      const res = await axios.post(
+      const res = await axios.patch(
         `${API_BASE_URL}/api/auth/change-password`,
         payload,
         {

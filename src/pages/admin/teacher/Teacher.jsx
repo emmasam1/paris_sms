@@ -128,7 +128,7 @@ const Teacher = () => {
   }, [editingTeacher]);
 
   // ✅ Fetch teachers
-  const getTeachers = async (page = 1, limit = 10, search = "") => {
+  const getTeachers = async (page = 1, limit = 60, search = "") => {
     if (!token) return;
     setIsFetching(true);
     try {
@@ -154,6 +154,15 @@ const Teacher = () => {
     } finally {
       setIsFetching(false);
     }
+  };
+
+  const handleTableChange = (pag) => {
+    setPagination((prev) => ({
+      ...prev,
+      current: pag.current,
+      pageSize: pag.pageSize,
+    }));
+    getTeachers(pag.current, pag.pageSize, searchText);
   };
 
   const openRoleModal = (staff) => {
@@ -233,7 +242,7 @@ const Teacher = () => {
             },
           }
         );
-        console.log(res)
+        console.log(res);
         messageApi.success(res?.data?.message || "Staff updated successfully");
       } else {
         // Register new staff
@@ -349,19 +358,18 @@ const Teacher = () => {
     }
   };
 
-// const toggleBlock = (record) => {
-//   setStaff((prev) =>
-//     prev.map((t) =>
-//       t._id === record._id
-//         ? { ...t, status: t.status === "active" ? "blocked" : "active" }
-//         : t
-//     )
-//   );
+  // const toggleBlock = (record) => {
+  //   setStaff((prev) =>
+  //     prev.map((t) =>
+  //       t._id === record._id
+  //         ? { ...t, status: t.status === "active" ? "blocked" : "active" }
+  //         : t
+  //     )
+  //   );
 
-//   const newStatus = record.status === "active" ? "blocked" : "active";
-//   message.info(`${record.firstName} ${record.lastName} is now ${newStatus}`);
-// };
-
+  //   const newStatus = record.status === "active" ? "blocked" : "active";
+  //   message.info(`${record.firstName} ${record.lastName} is now ${newStatus}`);
+  // };
 
   const handleImageChange = (info) => {
     const file = info.file.originFileObj;
@@ -422,8 +430,10 @@ const Teacher = () => {
           <p>Class Admin</p>
         ) : record.role === "teacher" ? (
           <p>Teacher</p>
+        ) : record.role === "school_admin" ? (
+          <p>School Admin</p>
         ) : (
-          record.role === "school_admin" ? <p>School Admin</p> : role
+          role
         );
       },
     },
@@ -602,6 +612,17 @@ const Teacher = () => {
             total: pagination.total,
             position: ["bottomCenter"],
             className: "custom-pagination",
+            showSizeChanger: true, // ✅ show page size dropdown
+            pageSizeOptions: ["5", "10", "20", "50"], // ✅ options for rows per page
+          }}
+          onChange={(pag) => {
+            // fetch new page and/or pageSize
+            setPagination((prev) => ({
+              ...prev,
+              current: pag.current,
+              pageSize: pag.pageSize,
+            }));
+            getTeachers(pag.current, pag.pageSize, searchText); // fetch data
           }}
           className="custom-table"
           scroll={{ x: "max-content" }}

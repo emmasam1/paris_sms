@@ -1,39 +1,82 @@
 import React, { useState } from "react";
-import { Card, Upload, Button, Input, Form, Divider, Switch, message } from "antd";
-import { UploadOutlined, SaveOutlined, LockOutlined, BellOutlined } from "@ant-design/icons";
+import {
+  Card,
+  Button,
+  Input,
+  Form,
+  Switch,
+  message,
+} from "antd";
+import {
+  LockOutlined,
+  BellOutlined,
+} from "@ant-design/icons";
+import axios from "axios";
+import { useApp } from "../../../context/AppContext";
 
 const Setting = () => {
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState(true);
+  const [messageApi, contextHolder] = message.useMessage();
 
-  const handleSave = (values) => {
-    setLoading(true);
-    setTimeout(() => {
-      message.success("Settings updated successfully!");
-      setLoading(false);
-    }, 1500);
-  };
+  const { API_BASE_URL, token, loading, setLoading, logout } = useApp();
 
-  const handlePasswordChange = (values) => {
-    if (values.newPassword !== values.confirmPassword) {
-      return message.error("New password and confirm password do not match!");
+  // 🔐 Submit new password
+  const handleSubmit = async (values) => {
+    const { currentPassword, newPassword, confirmPassword } = values;
+
+    // ✔ Validate confirm password
+    if (newPassword !== confirmPassword) {
+      messageApi.error("Passwords do not match");
+      return;
     }
-    setLoading(true);
-    setTimeout(() => {
-      message.success("Password changed successfully!");
+
+    try {
+      setLoading(true);
+
+      const payload = {
+        oldPassword: currentPassword,
+        newPassword: newPassword,
+      };
+
+      const res = await axios.patch(
+        `${API_BASE_URL}/api/auth/change-password`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      messageApi.success(res.data.message || "Password changed successfully!");
+
+      // 🔥 Auto logout
+      setTimeout(() => {
+        logout();
+      }, 1000);
+
+      form.resetFields(); // reset form
+    } catch (error) {
+      messageApi.error(
+        error.response?.data?.message || "Failed to change password"
+      );
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
-    <div className="">
-      <h2 className="text-2xl font-semibold mb-4"></h2>
+    <div>
+      {contextHolder}
 
       {/* Password Change */}
       <Card className="!mb-6 shadow-md rounded-xl">
         <h3 className="text-lg font-semibold mb-3">Change Password</h3>
-        <Form layout="vertical" onFinish={handlePasswordChange}>
+
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+        >
           <Form.Item
             label="Current Password"
             name="currentPassword"
@@ -41,6 +84,7 @@ const Setting = () => {
           >
             <Input.Password placeholder="Enter current password" />
           </Form.Item>
+
           <Form.Item
             label="New Password"
             name="newPassword"
@@ -48,13 +92,15 @@ const Setting = () => {
           >
             <Input.Password placeholder="Enter new password" />
           </Form.Item>
+
           <Form.Item
             label="Confirm Password"
             name="confirmPassword"
             rules={[{ required: true, message: "Please confirm your password" }]}
           >
-            <Input.Password placeholder="Confirm new password" />
+            <Input.Password placeholder="Confirm your password" />
           </Form.Item>
+
           <Button
             type="primary"
             icon={<LockOutlined />}

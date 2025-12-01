@@ -488,7 +488,7 @@ const Teacher = () => {
               key="view"
               icon={<EyeOutlined />}
               onClick={() => {
-                // console.log(record);
+                console.log(record);
                 setSelectedTeacher(record);
                 setIsDetailsOpen(true);
               }}

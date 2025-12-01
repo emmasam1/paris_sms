@@ -16,6 +16,9 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
+
+  // console.log(token, API_BASE_URL)
+
   // 🔐 Encrypt
   const encryptData = (data) => {
     try {

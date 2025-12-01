@@ -109,15 +109,17 @@ const Attendance = ({ className }) => {
 
   // === OPEN MODAL WITH MANUAL ATTENDANCE ===
   const openAttendanceModal = (record) => {
-    setSelectedStudentStats({
-      name: record.fullName,
-      regNo: record.admissionNumber,
-    });
+    // setSelectedStudentStats({
+    //   name: record.fullName,
+    //   regNo: record.admissionNumber,
+    // });
+    console.log(record)
     form.resetFields();
     setAttendanceModalOpen(true);
+    setSelectedStudentStats(record)
   };
 
-  const handleManualSubmit = (values) => {
+  const handleManualSubmit = (record) => {
     message.success(
       `Manual attendance submitted for ${selectedStudentStats.name}!`
     );
@@ -288,7 +290,7 @@ const Attendance = ({ className }) => {
       >
         {selectedStudentStats && (
           <div>
-            <Title level={5}>{selectedStudentStats.name}</Title>
+            <Title level={5}>{selectedStudentStats.fullName}</Title>
             <Text type="secondary">Reg No: {selectedStudentStats.regNo}</Text>
 
             <Form

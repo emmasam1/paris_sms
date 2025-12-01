@@ -165,7 +165,7 @@ const ClassManagement = () => {
     setIsFetching(true);
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/staff-management/staff/all`,
+        `${API_BASE_URL}/api/staff-management/staff/all?limit=100`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

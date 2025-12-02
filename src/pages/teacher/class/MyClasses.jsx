@@ -77,6 +77,8 @@ const MyClasses = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // console.log(res)
+
      messageApi.success(res.data.message)
 
       const allLevels = res?.data?.data || [];
@@ -106,6 +108,8 @@ const MyClasses = () => {
           `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subjectId}&session=2025/2026&term=1`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+
+        console.log("the result", resultRes)
 
         // 4️⃣ Merge status into students
         const studentsWithStatus = allLevels.map((item) => {
@@ -185,6 +189,8 @@ const MyClasses = () => {
       const res = await axios.get(url.toString(), {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      console.log("fetchStudentsForClass", res)
 
       const data = res?.data;
       let classStudents = [];

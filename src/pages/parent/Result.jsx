@@ -124,7 +124,7 @@ const ParentResult = () => {
 
       setResult(res.data?.data || []);
 
-      console.log("RESULT:", res.data);
+      // console.log("RESULT:", res.data);
     } catch (error) {
       console.log("Error get result", error);
     } finally {
@@ -387,7 +387,15 @@ const ParentResult = () => {
               </div>
 
               {/* image */}
-              <div className="bg-red-300 w-[150px] h-[150px] flex-shrink-0"></div>
+              {result?.studentSnapshot?.avatar && (
+                <div className="w-[150px] h-[150px] flex-shrink-0 overflow-hidden rounded-lg">
+                  <img
+                    src={result.studentSnapshot.avatar}
+                    alt=""
+                    className="w-full object-containe"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Student Info and Attendance */}

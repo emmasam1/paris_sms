@@ -33,7 +33,6 @@ const { Option } = Select;
 const { TabPane } = Tabs;
 const LEVELS = ["JSS1", "JSS2", "JSS3", "SS1", "SS2", "SS3"];
 
-
 const SubjectManagement = () => {
   const [searchText, setSearchText] = useState("");
   const [subjects, setSubjects] = useState([]);
@@ -66,7 +65,7 @@ const SubjectManagement = () => {
   const [form] = Form.useForm();
 
   const showAssignModal = (record) => {
-    // console.log(record);
+    console.log(record);
     setSelectedSubject(record); // ✅ store the clicked subject
     setIsAssignIsModalOpen(true);
   };
@@ -608,8 +607,6 @@ const SubjectManagement = () => {
       </Tabs>
       <div className="p-4 bg-white shadow-md rounded-lg">
         {contextHolder}
-
-  
 
         {/* 🔹 Add/Edit Subject Modal */}
         <Modal

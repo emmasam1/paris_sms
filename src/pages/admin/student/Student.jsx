@@ -158,7 +158,6 @@ const Student = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-
       const studentsWithFullName = (res?.data?.data || []).map((s) => ({
         ...s,
         key: s._id,
@@ -1512,8 +1511,13 @@ const Student = () => {
               placeholder="Select subjects"
               value={selectedSubjects}
               onChange={setSelectedSubjects}
-              loading={assignLoading} // 👈 USE LOCAL LOADING
+              loading={assignLoading}
               style={{ width: "100%" }}
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                option?.children?.toLowerCase().includes(input.toLowerCase())
+              }
             >
               {subjects?.map((s) => (
                 <Option key={s._id} value={s._id}>

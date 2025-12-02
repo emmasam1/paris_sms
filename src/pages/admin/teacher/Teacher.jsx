@@ -156,6 +156,39 @@ const Teacher = () => {
     }
   };
 
+  //Change staff role
+  const changeStaffRole = async (newRole) => {
+    const id = selectedStaff?._id;
+    if (!id) return messageApi.error("No staff selected!");
+    if (!newRole) return messageApi.error("Please select a role!");
+
+    try {
+      setLoading(true);
+
+      const res = await axios.patch(
+        `${API_BASE_URL}/api/staff-management/staff/${id}/change-role`,
+        { newRole },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      messageApi.success(res.data.message || "Role updated successfully!");
+      setIsRoleModalOpen(false);
+
+      // ✅ Update only the current row in table (NO full reload)
+      setStaff((prev) =>
+        prev.map((t) => (t._id === id ? { ...t, role: newRole } : t))
+      );
+    } catch (error) {
+      messageApi.error(
+        error?.response?.data?.message || "Failed to change staff role!"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleTableChange = (pag) => {
     setPagination((prev) => ({
       ...prev,
@@ -167,6 +200,7 @@ const Teacher = () => {
 
   const openRoleModal = (staff) => {
     setSelectedStaff(staff);
+    console.log(staff);
     setRoleValue(staff.role); // pre-fill current role
     setIsRoleModalOpen(true);
   };
@@ -860,8 +894,20 @@ const Teacher = () => {
         title="Change Staff Role"
         open={isRoleModalOpen}
         onCancel={() => setIsRoleModalOpen(false)}
-        // onOk={changeStaffRole}
-        confirmLoading={loading}
+        footer={[
+          <Button key="cancel" onClick={() => setIsRoleModalOpen(false)}>
+            Cancel
+          </Button>,
+
+          <Button
+            key="submit"
+            type="primary"
+            loading={loading}
+            onClick={() => changeStaffRole(roleValue)} // <-- PASS VALUE
+          >
+            Change Role
+          </Button>,
+        ]}
       >
         <Select
           className="w-full"
@@ -870,6 +916,7 @@ const Teacher = () => {
         >
           <Option value="teacher">Teacher</Option>
           <Option value="class_admin">Class Admin</Option>
+          <Option value="school_admin">School Admin</Option>
         </Select>
       </Modal>
     </div>

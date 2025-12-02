@@ -62,6 +62,8 @@ const Student = () => {
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
+  const [assignLoading, setAssignLoading] = useState(false);
+
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
     current: 1,
@@ -218,32 +220,39 @@ const Student = () => {
 
   const assignSubject = async () => {
     const id = selectedStudent?._id;
-    const payload = {
-      subjectIds: selectedSubjects, // ✅ use state directly
-    };
+
+    const payload = { subjectIds: selectedSubjects };
 
     try {
-      setLoading(true);
-      // Example API call
+      setAssignLoading(true);
+
       const res = await axios.post(
         `${API_BASE_URL}/api/student-management/students/${id}/subjects`,
         payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // console.log(res);
-      setOpenAssignSubjectsModal(false);
-      getStudents();
       messageApi.success(
         res?.data?.message || "Subjects assigned successfully!"
       );
+
+      const updatedStudent = {
+        ...selectedStudent,
+        subjects: subjects.filter((s) => selectedSubjects.includes(s._id)),
+      };
+
+      setStudents((prev) =>
+        prev.map((std) => (std._id === id ? updatedStudent : std))
+      );
+
+      setOpenAssignSubjectsModal(false);
     } catch (error) {
       console.error(error);
-      messageApi.error(res?.response?.error || "Failed to assign subjects.");
+      messageApi.error(
+        error?.response?.data?.message || "Failed to assign subjects."
+      );
     } finally {
-      setLoading(false);
+      setAssignLoading(false);
     }
   };
 
@@ -1219,7 +1228,7 @@ const Student = () => {
               </Form.Item>
             </Col>
           </Row>
-{/* 
+          {/* 
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item label="House" name="house">
@@ -1468,9 +1477,9 @@ const Student = () => {
           setSelectedStudent(null);
           setSelectedSubjects([]);
         }}
-        onOk={() => form.submit()} // ✅ safe submit
+        onOk={() => form.submit()}
         okText="Assign"
-        confirmLoading={loading}
+        confirmLoading={assignLoading} // 👈 USE LOCAL LOADING
       >
         <Form layout="vertical" form={form} onFinish={assignSubject}>
           <Form.Item label="Select Subjects">
@@ -1479,7 +1488,7 @@ const Student = () => {
               placeholder="Select subjects"
               value={selectedSubjects}
               onChange={setSelectedSubjects}
-              loading={loading}
+              loading={assignLoading} // 👈 USE LOCAL LOADING
               style={{ width: "100%" }}
             >
               {subjects?.map((s) => (

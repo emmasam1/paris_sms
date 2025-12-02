@@ -665,12 +665,12 @@ const Student = () => {
               {
                 type: "divider",
               },
-              {
-                key: "4",
-                icon: <BarChartOutlined style={{ color: "#52c41a" }} />,
-                label: "Progress Report",
-                onClick: () => openProgressModal(record),
-              },
+              // {
+              //   key: "4",
+              //   icon: <BarChartOutlined style={{ color: "#52c41a" }} />,
+              //   label: "Progress Report",
+              //   onClick: () => openProgressModal(record),
+              // },
               {
                 type: "divider",
               },

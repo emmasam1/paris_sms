@@ -200,7 +200,7 @@ const Teacher = () => {
 
   const openRoleModal = (staff) => {
     setSelectedStaff(staff);
-    console.log(staff);
+    // console.log(staff);
     setRoleValue(staff.role); // pre-fill current role
     setIsRoleModalOpen(true);
   };
@@ -266,7 +266,7 @@ const Teacher = () => {
       if (editingTeacher) {
         // Update profile (multipart) - server should accept files here too
         res = await axios.patch(
-          `${API_BASE_URL}/api/management/update-profile/${editingTeacher._id}`,
+          `${API_BASE_URL}/api/staff-management/staff/update-profile/${editingTeacher._id}`,
           formData,
           {
             headers: {
@@ -276,7 +276,7 @@ const Teacher = () => {
             },
           }
         );
-        console.log(res);
+        // console.log(res);
         messageApi.success(res?.data?.message || "Staff updated successfully");
       } else {
         // Register new staff

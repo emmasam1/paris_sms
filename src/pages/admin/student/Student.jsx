@@ -137,12 +137,17 @@ const Student = () => {
     }
   }, [editingStudent, form]);
 
-  const getStudents = async (page = 1, search = "", classId = "") => {
+  const getStudents = async (
+    page = 1,
+    search = "",
+    classId = "",
+    pageSize = pagination.pageSize
+  ) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       params.append("page", page);
-      params.append("limit", pagination.pageSize); // <-- FIXED
+      params.append("limit", pageSize);
 
       if (search) params.append("search", search);
       if (classId) params.append("classId", classId);
@@ -163,10 +168,9 @@ const Student = () => {
       setPagination({
         current: res?.data?.pagination?.page || page,
         total: res?.data?.pagination?.total || 0,
-        pageSize: res?.data?.pagination?.limit || pagination.pageSize,
+        pageSize: res?.data?.pagination?.limit || pageSize,
       });
     } catch (error) {
-      console.error("Error fetching students:", error);
       messageApi.error(
         error?.response?.data?.message || "Failed to fetch students"
       );
@@ -257,7 +261,18 @@ const Student = () => {
   };
 
   const handleTableChange = (paginationConfig) => {
-    getStudents(paginationConfig.current, searchText);
+    setPagination((prev) => ({
+      ...prev,
+      current: paginationConfig.current,
+      pageSize: paginationConfig.pageSize,
+    }));
+
+    getStudents(
+      paginationConfig.current,
+      searchText,
+      selectedClass,
+      paginationConfig.pageSize
+    );
   };
 
   // Add this before return
@@ -1083,12 +1098,12 @@ const Student = () => {
             bordered
             size="small"
             pagination={{
-              current: pagination.current,
-              total: pagination.total,
-              pageSize: pagination.pageSize,
+              ...pagination,
+    showSizeChanger: true,
+    pageSizeOptions: ["5", "10", "20", "50"],
               position: ["bottomCenter"],
               className: "custom-pagination",
-              showSizeChanger: false,
+              // showSizeChanger: false,
             }}
             onChange={handleTableChange}
             className="custom-table"

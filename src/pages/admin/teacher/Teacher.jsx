@@ -824,9 +824,10 @@ const Teacher = () => {
             <Descriptions.Item label="Role">
               {selectedTeacher.role}
             </Descriptions.Item>
-            <Descriptions.Item label="Subject">
-              {selectedTeacher.subject}
+            <Descriptions.Item label="Subjects">
+              {selectedTeacher.subjects?.map((s) => s.name).join(", ")}
             </Descriptions.Item>
+
             <Descriptions.Item label="Phone">
               {selectedTeacher.phone}
             </Descriptions.Item>
@@ -837,7 +838,7 @@ const Teacher = () => {
               {selectedTeacher.address || "—"}
             </Descriptions.Item>
             <Descriptions.Item label="Status">
-              {selectedTeacher.status === "active" ? "Active" : "Blocked"}
+              {selectedTeacher.status === "active" ? "Active" : "Active"}
             </Descriptions.Item>
           </Descriptions>
         )}

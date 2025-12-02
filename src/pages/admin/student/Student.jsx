@@ -19,6 +19,7 @@ import {
   Dropdown,
   Menu,
   Card,
+  Tag,
 } from "antd";
 import {
   SearchOutlined,
@@ -156,6 +157,7 @@ const Student = () => {
         `${API_BASE_URL}/api/student-management/student?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
 
       const studentsWithFullName = (res?.data?.data || []).map((s) => ({
         ...s,
@@ -446,7 +448,6 @@ const Student = () => {
     // ==========================================================
     // 💡 START LOGGING THE DATA BEING SENT
     // ==========================================================
-    console.log("--- Data being sent (FormData contents) ---");
 
     // Create an object to hold the key-value pairs for easy logging
     const dataToLog = {};
@@ -466,8 +467,6 @@ const Student = () => {
       }
     }
 
-    console.log(dataToLog);
-    console.log("------------------------------------------");
     // ==========================================================
     // 💡 END LOGGING THE DATA BEING SENT
     // ==========================================================
@@ -609,6 +608,16 @@ const Student = () => {
       dataIndex: "class",
       key: "class",
       render: (text, record) => record?.class?.name || record.class,
+    },
+    {
+      title: "Subject",
+      dataIndex: "subjects",
+      key: "subjects",
+      render: (_, students) => (
+        <Tag color={students.subjects?.length > 0 ? "green" : "red"}>
+          {students.subjects?.length > 0 ? "Yes" : "No"}
+        </Tag>
+      ),
     },
     {
       title: "Arm",
@@ -1099,8 +1108,8 @@ const Student = () => {
             size="small"
             pagination={{
               ...pagination,
-    showSizeChanger: true,
-    pageSizeOptions: ["5", "10", "20", "50"],
+              showSizeChanger: true,
+              pageSizeOptions: ["5", "10", "20", "50"],
               position: ["bottomCenter"],
               className: "custom-pagination",
               // showSizeChanger: false,

@@ -97,8 +97,11 @@ const ClassManagement = () => {
         ...s,
         key: s._id,
         studentName: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
-        arm: `${s.class?.arm || ""}`.trim(),
-        name: `${s.class?.name || ""}`.trim(),
+        class: {
+          _id: s.class?._id,
+          name: s.class?.name,
+          arm: s.class?.arm,
+        },
       }));
 
       // messageApi.success(res.data?.message);
@@ -119,38 +122,26 @@ const ClassManagement = () => {
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/class-management/classes?limit=100`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // console.log("All class:", res);
-
       const data = res?.data?.data || [];
+
       const mapped = data.map((cls) => ({
         ...cls,
         key: cls._id,
       }));
 
-      // 🔹 simulate pagination
-      const pageSize = 20;
-      const start = (page - 1) * pageSize;
-      const end = start + pageSize;
-      const paginated = mapped.slice(start, end);
+      // console.log(res)
 
-      setClasses(paginated);
-      await getStudents();
-
-      setPagination({
-        current: page,
+      setClasses(mapped);
+      setPagination((prev) => ({
+        ...prev,
         total: mapped.length,
-        pageSize,
-      });
+      }));
 
-      // console.log(res);
       messageApi.success(res?.data?.message || "Classes fetched successfully");
     } catch (error) {
-      console.error(error);
       messageApi.error(
         error?.response?.data?.message || "Failed to fetch classes"
       );
@@ -183,9 +174,19 @@ const ClassManagement = () => {
     if (initialized && token) {
       getTeachers();
       getClass(pagination.current);
-      getStudents();
+      getStudents(); // ONE time only
     }
   }, [initialized, token]);
+
+  useEffect(() => {
+    const map = {};
+    students.forEach((s) => {
+      const classId = s.class?._id;
+      if (!classId) return;
+      map[classId] = (map[classId] || 0) + 1;
+    });
+    setStudentCountMap(map);
+  }, [students, classes]);
 
   //Add student to class
   const addStudentToClass = async (values) => {
@@ -217,7 +218,7 @@ const ClassManagement = () => {
 
   // 🔹 Handle AntD table pagination change
   const handleTableChange = (paginationConfig) => {
-    getClass(paginationConfig.current);
+    setPagination(paginationConfig);
   };
 
   // ✅ Unified Assign/Unassign function
@@ -546,8 +547,8 @@ const ClassManagement = () => {
           size="small"
           pagination={{
             current: pagination.current,
-            total: pagination.total,
             pageSize: pagination.pageSize,
+            total: pagination.total,
             position: ["bottomCenter"],
             className: "custom-pagination",
             // showSizeChanger: true,
@@ -599,10 +600,10 @@ const ClassManagement = () => {
             name="level"
             rules={[{ required: true, message: "Please select level" }]}
           >
-            <Select placeholder="Select Levels">
-              <Option value="SS1">SSS1</Option>
-              <Option value="SS2">SSS2</Option>
-              <Option value="SS3">SSS3</Option>
+            <Select placeholder="Select Level">
+              <Option value="SSS1">SSS1</Option>
+              <Option value="SSS2">SSS2</Option>
+              <Option value="SSS3">SSS3</Option>
               <Option value="JSS1">JSS1</Option>
               <Option value="JSS2">JSS2</Option>
               <Option value="JSS3">JSS3</Option>
@@ -662,8 +663,9 @@ const ClassManagement = () => {
             </Select>
           </Form.Item>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 mt-4">
             <Button onClick={() => setIsAssignOpen(false)}>Cancel</Button>
+
             <Button type="primary" htmlType="submit" loading={loading}>
               Assign
             </Button>

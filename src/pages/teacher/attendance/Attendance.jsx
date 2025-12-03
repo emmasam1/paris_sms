@@ -15,6 +15,7 @@ import {
   Skeleton,
   Modal,
   Form,
+  Input,
   InputNumber,
   Typography,
 } from "antd";
@@ -29,7 +30,7 @@ const Attendance = ({ className }) => {
   const today = dayjs().format("YYYY-MM-DD");
   const { token, API_BASE_URL, loading, setLoading } = useApp();
 
-  console.log(token)
+  console.log(token);
 
   const [selectedDate, setSelectedDate] = useState(today);
   const [attendance, setAttendance] = useState({});
@@ -45,6 +46,9 @@ const Attendance = ({ className }) => {
   // Modal states
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [selectedStudentStats, setSelectedStudentStats] = useState(null);
+
+  const [domainModalOpen, setDomainModalOpen] = useState(false);
+  const [selectedDomainStudent, setSelectedDomainStudent] = useState(null);
 
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm();
@@ -89,6 +93,16 @@ const Attendance = ({ className }) => {
     }));
   };
 
+  const GradeSelect = () => (
+    <Select placeholder="Grade" className="w-full">
+      {["A+", "A", "B+", "B", "C", "D", "E", "F"].map((g) => (
+        <Option key={g} value={g}>
+          {g}
+        </Option>
+      ))}
+    </Select>
+  );
+
   const submitBulkAttendance = async () => {
     if (!bulkSession || !bulkTerm)
       return message.error("Please select session & term!");
@@ -128,6 +142,16 @@ const Attendance = ({ className }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const saveDomain = (values) => {
+    console.log("Saving Domain For:", selectedDomainStudent);
+    console.log("Domain Values:", values);
+
+    // TODO: API CALL HERE
+
+    message.success("Domain saved successfully");
+    setDomainModalOpen(false);
   };
 
   // === MARK ATTENDANCE ===
@@ -276,6 +300,77 @@ const Attendance = ({ className }) => {
         </Typography.Text>
       </div>
 
+      <Modal
+        title={
+          <span className="text-[16px] font-semibold">
+            Enter Domain for {selectedDomainStudent?.name || ""}
+          </span>
+        }
+        open={domainModalOpen}
+        onCancel={() => setDomainModalOpen(false)}
+        onOk={() => form.submit()}
+        okText="Save"
+        width={650} // slightly wider for 3 columns
+        bodyStyle={{ padding: "12px 20px" }}
+      >
+        <Form layout="vertical" form={form} onFinish={saveDomain} size="small">
+          {/* AFFECTIVE DOMAIN */}
+          <h3 className="text-[14px] font-medium mt-2 mb-2">
+            Affective Domain
+          </h3>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Attentiveness", name: "attentiveness" },
+              { label: "Honesty", name: "honesty" },
+              { label: "Neatness", name: "neatness" },
+              { label: "Punctuality", name: "punctuality" },
+              {
+                label: "Relationship With Others",
+                name: "relationshipWithOthers",
+              },
+              { label: "Leadership Traits", name: "leadershipTraits" },
+            ].map((item) => (
+              <Form.Item
+                key={item.name}
+                label={<span className="text-[12px]">{item.label}</span>}
+                name={item.name}
+                rules={[{ required: true }]}
+                className="!mb-0"
+              >
+                <GradeSelect />
+              </Form.Item>
+            ))}
+          </div>
+
+          {/* PSYCHOMOTOR DOMAIN */}
+          <h3 className="text-[14px] font-medium mt-4 mb-2">
+            Psychomotor Domain
+          </h3>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              {
+                label: "Club Interests & Sports",
+                name: "clubInterestsAndSports",
+              },
+              { label: "Handwriting", name: "handWriting" },
+              { label: "Agility", name: "agility" },
+              { label: "Oratory Skills", name: "oratorySkills" },
+              { label: "Self Care", name: "selfCare" },
+              { label: "Organisational Skills", name: "organisationalSkills" },
+            ].map((item) => (
+              <Form.Item
+                key={item.name}
+                label={<span className="text-[12px]">{item.label}</span>}
+                name={item.name}
+                rules={[{ required: true }]}
+              >
+                <GradeSelect />
+              </Form.Item>
+            ))}
+          </div>
+        </Form>
+      </Modal>
+
       {/* DATE SELECT */}
       <div className="mb-4 flex items-center gap-3">
         <Typography.Text strong>Select Date:</Typography.Text>
@@ -346,8 +441,74 @@ const Attendance = ({ className }) => {
           )}
         </Tabs.TabPane>
 
+        {/* ======================= STUDENT DOMAIN TAB ======================= */}
+        <Tabs.TabPane tab="Student Domain" key="2">
+          {loading ? (
+            <>
+              <Skeleton active />
+              <Skeleton active />
+            </>
+          ) : studentsList.length === 0 ? (
+            <p className="text-gray-400 text-center mt-6">
+              No students in this class.
+            </p>
+          ) : (
+            <>
+              <Table
+                dataSource={students.map((s, index) => ({
+                  sn: index + 1,
+                  regNo: s.admissionNumber,
+                  name: s.fullName,
+                }))}
+                columns={[
+                  {
+                    title: "S/N",
+                    dataIndex: "sn",
+                    width: 60,
+                  },
+                  {
+                    title: "Reg No",
+                    dataIndex: "regNo",
+                  },
+                  {
+                    title: "Student Name",
+                    dataIndex: "name",
+                  },
+                  {
+                    title: "Domain",
+                    key: "domain",
+                    width: 120,
+                    render: (_, record) => (
+                      <Button
+                        type="primary"
+                        size="small"
+                        onClick={() => {
+                          setSelectedDomainStudent(record);
+                          form.resetFields();
+                          setDomainModalOpen(true);
+                        }}
+                      >
+                        Enter Domain
+                      </Button>
+                    ),
+                  },
+                ]}
+                rowKey="regNo"
+                bordered
+                className="rounded-lg overflow-hidden"
+                pagination={{
+                  position: ["bottomCenter"],
+                  className: "custom-pagination",
+                }}
+                size="small"
+                scroll={{ x: "max-content" }}
+              />
+            </>
+          )}
+        </Tabs.TabPane>
+
         {/* ======================= BULK ATTENDANCE ======================= */}
-        <Tabs.TabPane tab="Bulk Attendance" key="2">
+        <Tabs.TabPane tab="Bulk Attendance" key="3">
           <Card className="mb-4 p-4 bg-gray-50 rounded-xl">
             <Typography.Title level={5}>Bulk Attendance Setup</Typography.Title>
             <Typography.Text type="secondary">
@@ -444,7 +605,7 @@ const Attendance = ({ className }) => {
         </Tabs.TabPane>
 
         {/* ======================= VIEW ATTENDANCE ======================= */}
-        <Tabs.TabPane tab="View Attendance" key="3">
+        <Tabs.TabPane tab="View Attendance" key="4">
           {Object.keys(viewRecords).length === 0 ? (
             <p className="text-gray-400 text-center mt-6">
               No attendance records yet.

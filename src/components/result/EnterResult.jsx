@@ -12,38 +12,122 @@ const getGrade = (total) => {
   return "F";
 };
 
-const EnterResult = ({
-  open,
-  onClose,
-  student,
-  teacherSubject,
-  onClick
-}) => {
+const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selectedLevel }) => {
   const [studentScores, setStudentScores] = useState([]);
   const { API_BASE_URL, token, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
+  const [hasError, setHasError] = useState(false);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState(teacherSubject || null);
 
-  // NEW STATES
   const [session, setSession] = useState(null);
   const [term, setTerm] = useState(null);
 
-  // ===============================
-  // SAVE SCORE FUNCTION
-  // ===============================
+  // ------------------------------------------------------
+  // Fetch all subjects
+  // ------------------------------------------------------
+  const getAllSubjects = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/subject-management/subjects?limit=100`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = res.data;
+      console.log("All subjects:", result.data);
+      setSubjects(result.data || []);
+    } catch (error) {
+      console.error(error);
+      messageApi.error("Failed to fetch subjects");
+    }
+  };
+
+  useEffect(() => {
+    getAllSubjects();
+  }, []);
+
+  // ------------------------------------------------------
+  // Determine if Senior based on selectedLevel
+  // ------------------------------------------------------
+  const isSenior = selectedLevel?.toUpperCase().startsWith("SS");
+
+  // Set limits dynamically based on level
+  const limits = isSenior
+    ? { firstAssignment: 5, secondAssignment: 5, firstCATest: 10, secondCATest: 10, exam: 70 }
+    : { firstAssignment: 10, secondAssignment: 10, firstCATest: 20, secondCATest: 20, exam: 40 };
+
+  // ------------------------------------------------------
+  // Load initial student scores based on selectedSubject
+  // ------------------------------------------------------
+  useEffect(() => {
+    if (selectedSubject) {
+      setStudentScores([
+        {
+          key: selectedSubject._id,
+          subject: selectedSubject.name,
+          subjectId: selectedSubject._id,
+          firstAssignment: 0,
+          secondAssignment: 0,
+          firstCATest: 0,
+          secondCATest: 0,
+          exam: 0,
+          total: 0,
+          grade: "F",
+        },
+      ]);
+    }
+  }, [selectedSubject]);
+
+  // ------------------------------------------------------
+  // Handle score changes
+  // ------------------------------------------------------
+  const handleScoreChange = (key, field, value) => {
+    const max = limits[field];
+
+    setStudentScores((prev) =>
+      prev.map((row) => {
+        if (row.key !== key) return row;
+
+        const updated = { ...row, [field]: value || 0 };
+
+        if (value > max) {
+          setHasError(true);
+        } else {
+          const stillInvalid = prev.some((r) =>
+            Object.keys(limits).some((f) => r[f] > limits[f])
+          );
+          setHasError(stillInvalid);
+        }
+
+        updated.total =
+          updated.firstAssignment +
+          updated.secondAssignment +
+          updated.firstCATest +
+          updated.secondCATest +
+          updated.exam;
+
+        updated.grade = getGrade(updated.total);
+
+        return updated;
+      })
+    );
+  };
+
+  // ------------------------------------------------------
+  // Submit score
+  // ------------------------------------------------------
   const enterScore = async () => {
     if (!student?._id) return message.error("No student selected");
     if (!session) return message.error("Please select session");
     if (!term) return message.error("Please select term");
+    if (!selectedSubject?._id) return message.error("Please select subject");
+    if (hasError) return message.error("Correct invalid score inputs");
 
-    // only one subject score exists
     const score = studentScores[0];
 
     const payload = {
       studentId: student._id,
-      subjectId: teacherSubject?._id,
+      subjectId: selectedSubject._id,
       session,
-      term: Number(term), // convert term to number
-
+      term: Number(term),
       firstAssignment: score.firstAssignment,
       secondAssignment: score.secondAssignment,
       firstCA: score.firstCATest,
@@ -51,89 +135,33 @@ const EnterResult = ({
       exam: score.exam,
     };
 
-    console.log(payload)
-
     try {
       setLoading(true);
-      const res = await axios.post(
-        `${API_BASE_URL}/api/records/record-score`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      console.log(res);
-      if (onClick) onClick(res.data);
-      messageApi.success(res.data.message || "Result prepared successfully!");
-     
+      const res = await axios.post(`${API_BASE_URL}/api/records/record-score`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      onClick && onClick(res.data);
+      messageApi.success("Result saved successfully!");
       resetForm();
       onClose();
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      message.error("Failed to save");
     } finally {
       setLoading(false);
     }
   };
 
-  // ===============================
-  // LOAD INITIAL EMPTY SCORES
-  // ===============================
-  useEffect(() => {
-    if (teacherSubject) {
-      setStudentScores([
-        {
-          key: teacherSubject._id,
-          subject: teacherSubject.name,
-          subjectId: teacherSubject._id,
-          firstAssignment: 0,
-          secondAssignment: 0,
-          firstCATest: 0,
-          secondCATest: 0,
-          exam: 0,
-          total: 0,
-          grade: "F",
-        },
-      ]);
-    }
-  }, [teacherSubject]);
-
-  // ===============================
-  // SCORE CHANGE
-  // ===============================
-  const handleScoreChange = (key, field, value) => {
-    setStudentScores((prev) =>
-      prev.map((row) => {
-        if (row.key === key) {
-          const updated = { ...row, [field]: value || 0 };
-
-          const total =
-            updated.firstAssignment +
-            updated.secondAssignment +
-            updated.firstCATest +
-            updated.secondCATest +
-            updated.exam;
-
-          updated.total = total;
-          updated.grade = getGrade(total);
-
-          return updated;
-        }
-        return row;
-      })
-    );
-  };
-
   const resetForm = () => {
     setSession(null);
     setTerm(null);
-
-    // Reset scores to empty/default
-    if (teacherSubject) {
+    if (selectedSubject) {
       setStudentScores([
         {
-          key: teacherSubject._id,
-          subject: teacherSubject.name,
-          subjectId: teacherSubject._id,
+          key: selectedSubject._id,
+          subject: selectedSubject.name,
+          subjectId: selectedSubject._id,
           firstAssignment: 0,
           secondAssignment: 0,
           firstCATest: 0,
@@ -144,72 +172,85 @@ const EnterResult = ({
         },
       ]);
     }
+    setHasError(false);
   };
 
-  // ===============================
-  // TABLE COLUMNS
-  // ===============================
+  // ------------------------------------------------------
+  // Table columns
+  // ------------------------------------------------------
   const scoreColumns = [
     { title: "Subject", dataIndex: "subject" },
-
     {
-      title: "1st Ass (10%)",
+      title: `1st Ass (${limits.firstAssignment}%)`,
       render: (_, r) => (
         <InputNumber
           min={0}
-          max={10}
           value={r.firstAssignment}
           onChange={(v) => handleScoreChange(r.key, "firstAssignment", v)}
+          style={{
+            background: r.firstAssignment > limits.firstAssignment ? "#ffccc7" : "white",
+            borderColor: r.firstAssignment > limits.firstAssignment ? "red" : "",
+          }}
         />
       ),
     },
     {
-      title: "2nd Ass (10%)",
+      title: `2nd Ass (${limits.secondAssignment}%)`,
       render: (_, r) => (
         <InputNumber
           min={0}
-          max={10}
           value={r.secondAssignment}
           onChange={(v) => handleScoreChange(r.key, "secondAssignment", v)}
+          style={{
+            background: r.secondAssignment > limits.secondAssignment ? "#ffccc7" : "white",
+            borderColor: r.secondAssignment > limits.secondAssignment ? "red" : "",
+          }}
         />
       ),
     },
     {
-      title: "1st CA (20%)",
+      title: `1st CA (${limits.firstCATest}%)`,
       render: (_, r) => (
         <InputNumber
           min={0}
-          max={20}
           value={r.firstCATest}
           onChange={(v) => handleScoreChange(r.key, "firstCATest", v)}
+          style={{
+            background: r.firstCATest > limits.firstCATest ? "#ffccc7" : "white",
+            borderColor: r.firstCATest > limits.firstCATest ? "red" : "",
+          }}
         />
       ),
     },
     {
-      title: "2nd CA (20%)",
+      title: `2nd CA (${limits.secondCATest}%)`,
       render: (_, r) => (
         <InputNumber
           min={0}
-          max={20}
           value={r.secondCATest}
           onChange={(v) => handleScoreChange(r.key, "secondCATest", v)}
+          style={{
+            background: r.secondCATest > limits.secondCATest ? "#ffccc7" : "white",
+            borderColor: r.secondCATest > limits.secondCATest ? "red" : "",
+          }}
         />
       ),
     },
     {
-      title: "Exam (40%)",
+      title: `Exam (${limits.exam}%)`,
       render: (_, r) => (
         <InputNumber
           min={0}
-          max={40}
           value={r.exam}
           onChange={(v) => handleScoreChange(r.key, "exam", v)}
+          style={{
+            background: r.exam > limits.exam ? "#ffccc7" : "white",
+            borderColor: r.exam > limits.exam ? "red" : "",
+          }}
         />
       ),
     },
-
     { title: "Total", dataIndex: "total" },
-
     {
       title: "Grade",
       dataIndex: "grade",
@@ -239,46 +280,74 @@ const EnterResult = ({
     <Modal
       title={`Enter Result – ${student?.fullName}`}
       open={open}
+      okButtonProps={{ disabled: hasError }}
       onCancel={() => {
         resetForm();
         onClose();
       }}
-      okText="Enter Record" // <-- CHANGE BUTTON NAME
-      confirmLoading={loading} // <-- ADD LOADING SPINNER
+      okText="Enter Record"
+      confirmLoading={loading}
       onOk={enterScore}
       width={900}
     >
       {contextHolder}
+
       {/* SESSION & TERM SELECT */}
       <div className="flex gap-4 mb-4">
-        {/* Session */}
         <div className="flex flex-col w-40">
           <label className="font-semibold mb-1">Session</label>
-          <Select
-            placeholder="Select session"
-            value={session}
-            onChange={(v) => setSession(v)}
-          >
+          <Select value={session} onChange={setSession} placeholder="Session">
             <Select.Option value="2024/2025">2024/2025</Select.Option>
             <Select.Option value="2025/2026">2025/2026</Select.Option>
             <Select.Option value="2026/2027">2026/2027</Select.Option>
           </Select>
         </div>
 
-        {/* Term */}
         <div className="flex flex-col w-40">
           <label className="font-semibold mb-1">Term</label>
-          <Select
-            placeholder="Select term"
-            value={term}
-            onChange={(v) => setTerm(v)}
-          >
+          <Select value={term} onChange={setTerm} placeholder="Term">
             <Select.Option value="1">First Term</Select.Option>
             <Select.Option value="2">Second Term</Select.Option>
             <Select.Option value="3">Third Term</Select.Option>
           </Select>
         </div>
+      {/* SUBJECT SELECT */}
+      <div className="flex flex-col w-80 mb-4">
+        <label className="font-semibold mb-1">Subject</label>
+        <Select
+          value={selectedSubject?._id}
+          onChange={(id) => {
+            const fullSub = subjects.find((s) => s._id === id);
+            setSelectedSubject(fullSub);
+
+            if (fullSub) {
+              setStudentScores([
+                {
+                  key: fullSub._id,
+                  subject: fullSub.name,
+                  subjectId: fullSub._id,
+                  firstAssignment: 0,
+                  secondAssignment: 0,
+                  firstCATest: 0,
+                  secondCATest: 0,
+                  exam: 0,
+                  total: 0,
+                  grade: "F",
+                },
+              ]);
+            }
+          }}
+          placeholder="Select Subject"
+        >
+          {subjects?.map((sub) => (
+            <Select.Option key={sub._id} value={sub._id}>
+              {sub.name}
+            </Select.Option>
+          ))}
+        </Select>
       </div>
+      </div>
+
 
       {/* SCORE TABLE */}
       <Table

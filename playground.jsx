@@ -1,661 +1,633 @@
-// --------------  FULL TEACHER MANAGEMENT PAGE  --------------------
-
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Input,
-  Select,
+  Card,
   Table,
   Button,
-  Space,
-  Tag,
   Modal,
-  Form,
-  message,
-  Row,
-  Col,
-  Descriptions,
-  Upload,
-  Empty,
+  Space,
+  Tabs,
   Skeleton,
-  Avatar,
-  Dropdown,
-  Menu,
+  message,
+  Select,
 } from "antd";
-
 import {
-  SearchOutlined,
   EditOutlined,
-  EyeOutlined,
-  StopOutlined,
+  BarChartOutlined,
+  UserOutlined,
   CheckCircleOutlined,
-  UploadOutlined,
-  SettingOutlined,
-  MoreOutlined,
   PlusOutlined,
-  SwapOutlined,
+  FormOutlined,
 } from "@ant-design/icons";
-
-import teacher_img from "../../../assets/teacher.jpg";
-import { useApp } from "../../../context/AppContext";
+import EnterResult from "../../../components/result/EnterResult";
+import ProgressChart from "../../../components/progress/ProgressChart";
+import ResultSheet from "../../../components/resultSheet/ResultSheet";
 import axios from "axios";
+import { useApp } from "../../../context/AppContext";
 
+const { TabPane } = Tabs;
 const { Option } = Select;
 
-const Teacher = () => {
-  const [searchText, setSearchText] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [editingTeacher, setEditingTeacher] = useState(null);
-  const [selectedTeacher, setSelectedTeacher] = useState(null);
-  const [form] = Form.useForm();
-  const [fileList, setFileList] = useState([]);
-  const [teachers, setTeachers] = useState([]);
-  const [classes, setClasses] = useState([]);
-  const [staff, setStaff] = useState([]);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
-  const [isFetching, setIsFetching] = useState(false);
+const MyClasses = () => {
+  const { token, API_BASE_URL } = useApp();
 
-  const {
-    API_BASE_URL,
-    token,
-    initialized,
-    loading,
-    setLoading,
-    user,
-  } = useApp();
+  // UI state
+  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+  const [isViewResultModalOpen, setIsViewResultModalOpen] = useState(false);
 
-  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  // active row / subject
+  const [activeStudent, setActiveStudent] = useState(null);
+  const [activeSubjects, setActiveSubjects] = useState(null);
+  const [subject, setSubject] = useState(null); // teacherSubject from API
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [filteredSubjects, setFilteredSubjects] = useState([]);
 
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState(null);
-  const [selectedClass, setSelectedClass] = useState(null);
-  const [assignLoading, setAssignLoading] = useState(false);
+  // teacher data structure: levels -> classes -> students
+  const [teacherData, setTeacherData] = useState([]); // full payload: data[]
+  const [levels, setLevels] = useState([]); // ["JSS1","JSS3"...]
+  const [arms, setArms] = useState([]); // arms for selected level (array of arm strings)
 
-  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
-  const [roleValue, setRoleValue] = useState("");
+  // selects
+  const [selectedLevel, setSelectedLevel] = useState(null);
+  const [selectedArm, setSelectedArm] = useState(null);
 
+  // students shown in the table
+  const [students, setStudents] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+
+  // loading & messages
+  const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
-  // Convert to base64
-  const getBase64 = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
-
-  // Preview uploaded image
-  const handlePreview = async (file) => {
-    if (!file.url && !file.preview) {
-      file.preview = await getBase64(file.originFileObj);
-    }
-  };
-
-  const handleChange = async ({ fileList: newList }) => {
-    setFileList(newList);
-    if (newList.length > 0) {
-      const file = newList[0].originFileObj;
-      const base64 = await getBase64(file);
-      form.setFieldsValue({ avatar: base64 });
-    }
-  };
+  // pagination for students table
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    if (editingTeacher?.avatar) {
-      setFileList([
-        {
-          uid: "-1",
-          name: "avatar.png",
-          status: "done",
-          url: editingTeacher.avatar,
-        },
-      ]);
-      form.setFieldsValue({ avatar: editingTeacher.avatar });
-    } else {
-      setFileList([]);
-    }
-  }, [editingTeacher]);
-
-  // Fetch Teachers
-  const getTeachers = async (page = 1, limit = 10, search = "") => {
-    if (!token) return;
-    setIsFetching(true);
-
-    try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/staff-management/staff/all?page=${page}&limit=${limit}${
-          search ? `&search=${search}` : ""
-        }`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const result = res.data.data || [];
-      setStaff(result);
-
-      setPagination({
-        current: res.data.pagination?.page || 1,
-        pageSize: res.data.pagination?.limit || 10,
-        total: res.data.pagination?.total || result.length,
-      });
-    } catch (error) {
-      messageApi.error("Failed to load staff");
-    } finally {
-      setIsFetching(false);
-    }
-  };
-
-  const getClass = async () => {
-    if (!token) return;
-    try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/class-management/classes?limit=50`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setClasses(res?.data?.data || []);
-    } catch (error) {
-      messageApi.error("Failed to fetch classes");
-    }
-  };
-
-  useEffect(() => {
-    getClass();
-  }, [token]);
-
-  // Debounced search
-  useEffect(() => {
-    if (!initialized || !token) return;
-    const timeout = setTimeout(() => {
-      getTeachers(1, pagination.pageSize, searchText);
-    }, 600);
-    return () => clearTimeout(timeout);
-  }, [searchText]);
-
-  const createStaff = async () => {
-    try {
-      const values = await form.validateFields();
-      setLoading(true);
-
-      const formData = new FormData();
-      formData.append("title", values.title || "");
-      formData.append("firstName", values.firstName || "");
-      formData.append("lastName", values.lastName || "");
-      formData.append("email", values.email || "");
-      formData.append("phone", values.phone || "");
-      formData.append("address", values.address || "");
-      formData.append("role", values.role || "teacher");
-
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        formData.append("avatar", fileList[0].originFileObj);
-      }
-
-      let res;
-      if (editingTeacher) {
-        res = await axios.patch(
-          `${API_BASE_URL}/api/management/update-profile/${editingTeacher._id}`,
-          formData,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } else {
-        res = await axios.post(
-          `${API_BASE_URL}/api/auth/register`,
-          formData,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      }
-
-      setSuccessMessage(res?.data?.message);
-      setIsModalOpen(false);
-      setIsSuccessModalOpen(true);
-      form.resetFields();
-      setFileList([]);
-      setEditingTeacher(null);
-      getTeachers();
-    } catch (error) {
-      messageApi.error(
-        error?.response?.data?.message ||
-          error?.response?.data?.errors?.[0]?.msg ||
-          "Something went wrong"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openRoleModal = (staff) => {
-    setSelectedStaff(staff);
-    setRoleValue(staff.role);
-    setIsRoleModalOpen(true);
-  };
-
-  const changeStaffRole = async () => {
-    if (!selectedStaff) return;
-    try {
-      setLoading(true);
-      const res = await axios.patch(
-        `${API_BASE_URL}/api/staff-management/staff/${selectedStaff._id}/change-role`,
-        { role: roleValue },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      messageApi.success(res.data.message);
-      setIsRoleModalOpen(false);
-      getTeachers();
-    } catch (error) {
-      messageApi.error("Failed to change role");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAssignAdmin = async () => {
-    if (!selectedClass) {
-      messageApi.warning("Select a class");
+    if (!selectedLevel || !selectedArm) {
+      setFilteredSubjects([]);
+      setSelectedSubject(null);
       return;
     }
 
-    try {
-      setAssignLoading(true);
-      const res = await axios.patch(
-        `${API_BASE_URL}/api/staff-management/staff/${selectedStaff._id}/promote-class-admin`,
-        { levelName: selectedClass },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    // Find the level object
+    const levelObj = teacherData.find((l) => l.level === selectedLevel);
+    if (!levelObj) return;
 
-      messageApi.success(res.data.message);
-      setIsAssignModalOpen(false);
-      getTeachers();
-    } catch (error) {
-      messageApi.error("Failed to assign");
-    } finally {
-      setAssignLoading(false);
+    // Find the selected arm class
+    const classObj = levelObj.classes?.find(
+      (c) => c.class?.arm === selectedArm || c.class?.name === selectedArm
+    );
+
+    if (!classObj) return;
+
+    // Get subject(s) for that class
+    if (classObj?.subject?.length) {
+      setFilteredSubjects(classObj.subject);
+      // auto-select first subject if none selected
+      setSelectedSubject(classObj.subject[0]._id);
+    } else if (classObj?.subject) {
+      setFilteredSubjects([classObj.subject]);
+      setSelectedSubject(classObj.subject._id);
+    } else {
+      setFilteredSubjects([]);
+      setSelectedSubject(null);
     }
-  };
 
-  const removeAdminRole = async (record) => {
+    // Fetch students for that class
+    fetchStudentsForClass(1, limit);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLevel, selectedArm]);
+
+  // ---------------------------
+  // Fetch teacher-levels/classes (structure)
+  // ---------------------------
+  const getTeacherClassDetails = async () => {
+    if (!token) return;
+
     try {
       setLoading(true);
-      const res = await axios.patch(
-        `${API_BASE_URL}/api/staff-management/staff/${record._id}/demote-class-admin`,
-        {},
+
+      // 1️⃣ Fetch teacher classes + students
+      const res = await axios.get(`${API_BASE_URL}/api/teacher/students`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      //get all subjects
+      const sub = await axios.get(
+        `${API_BASE_URL}/api/subject-management/subjects?limit=100`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // Save to state
+      setSubjects(sub?.data?.data || []);
+
+      console.log("all subjects", sub);
+
       messageApi.success(res.data.message);
-      getTeachers();
-    } catch (error) {
-      messageApi.error("Error removing admin role");
+
+      const allLevels = res?.data?.data || [];
+      setTeacherData(allLevels);
+
+      // Extract subject (same behavior you had before)
+      const responseSubject =
+        res?.data?.data?.[0]?.subject || res?.data?.subject;
+      if (responseSubject) setSubject(responseSubject);
+
+      // Extract levels and remove duplicates
+      const levelList = [...new Set(allLevels.map((item) => item.level))];
+      setLevels(levelList);
+
+      // Auto-select first level if none selected
+      if (!selectedLevel && levelList.length > 0) {
+        setSelectedLevel(levelList[0]);
+      }
+
+      // 2️⃣ Get classId + subjectId for STATUS fetch
+      const classId = allLevels?.[0]?.classes?.[0]?.class?._id;
+      const subjectId = responseSubject?._id;
+
+      if (classId && subjectId) {
+        // 3️⃣ Fetch score status
+        const resultRes = await axios.get(
+          `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subjectId}&session=2025/2026&term=1`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        console.log("the result", resultRes);
+
+        // 4️⃣ Merge status into students
+        const studentsWithStatus = allLevels.map((item) => {
+          const studentList = item.students || [];
+
+          const updatedStudents = studentList.map((student) => {
+            const found = resultRes.data.students.find(
+              (s) => s.studentId === student._id
+            );
+
+            return {
+              ...student,
+              hasRecord: found?.status === "recorded",
+            };
+          });
+
+          return {
+            ...item,
+            students: updatedStudents,
+          };
+        });
+
+        // console.log("result", resultRes);
+        // console.log("responce from class", res);
+        // console.log("has r", hasRecord);
+
+        setTeacherData(studentsWithStatus);
+      }
+    } catch (err) {
+      console.error("getTeacherClassDetails error:", err);
+      // messageApi.error("Unable to fetch teacher class details.");
     } finally {
       setLoading(false);
     }
   };
 
-  const renderAvatar = (record) => {
-    const url = record.avatar;
-    return url ? (
-      <img
-        src={url}
-        className="w-10 h-10 rounded-full object-cover"
-        alt="avatar"
-      />
-    ) : (
-      <div className="w-10 h-10 bg-gray-200 flex items-center justify-center rounded-full">
-        {record.firstName?.[0]}
-        {record.lastName?.[0]}
-      </div>
+  // ---------------------------
+  // When selectedLevel changes, update arms list and reset arm/students
+  // ---------------------------
+  useEffect(() => {
+    if (!selectedLevel) {
+      setArms([]);
+      setSelectedArm(null);
+      setStudents([]);
+      setTotal(0);
+      return;
+    }
+
+    // find the matching level object in teacherData
+    const found = teacherData.find((item) => item.level === selectedLevel);
+    const classArms = (found?.classes || []).map(
+      (c) => c.class?.arm || c.class?.name
     );
+    setArms(classArms);
+    setSelectedArm(null); // reset arm when level changes
+    setStudents([]);
+    setTotal(0);
+    setPage(1);
+  }, [selectedLevel, teacherData]);
+
+  // ---------------------------
+  // Fetch students for selected level+arm with pagination
+  // ---------------------------
+  const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
+    if (!token || !selectedLevel || !selectedArm) return;
+
+    try {
+      setLoading(true);
+
+      // 1️⃣ Fetch students
+      const url = new URL(`${API_BASE_URL}/api/teacher/students`);
+      url.searchParams.append("level", selectedLevel);
+      url.searchParams.append("arm", selectedArm);
+      url.searchParams.append("page", pageParam);
+      url.searchParams.append("limit", limitParam);
+
+      const res = await axios.get(url.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("fetchStudentsForClass", res);
+
+      const data = res?.data;
+      let classStudents = [];
+
+      if (data?.data?.length) {
+        const levelObj = data.data[0];
+
+        const matchedClass = levelObj.classes?.find(
+          (c) => (c.class?.arm || c.class?.name) === selectedArm
+        );
+
+        classStudents = matchedClass?.students || [];
+      } else if (data?.students) {
+        classStudents = data.students;
+      }
+
+      // 2️⃣ Extract classId and subjectId for status fetch
+      const classId = data?.data?.[0]?.classes?.find(
+        (c) => (c.class?.arm || c.class?.name) === selectedArm
+      )?.class?._id;
+
+      if (!selectedSubject) {
+        setStudents(classStudents);
+        return;
+      }
+
+      const realSubjectId = selectedSubject;
+
+      if (!classId || !realSubjectId) {
+        console.warn("Missing classId or subjectId. Cannot fetch status.");
+        setStudents(classStudents);
+        return;
+      }
+
+      // 3️⃣ Fetch result statuses
+      const scoreRes = await axios.get(
+        `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${realSubjectId}&session=2025/2026&term=1`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const statusList = scoreRes.data.students || [];
+
+      // 4️⃣ Merge status into fetched students
+      const mergedStudents = classStudents.map((stu) => {
+        const found = statusList.find((s) => s.studentId === stu._id);
+        return {
+          ...stu,
+          hasRecord: found?.status === "recorded",
+        };
+      });
+
+      // 5️⃣ Save final merged list
+      setStudents(mergedStudents);
+
+      // pagination
+      const pagination = data?.pagination;
+      if (pagination) {
+        setPage(pagination.page);
+        setLimit(pagination.limit);
+        setTotal(pagination.total);
+      } else {
+        setTotal(mergedStudents.length);
+      }
+    } catch (err) {
+      console.error("fetchStudentsForClass ERROR:", err);
+      // messageApi.error("Unable to fetch students.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleBlock = (record) => {
-    messageApi.info("This is demo block state (not API)");
+  // call fetchStudents when selectedArm or page changes
+  useEffect(() => {
+    // whenever arm changes, fetch page 1
+    if (selectedArm) {
+      fetchStudentsForClass(1, limit);
+    } else {
+      setStudents([]);
+      setTotal(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedArm, selectedLevel]);
+
+  // handling pagination change triggered by table
+  const handlePageChange = (newPage, newPageSize) => {
+    setPage(newPage);
+    if (newPageSize && newPageSize !== limit) setLimit(newPageSize);
+    fetchStudentsForClass(newPage, newPageSize || limit);
   };
 
-  const columns = [
+  // ---------------------------
+  // Initialize on mount
+  // ---------------------------
+  useEffect(() => {
+    getTeacherClassDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---------------------------
+  // Form submit callback (from EnterResult)
+  // ---------------------------
+  const handleSubmit = (response) => {
+    if (response?.success) {
+      // update specific student row to show Entered
+      setStudents((prev) =>
+        prev.map((student) =>
+          student._id === activeStudent?._id
+            ? { ...student, hasRecord: true }
+            : student
+        )
+      );
+    }
+  };
+
+  // ---------------------------
+  // Columns
+  // ---------------------------
+  const studentColumns = [
+    { title: "Reg No", dataIndex: "admissionNumber", key: "admissionNumber" },
+    { title: "Name", dataIndex: "fullName", key: "fullName" },
     {
-      title: "S/N",
-      render: (_, __, i) => i + 1,
-    },
-    {
-      title: "Image",
-      render: (_, record) => renderAvatar(record),
-    },
-    {
-      title: "Title",
-      dataIndex: "title",
-    },
-    {
-      title: "Full Name",
-      render: (_, r) => `${r.firstName} ${r.lastName}`,
-    },
-    {
-      title: "Role",
-      dataIndex: "role",
-      render: (role) =>
-        role === "class_admin" ? "Class Admin" : role === "teacher" ? "Teacher" : role,
-    },
-    {
-      title: "Phone",
-      dataIndex: "phone",
-    },
-    {
-      title: "Email",
-      dataIndex: "email",
-    },
-    {
-      title: "Action",
+      title: "Class",
+      key: "class",
       render: (_, record) => {
-        const menu = (
-          <Menu>
-            <Menu.Item
-              key="view"
-              icon={<EyeOutlined />}
-              onClick={() => {
-                setSelectedTeacher(record);
-                setIsDetailsOpen(true);
-              }}
-            >
-              View
-            </Menu.Item>
-
-            <Menu.Item
-              key="edit"
-              icon={<EditOutlined />}
-              onClick={() => {
-                setEditingTeacher(record);
-                form.setFieldsValue(record);
-                setIsModalOpen(true);
-              }}
-            >
-              Edit
-            </Menu.Item>
-
-            {user?.role === "principal" && (
-              <Menu.Item
-                key="role"
-                icon={<SwapOutlined />}
-                onClick={() => openRoleModal(record)}
-              >
-                Change Role
-              </Menu.Item>
-            )}
-
-            <Menu.Item
-              key="admin"
-              icon={<SettingOutlined />}
-              onClick={() => {
-                if (record.role === "class_admin") {
-                  removeAdminRole(record);
-                } else {
-                  setSelectedStaff(record);
-                  setIsAssignModalOpen(true);
-                }
-              }}
-            >
-              {record.role === "class_admin" ? "Remove Admin Role" : "Assign Admin Role"}
-            </Menu.Item>
-
-            <Menu.Divider />
-
-            <Menu.Item
-              key="toggle"
-              icon={<StopOutlined />}
-              onClick={() => toggleBlock(record)}
-            >
-              Block/Unblock
-            </Menu.Item>
-          </Menu>
-        );
-
-        return (
-          <Dropdown overlay={menu} trigger={["click"]}>
-            <Button>
-              <MoreOutlined />
-            </Button>
-          </Dropdown>
-        );
+        // the API student.class might be id string or object; try to show selectedLevel and arm
+        const className = selectedLevel || record.class?.name || "Not Assigned";
+        const armName = selectedArm || record.class?.arm || "";
+        return `${className}${armName ? ` - ${armName}` : ""}`;
       },
     },
   ];
 
-  return (
-    <div className="space-y-6">
-      {contextHolder}
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <Input
-          placeholder="Search staff"
-          prefix={<SearchOutlined />}
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          className="max-w-sm"
-        />
-
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            setEditingTeacher(null);
-            form.resetFields();
-            setFileList([]);
-            setIsModalOpen(true);
-          }}
-        >
-          Register Staff
-        </Button>
-      </div>
-
-      {/* Table */}
-      {isFetching ? (
-        <Skeleton active paragraph={{ rows: 6 }} />
-      ) : staff.length === 0 ? (
-        <Empty description="No staff found" />
-      ) : (
-        <Table
-          columns={columns}
-          dataSource={staff}
-          rowKey="_id"
-          bordered
-          size="small"
-          pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
-            position: ["bottomCenter"],
-          }}
-        />
-      )}
-
-      {/* Add/Edit Modal */}
-      <Modal
-        title={editingTeacher ? "Edit Staff" : "Register Staff"}
-        open={isModalOpen}
-        onCancel={() => {
-          setIsModalOpen(false);
-          form.resetFields();
-          setEditingTeacher(null);
-        }}
-        footer={null}
-      >
-        <Form layout="vertical" form={form} onFinish={createStaff}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Title"
-                name="title"
-                rules={[{ required: true }]}
-              >
-                <Select>
-                  {["Mr", "Mrs", "Miss", "Dr", "Prof", "Ms"].map((t) => (
-                    <Option key={t} value={t}>
-                      {t}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label="First Name"
-                name="firstName"
-                rules={[{ required: true }]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label="Last Name"
-                name="lastName"
-                rules={[{ required: true }]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
-              <Form.Item
-                label="Phone"
-                name="phone"
-                rules={[{ required: true }]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-
-            <Col span={24}>
-              <Form.Item
-                label="Email"
-                name="email"
-                rules={[{ required: true }]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-
-            <Col span={24}>
-              <Form.Item label="Address" name="address">
-                <Input />
-              </Form.Item>
-            </Col>
-
-            <Col span={24}>
-              <Form.Item label="Role" name="role">
-                <Select>
-                  <Option value="teacher">Teacher</Option>
-                  <Option value="class_admin">Class Admin</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-
-            <Col span={24}>
-              <Form.Item label="Avatar">
-                <Upload
-                  beforeUpload={() => false}
-                  listType="picture-card"
-                  fileList={fileList}
-                  onPreview={handlePreview}
-                  onChange={handleChange}
-                >
-                  {fileList.length < 1 && "+ Upload"}
-                </Upload>
-              </Form.Item>
-            </Col>
-          </Row>
+  const resultsColumns = [
+    { title: "Reg No", dataIndex: "admissionNumber", key: "admissionNumber" },
+    { title: "Name", dataIndex: "fullName", key: "fullName" },
+    {
+      title: "Status",
+      width: 120,
+      render: (_, record) =>
+        record.hasRecord ? (
+          <span style={{ color: "green", fontWeight: 600 }}>
+            <CheckCircleOutlined /> Entered
+          </span>
+        ) : (
+          <span style={{ color: "red", fontWeight: 600 }}>Not Entered</span>
+        ),
+    },
+    {
+      title: "Actions",
+      width: 220,
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="primary"
+            size="small"
+            icon={<PlusOutlined />}
+            style={{ backgroundColor: "#52c41a" }}
+            onClick={() => {
+              setActiveStudent(record);
+              setActiveSubjects(record.subjects || []);
+              setIsResultModalOpen(true);
+            }}
+          >
+            Enter
+          </Button>
 
           <Button
             type="primary"
-            htmlType="submit"
-            loading={loading}
-            block
-            className="mt-4"
+            size="small"
+            icon={<FormOutlined />}
+            onClick={() => {
+              setActiveStudent(record);
+              setIsResultModalOpen(true);
+            }}
           >
-            {editingTeacher ? "Update Staff" : "Register Staff"}
+            Edit
           </Button>
-        </Form>
-      </Modal>
+        </Space>
+      ),
+    },
+  ];
 
-      {/* View Details Modal */}
-      <Modal
-        open={isDetailsOpen}
-        footer={null}
-        onCancel={() => setIsDetailsOpen(false)}
-        title="Staff Details"
-      >
-        {selectedTeacher && (
-          <Descriptions bordered column={1}>
-            <Descriptions.Item label="Name">
-              {selectedTeacher.firstName} {selectedTeacher.lastName}
-            </Descriptions.Item>
-            <Descriptions.Item label="Role">
-              {selectedTeacher.role}
-            </Descriptions.Item>
-            <Descriptions.Item label="Phone">
-              {selectedTeacher.phone}
-            </Descriptions.Item>
-            <Descriptions.Item label="Email">
-              {selectedTeacher.email}
-            </Descriptions.Item>
-          </Descriptions>
-        )}
-      </Modal>
-
-      {/* Success Modal */}
-      <Modal
-        open={isSuccessModalOpen}
-        onCancel={() => setIsSuccessModalOpen(false)}
-        footer={null}
-      >
-        <h3 className="text-lg font-semibold mb-3">Success</h3>
-        <p>{successMessage}</p>
-      </Modal>
-
-      {/* Assign Admin Modal */}
-      <Modal
-        title="Assign Admin Role"
-        open={isAssignModalOpen}
-        onCancel={() => setIsAssignModalOpen(false)}
-        onOk={handleAssignAdmin}
-        confirmLoading={assignLoading}
-      >
-        <Select
-          className="w-full"
-          placeholder="Select Class"
-          onChange={(v) => setSelectedClass(v)}
+  const progressColumns = [
+    { title: "Reg No", dataIndex: "admissionNumber", key: "admissionNumber" },
+    { title: "Name", dataIndex: "fullName", key: "fullName" },
+    {
+      title: "Actions",
+      width: 200,
+      render: (_, record) => (
+        <Button
+          type="default"
+          size="small"
+          icon={<BarChartOutlined />}
+          onClick={() => {
+            setActiveStudent(record);
+            setIsProgressModalOpen(true);
+          }}
         >
-          {classes.map((c) => (
-            <Option key={c._id} value={c.name}>
-              {c.name} {c.arm}
-            </Option>
-          ))}
-        </Select>
-      </Modal>
+          View Progress
+        </Button>
+      ),
+    },
+  ];
 
-      {/* Change Role Modal */}
-      <Modal
-        title="Change Staff Role"
-        open={isRoleModalOpen}
-        onCancel={() => setIsRoleModalOpen(false)}
-        onOk={changeStaffRole}
-        confirmLoading={loading}
-      >
-        <Select
-          className="w-full"
-          value={roleValue}
-          onChange={(v) => setRoleValue(v)}
-        >
-          <Option value="teacher">Teacher</Option>
-          <Option value="class_admin">Class Admin</Option>
-        </Select>
-      </Modal>
+  return (
+    <div className="flex gap-6">
+      {contextHolder}
+      <div className="flex-1">
+        <Card className="shadow-md rounded-xl">
+          <div className="flex items-center gap-2 mb-4">
+            <Select
+              placeholder="Select Level"
+              style={{ width: 220 }}
+              value={selectedLevel}
+              onChange={(value) => setSelectedLevel(value)}
+              loading={loading && !levels.length}
+              allowClear
+            >
+              {levels.map((lvl) => (
+                <Option key={lvl} value={lvl}>
+                  {lvl}
+                </Option>
+              ))}
+            </Select>
+            <Select
+              placeholder="Select Subject"
+              style={{ width: 220 }}
+              value={selectedSubject}
+              onChange={(value) => setSelectedSubject(value)}
+              loading={loading && !filteredSubjects.length}
+              allowClear
+            >
+              {filteredSubjects.map((subject) => (
+                <Select.Option key={subject._id} value={subject._id}>
+                  {subject.name}
+                </Select.Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Select Arm"
+              style={{ width: 260 }}
+              value={selectedArm}
+              onChange={(value) => setSelectedArm(value)}
+              loading={loading && !!selectedLevel}
+              disabled={!arms.length}
+              allowClear
+            >
+              {arms.map((arm) => (
+                <Option key={arm} value={arm}>
+                  {arm}
+                </Option>
+              ))}
+            </Select>
+          </div>
+
+          <Tabs defaultActiveKey="1">
+            {/* STUDENT TAB */}
+            <TabPane
+              tab={
+                <span>
+                  <UserOutlined /> My Students
+                </span>
+              }
+              key="1"
+            >
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 7 }} />
+              ) : (
+                <Table
+                  dataSource={students}
+                  columns={studentColumns}
+                  rowKey="_id"
+                  bordered
+                  size="small"
+                  pagination={{
+                    current: page,
+                    total: total,
+                    pageSize: limit,
+                    onChange: handlePageChange,
+                    showSizeChanger: true,
+                    pageSizeOptions: ["10", "20", "50"],
+                    position: ["bottomCenter"],
+                    className: "custom-pagination",
+                  }}
+                  scroll={{ x: "max-content" }}
+                />
+              )}
+            </TabPane>
+
+            {/* RESULTS TAB */}
+            <TabPane
+              tab={
+                <span>
+                  <EditOutlined /> Results
+                </span>
+              }
+              key="2"
+            >
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 7 }} />
+              ) : (
+                <Table
+                  dataSource={students}
+                  rowKey="_id"
+                  bordered
+                  size="small"
+                  pagination={{
+                    current: page,
+                    total: total,
+                    pageSize: limit,
+                    onChange: handlePageChange,
+                    showSizeChanger: true,
+                    pageSizeOptions: ["10", "20", "50"],
+                    position: ["bottomCenter"],
+                    className: "custom-pagination",
+                  }}
+                  scroll={{ x: "max-content" }}
+                  columns={resultsColumns}
+                />
+              )}
+
+              <EnterResult
+                open={isResultModalOpen}
+                onClose={() => setIsResultModalOpen(false)}
+                student={activeStudent}
+                subjects={activeSubjects}
+                teacherSubject={subject}
+                onClick={handleSubmit}
+                selectedLevel={selectedLevel}
+              />
+
+              <Modal
+                title={`Result Sheet - ${activeStudent?.fullName}`}
+                open={isViewResultModalOpen}
+                onCancel={() => setIsViewResultModalOpen(false)}
+                footer={null}
+                width={800}
+              >
+                <ResultSheet student={activeStudent} />
+              </Modal>
+            </TabPane>
+
+            {/* PROGRESS TAB */}
+            <TabPane
+              tab={
+                <span>
+                  <BarChartOutlined /> Progress
+                </span>
+              }
+              key="3"
+            >
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 7 }} />
+              ) : (
+                <Table
+                  dataSource={students}
+                  columns={progressColumns}
+                  rowKey="_id"
+                  bordered
+                  size="small"
+                  pagination={{
+                    current: page,
+                    total: total,
+                    pageSize: limit,
+                    onChange: handlePageChange,
+                    showSizeChanger: true,
+                    pageSizeOptions: ["10", "20", "50"],
+                    position: ["bottomCenter"],
+                    className: "custom-pagination",
+                  }}
+                  scroll={{ x: "max-content" }}
+                />
+              )}
+
+              <Modal
+                title={`Progress - ${activeStudent?.fullName}`}
+                open={isProgressModalOpen}
+                onCancel={() => setIsProgressModalOpen(false)}
+                footer={null}
+                width={600}
+              >
+                <ProgressChart studentName={activeStudent?.fullName} />
+              </Modal>
+            </TabPane>
+          </Tabs>
+        </Card>
+      </div>
     </div>
   );
 };
 
-export default Teacher;
+export default MyClasses;

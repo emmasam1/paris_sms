@@ -20,6 +20,8 @@ import {
   Menu,
   Card,
   Tag,
+  Drawer,
+  Tabs,
 } from "antd";
 import {
   SearchOutlined,
@@ -61,9 +63,12 @@ const Student = () => {
   const [subjects, setSubjects] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedSubjects, setSelectedSubjects] = useState([]);
-  const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { API_BASE_URL, token, initialized, loading, setLoading, user } =
+    useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [assignLoading, setAssignLoading] = useState(false);
+  const [result, setResult] = useState([])
 
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
@@ -94,6 +99,35 @@ const Student = () => {
   const [fileList, setFileList] = useState([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
+
+
+  //  const getStudentsResult = async () => {
+  //   const id = selectedStudent?._id
+  //     try {
+  //       setLoading(true);
+  
+  //       const res = await axios.get(
+  //         `${API_BASE_URL}/api/results?studentId=${id}&session=2025/2026&term=1`,
+  //         {
+  //           headers: {
+  //             Authorization: `Bearer ${token}`,
+  //           },
+  //         }
+  //       );
+  
+  //       setResult(res.data?.data || []);
+  
+  //       console.log("RESULT:", res.data);
+  //     } catch (error) {
+  //       console.log("Error get result", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  
+  //   useEffect(() => {
+  //     getStudentsResult();
+  //   }, []);
 
   const handlePreview = async (file) => {
     setPreviewImage(file.url || file.preview);
@@ -291,29 +325,39 @@ const Student = () => {
     getAllSubjects();
   }, [initialized, token]);
 
+  // const openProgressModal = (student) => {
+  //   setProgressStudent({
+  //     ...student,
+  //     results: [
+  //       {
+  //         subject: "Mathematics",
+  //         firstTest: 15,
+  //         secondTest: 18,
+  //         assignment: 10,
+  //         practical: 12,
+  //         exam: 40,
+  //       },
+  //       {
+  //         subject: "English",
+  //         firstTest: 12,
+  //         secondTest: 15,
+  //         assignment: 9,
+  //         practical: 10,
+  //         exam: 35,
+  //       },
+  //     ],
+  //   });
+  //   setIsProgressOpen(true);
+  // };
+
   const openProgressModal = (student) => {
-    setProgressStudent({
-      ...student,
-      results: [
-        {
-          subject: "Mathematics",
-          firstTest: 15,
-          secondTest: 18,
-          assignment: 10,
-          practical: 12,
-          exam: 40,
-        },
-        {
-          subject: "English",
-          firstTest: 12,
-          secondTest: 15,
-          assignment: 9,
-          practical: 10,
-          exam: 35,
-        },
-      ],
-    });
-    setIsProgressOpen(true);
+    setSelectedStudent(student); // store the clicked student
+    setDrawerOpen(true); // open the drawer
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setSelectedStudent(null);
   };
 
   const openAddModal = () => {
@@ -365,7 +409,7 @@ const Student = () => {
   const openDetails = (record) => {
     setDetailsStudent(record);
     setIsDetailsOpen(true);
-    // console.log(record)
+    console.log(record)
   };
 
   //Get student subjects
@@ -673,12 +717,16 @@ const Student = () => {
               {
                 type: "divider",
               },
-              // {
-              //   key: "4",
-              //   icon: <BarChartOutlined style={{ color: "#52c41a" }} />,
-              //   label: "Progress Report",
-              //   onClick: () => openProgressModal(record),
-              // },
+              ...(user?.role === "principal"
+                ? [
+                    {
+                      key: "4",
+                      icon: <BarChartOutlined style={{ color: "#52c41a" }} />,
+                      label: "Progress Report",
+                      onClick: () => openProgressModal(record),
+                    },
+                  ]
+                : []),
               {
                 type: "divider",
               },
@@ -1528,6 +1576,31 @@ const Student = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      <Drawer
+        width={800}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        bodyStyle={{ padding: 24 }} // Add enough padding
+      >
+        <Tabs defaultActiveKey="1">
+          <Tabs.TabPane tab="Result" key="1">
+            <div className="px-4 py-2">
+              {" "}
+              {/* extra padding inside tab */}
+              {/* Render student result table here */}
+              {/* <StudentResult studentId={selectedStudent?._id} /> */}
+            </div>
+          </Tabs.TabPane>
+
+          <Tabs.TabPane tab="Chat" key="2">
+            <div className="px-4 py-2">
+              {/* Render student chat here */}
+              {/* <StudentChat studentId={selectedStudent?._id} /> */}
+            </div>
+          </Tabs.TabPane>
+        </Tabs>
+      </Drawer>
     </div>
   );
 };

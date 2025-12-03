@@ -39,6 +39,8 @@ const MyClasses = () => {
   const [activeStudent, setActiveStudent] = useState(null);
   const [activeSubjects, setActiveSubjects] = useState(null);
   const [subject, setSubject] = useState(null); // teacherSubject from API
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [filteredSubjects, setFilteredSubjects] = useState([]);
 
   // teacher data structure: levels -> classes -> students
   const [teacherData, setTeacherData] = useState([]); // full payload: data[]
@@ -51,6 +53,7 @@ const MyClasses = () => {
 
   // students shown in the table
   const [students, setStudents] = useState([]);
+  const [subjects, setSubjects] = useState([]);
 
   // loading & messages
   const [loading, setLoading] = useState(false);
@@ -61,7 +64,40 @@ const MyClasses = () => {
   const [limit, setLimit] = useState(20);
   const [total, setTotal] = useState(0);
 
-  // console.log(token, API_BASE_URL);
+  useEffect(() => {
+    if (!selectedLevel || !selectedArm) {
+      setFilteredSubjects([]);
+      setSelectedSubject(null);
+      return;
+    }
+
+    // Find the level object
+    const levelObj = teacherData.find((l) => l.level === selectedLevel);
+    if (!levelObj) return;
+
+    // Find the selected arm class
+    const classObj = levelObj.classes?.find(
+      (c) => c.class?.arm === selectedArm || c.class?.name === selectedArm
+    );
+
+    if (!classObj) return;
+
+    // Get subject(s) for that class
+    const classSubject = classObj.subject || levelObj.subject || null;
+
+    if (classSubject) {
+      setFilteredSubjects([classSubject]);
+      // setSelectedSubject(classSubject._id);
+    } else {
+      setFilteredSubjects([]);
+      setSelectedSubject(null);
+    }
+
+    // Fetch students for that class
+    fetchStudentsForClass(1, limit);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLevel, selectedArm]);
 
   // ---------------------------
   // Fetch teacher-levels/classes (structure)
@@ -77,9 +113,7 @@ const MyClasses = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log(res)
-
-     messageApi.success(res.data.message)
+      messageApi.success(res.data.message);
 
       const allLevels = res?.data?.data || [];
       setTeacherData(allLevels);
@@ -109,7 +143,7 @@ const MyClasses = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        console.log("the result", resultRes)
+        console.log("the result", resultRes);
 
         // 4️⃣ Merge status into students
         const studentsWithStatus = allLevels.map((item) => {
@@ -174,7 +208,7 @@ const MyClasses = () => {
   // Fetch students for selected level+arm with pagination
   // ---------------------------
   const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
-    if (!token || !selectedLevel || !selectedArm) return;
+    if (!token || !selectedLevel || !selectedArm || selectedSubject) return;
 
     try {
       setLoading(true);
@@ -183,6 +217,7 @@ const MyClasses = () => {
       const url = new URL(`${API_BASE_URL}/api/teacher/students`);
       url.searchParams.append("level", selectedLevel);
       url.searchParams.append("arm", selectedArm);
+      url.searchParams.append("subject", selectedSubject);
       url.searchParams.append("page", pageParam);
       url.searchParams.append("limit", limitParam);
 
@@ -190,7 +225,24 @@ const MyClasses = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("fetchStudentsForClass", res)
+      console.log("fetchStudentsForClass", res);
+
+      const sub = (
+        await axios.get(
+          `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        )
+      ).data;
+
+      const subjects =
+        sub?.data?.map((e) => ({
+          _id: e._id,
+          name: e.name,
+        })) || [];
+
+      setSubjects(subjects);
 
       const data = res?.data;
       let classStudents = [];
@@ -201,6 +253,8 @@ const MyClasses = () => {
         const matchedClass = levelObj.classes?.find(
           (c) => (c.class?.arm || c.class?.name) === selectedArm
         );
+
+        setSelectedSubject(levelObj?.subject);
 
         classStudents = matchedClass?.students || [];
       } else if (data?.students) {
@@ -415,6 +469,18 @@ const MyClasses = () => {
                 </Option>
               ))}
             </Select>
+            {/* <Select
+              placeholder="Select Subject"
+              value={selectedSubject}
+              onChange={(value) => setSelectedSubject(value)}
+              style={{ width: "100%" }}
+            >
+              {subjects?.map((sub) => (
+                <Select.Option key={sub._id} value={sub._id}>
+                  {sub.name}
+                </Select.Option>
+              ))}
+            </Select> */}
 
             <Select
               placeholder="Select Arm"
@@ -503,9 +569,10 @@ const MyClasses = () => {
                 open={isResultModalOpen}
                 onClose={() => setIsResultModalOpen(false)}
                 student={activeStudent}
-                subjects={activeSubjects}
-                teacherSubject={subject}
+                teacherSubject={subjects?.name}
                 onClick={handleSubmit}
+                selectedLevel={selectedLevel}
+                selectedSubject={selectedSubject} // ✅ pass it here
               />
 
               <Modal

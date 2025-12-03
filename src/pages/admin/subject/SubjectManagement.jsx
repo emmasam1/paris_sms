@@ -69,6 +69,7 @@ const SubjectManagement = () => {
     setSelectedSubject(record); // ✅ store the clicked subject
     setIsAssignIsModalOpen(true);
   };
+
   const handleCancel = () => {
     setIsAssignIsModalOpen(false);
   };
@@ -109,11 +110,13 @@ const SubjectManagement = () => {
 
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/class-management/classes`,
+        `${API_BASE_URL}/api/class-management/classes?limit=100`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      // console.log(res)
 
       const data = res?.data?.data || [];
       const mapped = data.map((cls) => ({

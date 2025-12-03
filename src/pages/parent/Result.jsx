@@ -136,6 +136,10 @@ const ParentResult = () => {
     getStudentsResult();
   }, []);
 
+  const isJunior = result?.studentSnapshot?.className
+    ?.toUpperCase()
+    .includes("JSS");
+
   const columns = [
     {
       title: "SUBJECTS",
@@ -146,35 +150,35 @@ const ParentResult = () => {
       render: (subject) => <span className="font-medium">{subject.name}</span>,
     },
     {
-      title: "1st Ass. 10%",
+      title: `1st Ass. ${isJunior ? 10 : 5}%`,
       dataIndex: "firstCA",
       key: "firstCA",
       align: "center",
       width: 70,
     },
     {
-      title: "2nd Ass. 10%",
+      title: `2nd Ass. ${isJunior ? 10 : 5}%`,
       dataIndex: "secondCA",
       key: "secondCA",
       align: "center",
       width: 70,
     },
     {
-      title: "1st Test 20%",
+      title: `1st Test ${isJunior ? 20 : 10}%`,
       dataIndex: "firstAssignment",
       key: "firstAssignment",
       align: "center",
       width: 70,
     },
     {
-      title: "2nd Test 20%",
+      title: `2nd Test ${isJunior ? 20 : 10}%`,
       dataIndex: "secondAssignment",
       key: "secondAssignment",
       align: "center",
       width: 70,
     },
     {
-      title: "EXAM 40%",
+      title: `EXAM ${isJunior ? 40 : 70}%`,
       dataIndex: "exam",
       key: "exam",
       align: "center",
@@ -476,7 +480,7 @@ const ParentResult = () => {
               bordered
               size="small"
               rowKey={(record) => record._id}
-              className={`${customTableStyle} !text-[12px]`}
+              className="custom-result-table !text-[12px]"
             />
 
             {/* Summary and Grading/Rating */}

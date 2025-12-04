@@ -94,7 +94,7 @@ const App = () => {
       </Route>
 
       {/* ===== Parent Routes ===== */}
-      <Route element={<PrivateRoute allowedRoles={["parent"]} />}>
+      <Route>
         <Route path="/home" element={<ParentHome />} />
         <Route path="/parent/result" element={<Result />} />
         <Route path="/parent/attendance" element={<ViewAttendance />} />

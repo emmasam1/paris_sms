@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Card,
   Row,
@@ -8,9 +8,10 @@ import {
   Tag,
   Avatar,
   Button,
-  Badge,
   Divider,
   Space,
+  Modal,
+  Select,
 } from "antd";
 import {
   UserOutlined,
@@ -22,16 +23,19 @@ import {
   FileSearchOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router";
+import { useApp } from "../../context/AppContext";
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 const ParentDashboard = () => {
   const navigate = useNavigate();
+  const { logout, user } = useApp();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTerm, setSelectedTerm] = useState(null);
 
   const child = {
-    name: "David Johnson",
-    class: "Primary 5A",
-    term: "2nd Term, 2025",
+    term: "1st Term, 2025",
     avatar: null,
     performance: 82,
     attendance: 90,
@@ -40,8 +44,14 @@ const ParentDashboard = () => {
   };
 
   const handleLogout = () => {
-    sessionStorage.clear();
+    logout();
     navigate("/");
+  };
+
+  const handleViewResult = () => {
+    if (!selectedTerm) return;
+    setIsModalOpen(false);
+    navigate("/parent/result", { state: { term: selectedTerm } }); // Pass term via state
   };
 
   return (
@@ -57,7 +67,7 @@ const ParentDashboard = () => {
           />
           <div>
             <Title level={4} className="!mb-1">
-              Welcome, Mr. Johnson 👋
+              Welcome, Parent👋
             </Title>
             <Text type="secondary">
               Here’s a quick overview of your child’s progress this term.
@@ -71,7 +81,12 @@ const ParentDashboard = () => {
           >
             {child.term}
           </Tag>
-          <Button size="small" danger icon={<LogoutOutlined />} onClick={handleLogout}>
+          <Button
+            size="small"
+            danger
+            icon={<LogoutOutlined />}
+            onClick={handleLogout}
+          >
             Logout
           </Button>
         </div>
@@ -82,11 +97,11 @@ const ParentDashboard = () => {
         <Col xs={24} md={8}>
           <Card className="rounded-2xl shadow-sm">
             <Text type="secondary">Student Name</Text>
-            <Title level={5}>{child.name}</Title>
+            <Title level={5}>{user?.fullName}</Title>
             <Divider className="" />
             <Space direction="vertical" size={0}>
               <Text>
-                <strong>Class:</strong> {child.class}
+                <strong>Class:</strong> {user?.class} {user?.arm}
               </Text>
               <Text>
                 <strong>Conduct:</strong>{" "}
@@ -101,13 +116,43 @@ const ParentDashboard = () => {
                 icon={<FileSearchOutlined />}
                 type="primary"
                 className="bg-blue-600 mt-2"
-                 onClick={() => navigate("/parent/result")}
+                onClick={() => {
+                  setSelectedTerm(null); // reset term selection
+                  setIsModalOpen(true);
+                }}
               >
                 View Result
               </Button>
             </div>
           </Card>
         </Col>
+
+        {/* Modal for term selection */}
+        <Modal
+          title="Select Term"
+          open={isModalOpen}
+          onCancel={() => setIsModalOpen(false)}
+          footer={null}
+          width={400}
+        >
+          <div className="flex flex-col gap-4">
+            <Select
+              placeholder="Select Term"
+              onChange={(value) => setSelectedTerm(value)}
+            >
+              <Option value="1">1st Term</Option>
+              <Option value="2">2nd Term</Option>
+              <Option value="3">3rd Term</Option>
+            </Select>
+            <Button
+              type="primary"
+              disabled={!selectedTerm}
+              onClick={handleViewResult}
+            >
+              Continue
+            </Button>
+          </div>
+        </Modal>
 
         {/* Academic Performance */}
         <Col xs={24} md={8}>
@@ -124,7 +169,10 @@ const ParentDashboard = () => {
             <Button
               type="link"
               className="mt-2 text-blue-500"
-              onClick={() => navigate("/parent/result")}
+              onClick={() => {
+                setSelectedTerm(null);
+                setIsModalOpen(true);
+              }}
             >
               View Full Report →
             </Button>
@@ -165,19 +213,11 @@ const ParentDashboard = () => {
               </span>
             }
           >
-            <Badge count={child.unreadMessages} offset={[10, 0]}>
-              <Avatar
-                shape="square"
-                size={60}
-                className="bg-purple-100 text-purple-600 flex items-center justify-center"
-                icon={<MessageOutlined />}
-              />
-            </Badge>
             <div className="mt-4 space-y-2">
               <Text>
                 <strong>School Admin:</strong> Mrs. Ada
               </Text>
-              <p>"This term's resumption date is January 5th."</p>
+              <p>"Next term's resumption date is 12th January, 2026."</p>
             </div>
             <Button
               type="link"
@@ -212,8 +252,7 @@ const ParentDashboard = () => {
         className="rounded-2xl shadow-sm"
         title={
           <span className="flex items-center gap-2">
-            <CalendarOutlined className="text-orange-500" /> School
-            Announcements
+            <CalendarOutlined className="text-orange-500" /> School Announcements
           </span>
         }
       >

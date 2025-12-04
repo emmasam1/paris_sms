@@ -63,28 +63,36 @@ const Login = () => {
     }
   };
 
-
   // ================= PARENT LOGIN (DUMMY) ==================
   const handleParentLogin = async (values) => {
-    // Dummy PIN check
-    if (values.pin === "000000") {
-      messageApi.success("Parent login successful!");
+  try {
+    setLoading(true);
 
-      // Set a dummy parent user
-      const dummyParent = {
-        role: "parent",
-        name: "Parent User",
-      };
+    const res = await axios.post(`${API_BASE_URL}/api/parent/login`, {
+      pinCode: values.pinCode,
+    });
+    console.log(res);
 
-      setUser(dummyParent);
-      setToken("dummy-parent-token");
+    // Save the student object as user
+    const user = res.data.student;
+    const token = res.data.token;
 
-      return navigate("/home");
-    }
+    setUser({ ...user, role: "parent" }); // add role for PrivateRoute
+    setToken(token);
 
-    // Wrong PIN
-    messageApi.error("Invalid parent PIN");
-  };
+    messageApi.success(res.data.message || "Login successful!");
+
+    navigate("/home");
+  } catch (error) {
+    console.error("Login error:", error);
+    messageApi.error(
+      error.response?.data?.message || "Login failed. Try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // ================= FORM SUBMIT ==================
   const onFinish = (values) => {
@@ -198,7 +206,7 @@ const Login = () => {
                       label={
                         <span className="text-sm text-gray-600">Card PIN</span>
                       }
-                      name="pin"
+                      name="pinCode"
                       rules={[
                         {
                           required: true,
@@ -209,7 +217,7 @@ const Login = () => {
                       <Input.Password
                         prefix={<IdcardOutlined className="text-gray-400" />}
                         placeholder="Enter your PIN"
-                        maxLength={6}
+                        // maxLength={6}
                         className="rounded-md bg-gray-50 hover:bg-white focus:bg-white focus:shadow-md transition"
                       />
                     </Form.Item>

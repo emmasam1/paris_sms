@@ -1,6 +1,6 @@
 // ParentResult.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { Card, Table, Button, Space } from "antd";
+import { Card, Table, Button, Space, message } from "antd";
 import {
   FilePdfOutlined,
   PrinterOutlined,
@@ -13,13 +13,18 @@ import logo from "../../assets/logo.jpeg";
 import axios from "axios";
 import { useApp } from "../../context/AppContext";
 import SmartScholaLoader from "../../components/loader/SmartScholaLoader";
+import { useLocation } from "react-router";
 
 const ParentResult = () => {
   const navigate = useNavigate();
   const printRef = useRef(null);
   const [result, setResult] = useState([]);
-  const { API_BASE_URL, token, loading, setLoading } = useApp();
+  const { API_BASE_URL, token, loading, setLoading, initialized } = useApp();
   const [classes, setClasses] = useState([]);
+  const location = useLocation();
+  const { term } = location.state || {};
+  const [messageApi, contextHolder] = message.useMessage();
+  const [printLoading, setPrintLoading] = useState(false);
 
   //Get Student Result
   const getStudentsResult = async () => {
@@ -27,19 +32,18 @@ const ParentResult = () => {
       setLoading(true);
 
       const res = await axios.get(
-        `${API_BASE_URL}/api/results?studentId=6929ea33bf3290e503101445&session=2025/2026&term=1`,
+        `${API_BASE_URL}/api/parent/results?term=${term}`,
         {
-          headers: {
-            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MmMwMjdiODgyYTkwMDkwYjIzMWRiYyIsInJvbGUiOiJ0ZWFjaGVyIiwiaWF0IjoxNzY0NjA2NTIyLCJleHAiOjE3NjUyMTEzMjJ9.TbMGc2s5-5aUNunX8Ad9TP59Gew248axPxXMGOjkmTo`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       setResult(res.data?.data || []);
-
+      messageApi.success(res.data.message);
       console.log("RESULT:", res.data);
     } catch (error) {
       console.log("Error get result", error);
+      messageApi.error(error?.response?.data?.message || "No result yet");
     } finally {
       setLoading(false);
     }
@@ -77,9 +81,11 @@ const ParentResult = () => {
   };
 
   useEffect(() => {
+    if (!initialized || !token) return;
+
     getStudentsResult();
     getClass();
-  }, []);
+  }, [initialized, token]);
 
   const affectiveDomainData = [
     {
@@ -89,22 +95,46 @@ const ParentResult = () => {
     },
     { key: "2", domain: "HONESTY", rating: result?.domains?.honesty || "" },
     { key: "3", domain: "NEATNESS", rating: result?.domains?.neatness || "" },
-    { key: "4", domain: "PUNCTUALITY", rating: result?.domains?.punctuality || "" },
-    { key: "5", domain: "RELATIONSHIP WITH OTHERS", rating: result?.domains?.relationshipWithOthers || "" },
-    { key: "6", domain: "LEADERSHIP TRAITS", rating: result?.domains?.leadershipTraits || "" },
+    {
+      key: "4",
+      domain: "PUNCTUALITY",
+      rating: result?.domains?.punctuality || "",
+    },
+    {
+      key: "5",
+      domain: "RELATIONSHIP WITH OTHERS",
+      rating: result?.domains?.relationshipWithOthers || "",
+    },
+    {
+      key: "6",
+      domain: "LEADERSHIP TRAITS",
+      rating: result?.domains?.leadershipTraits || "",
+    },
   ];
 
   const psychomotorDomainData = [
     {
       key: "1",
       domain: "CLUB INTEREST/GAMES AND SPORTS",
-      rating: result?.domains?.clubInterestsAndSports || ""
+      rating: result?.domains?.clubInterestsAndSports || "",
     },
-    { key: "2", domain: "HAND WRITING", rating: result?.domains?.handWriting || "" },
+    {
+      key: "2",
+      domain: "HAND WRITING",
+      rating: result?.domains?.handWriting || "",
+    },
     { key: "3", domain: "AGILITY", rating: result?.domains?.agility || "" },
-    { key: "4", domain: "ORATORY SKILLS", rating: result?.domains?.organisationalSkills || "" },
+    {
+      key: "4",
+      domain: "ORATORY SKILLS",
+      rating: result?.domains?.organisationalSkills || "",
+    },
     { key: "5", domain: "SELF CARE", rating: result?.domains?.selfCare || "" },
-    { key: "6", domain: "ORGANISATIONAL SKILLS", rating: result?.domains?.organisationalSkills || "" },
+    {
+      key: "6",
+      domain: "ORGANISATIONAL SKILLS",
+      rating: result?.domains?.organisationalSkills || "",
+    },
   ];
 
   const gradeLegendData = [
@@ -237,46 +267,65 @@ const ParentResult = () => {
     formTeacher: "Mrs. Ngozi Okoro",
   };
 
-  const handlePDF = async () => {
-    if (!printRef.current) return;
-    try {
-      const dataUrl = await toPng(printRef.current, {
-        cacheBust: true,
-        backgroundColor: "#FFFFFF",
-        pixelRatio: 3,
-        quality: 1,
-      });
+ const handlePDF = async () => {
+  if (!printRef.current) return;
+  try {
+    setPrintLoading(true);
 
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
+    const element = printRef.current;
 
-      const img = new Image();
-      img.src = dataUrl;
-      img.onload = () => {
-        const imgAspect = img.height / img.width;
-        const pdfAspect = pdfHeight / pdfWidth;
+    // Save original style
+    const originalWidth = element.style.width;
+    const originalMinWidth = element.style.minWidth;
 
-        let renderWidth, renderHeight;
-        if (imgAspect > pdfAspect) {
-          renderHeight = pdfHeight;
-          renderWidth = pdfHeight / imgAspect;
-        } else {
-          renderWidth = pdfWidth;
-          renderHeight = pdfWidth * imgAspect;
-        }
+    // Force fixed A4 width in pixels (approx 794px at 96 DPI)
+    element.style.width = "794px";
+    element.style.minWidth = "794px";
 
-        const x = (pdfWidth - renderWidth) / 2;
-        const y = 0; // Start at top
+    const dataUrl = await toPng(element, {
+      cacheBust: true,
+      backgroundColor: "#FFFFFF",
+      pixelRatio: 3,
+    });
 
-        pdf.addImage(dataUrl, "PNG", x, y, renderWidth, renderHeight);
-        pdf.save("student_result.pdf");
-      };
-    } catch (err) {
-      console.error("PDF generation failed:", err);
-      alert("Failed to generate PDF. Check console for details.");
-    }
-  };
+    // Restore original style
+    element.style.width = originalWidth;
+    element.style.minWidth = originalMinWidth;
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    const img = new Image();
+    img.src = dataUrl;
+    img.onload = () => {
+      const imgAspect = img.height / img.width;
+      const pdfAspect = pdfHeight / pdfWidth;
+
+      let renderWidth, renderHeight;
+      if (imgAspect > pdfAspect) {
+        renderHeight = pdfHeight;
+        renderWidth = pdfHeight / imgAspect;
+      } else {
+        renderWidth = pdfWidth;
+        renderHeight = pdfWidth * imgAspect;
+      }
+
+      const x = (pdfWidth - renderWidth) / 2;
+      const y = 0;
+
+      pdf.addImage(dataUrl, "PNG", x, y, renderWidth, renderHeight);
+      pdf.save("student_result.pdf");
+      setPrintLoading(false);
+    };
+  } catch (err) {
+    console.error("PDF generation failed:", err);
+    alert("Failed to generate PDF. Check console for details.");
+    setPrintLoading(false);
+  }
+};
+
+
 
   // small Tailwind/Ant classes for Ant Table adjustments (if you use Tailwind)
   const customTableStyle =
@@ -284,6 +333,7 @@ const ParentResult = () => {
 
   return (
     <div className="p-6 relative">
+      {contextHolder}
       {loading ? (
         <SmartScholaLoader />
       ) : (
@@ -309,6 +359,7 @@ const ParentResult = () => {
                     type="primary"
                     icon={<FilePdfOutlined />}
                     onClick={handlePDF}
+                    loading={printLoading}
                   >
                     Save PDF
                   </Button>
@@ -592,7 +643,7 @@ const ParentResult = () => {
             {/* Signatures */}
             <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8">
               <div>
-                <p >FORM TEACHER'S COMMENT: {result?.teacherRemark}.</p>
+                <p>FORM TEACHER'S COMMENT: {result?.teacherRemark}.</p>
                 <p className="my-2">
                   FORM TEACHER'S NAME:{" "}
                   <span className="underline">{studentInfo.formTeacher}</span>
@@ -602,7 +653,9 @@ const ParentResult = () => {
                 </p>
               </div>
               <div>
-                <p className="uppercase">PRINCIPAL'S COMMENT: {result?.principalRemark}</p>
+                <p className="uppercase">
+                  PRINCIPAL'S COMMENT: {result?.principalRemark}
+                </p>
                 <p className="my-2">
                   PRINCIPAL'S SIGNATURE: ____________________________
                 </p>

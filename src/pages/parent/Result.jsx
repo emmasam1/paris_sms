@@ -105,8 +105,8 @@ const ParentResult = () => {
   const navigate = useNavigate();
   const printRef = useRef(null);
   const [result, setResult] = useState([]);
-
   const { API_BASE_URL, token, loading, setLoading } = useApp();
+   const [classes, setClasses] = useState([]);
 
   //Get Student Result
   const getStudentsResult = async () => {
@@ -114,7 +114,7 @@ const ParentResult = () => {
       setLoading(true);
 
       const res = await axios.get(
-        `${API_BASE_URL}/api/results?studentId=692d848776c272a5d84a17e5&session=2025/2026&term=1`,
+        `${API_BASE_URL}/api/results?studentId=6929e96dbf3290e5031012ac&session=2025/2026&term=1`,
         {
           headers: {
             Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MmMwMjdiODgyYTkwMDkwYjIzMWRiYyIsInJvbGUiOiJ0ZWFjaGVyIiwiaWF0IjoxNzY0NjA2NTIyLCJleHAiOjE3NjUyMTEzMjJ9.TbMGc2s5-5aUNunX8Ad9TP59Gew248axPxXMGOjkmTo`,
@@ -124,7 +124,7 @@ const ParentResult = () => {
 
       setResult(res.data?.data || []);
 
-      // console.log("RESULT:", res.data);
+      console.log("RESULT:", res.data);
     } catch (error) {
       console.log("Error get result", error);
     } finally {
@@ -132,8 +132,41 @@ const ParentResult = () => {
     }
   };
 
+  const getClass = async () => {
+      if (!token) return;
+      setLoading(true);
+  
+      try {
+        const res = await axios.get(
+          `${API_BASE_URL}/api/class-management/classes?limit=100`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+  
+        const data = res?.data?.data || [];
+  
+  
+        console.log("all class",data)
+  
+        setClasses(mapped);
+        setPagination((prev) => ({
+          ...prev,
+          total: mapped.length,
+        }));
+  
+        // messageApi.success(res?.data?.message || "Classes fetched successfully");
+      } catch (error) {
+        console.log(error)
+        // messageApi.error(
+          // error?.response?.data?.message || "Failed to fetch classes"
+        //);
+      } finally {
+        setLoading(false);
+      }
+    };
+
   useEffect(() => {
     getStudentsResult();
+    getClass()
   }, []);
 
   const isJunior = result?.studentSnapshot?.className
@@ -233,9 +266,9 @@ const ParentResult = () => {
   // const totalGrade = scores.filter((r) => r.grade).length;
 
   const studentInfo = {
-    termStarted: "15TH SEPT., 2025",
-    termEnded: "13TH DEC., 2024",
-    nextTermBegins: "13TH JAN., 2025",
+    termStarted: "15TH JANUARY, 2025",
+    termEnded: "5TH JANUARY, 2024",
+    nextTermBegins: "12TH JANUARY, 2026",
     schoolOpened: "60",
     present: "58",
     absent: "2",

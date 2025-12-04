@@ -32,7 +32,7 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
         headers: { Authorization: `Bearer ${token}` },
       });
       const result = res.data;
-      console.log("All subjects:", result.data);
+      // console.log("All subjects:", result.data);
       setSubjects(result.data || []);
     } catch (error) {
       console.error(error);

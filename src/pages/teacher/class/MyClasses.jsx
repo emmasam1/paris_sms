@@ -113,6 +113,8 @@ const MyClasses = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // console.log(res)
+
       messageApi.success(res.data.message);
 
       const allLevels = res?.data?.data || [];
@@ -143,7 +145,7 @@ const MyClasses = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        console.log("the result", resultRes);
+        // console.log("the result", resultRes);
 
         // 4️⃣ Merge status into students
         const studentsWithStatus = allLevels.map((item) => {
@@ -153,6 +155,8 @@ const MyClasses = () => {
             const found = resultRes.data.students.find(
               (s) => s.studentId === student._id
             );
+
+            console.log(found)
 
             return {
               ...student,
@@ -166,9 +170,6 @@ const MyClasses = () => {
           };
         });
 
-        // console.log("result", resultRes);
-        // console.log("responce from class", res);
-        // console.log("has r", hasRecord);
 
         setTeacherData(studentsWithStatus);
       }
@@ -208,113 +209,116 @@ const MyClasses = () => {
   // Fetch students for selected level+arm with pagination
   // ---------------------------
   const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
-    if (!token || !selectedLevel || !selectedArm || selectedSubject) return;
+  if (!token || !selectedLevel || !selectedArm) return;
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      // 1️⃣ Fetch students
-      const url = new URL(`${API_BASE_URL}/api/teacher/students`);
-      url.searchParams.append("level", selectedLevel);
-      url.searchParams.append("arm", selectedArm);
-      url.searchParams.append("subject", selectedSubject);
-      url.searchParams.append("page", pageParam);
-      url.searchParams.append("limit", limitParam);
+    // Fetch students
+    const url = new URL(`${API_BASE_URL}/api/teacher/students`);
+    url.searchParams.append("level", selectedLevel);
+    url.searchParams.append("arm", selectedArm);
+    url.searchParams.append("subject", selectedSubject);
+    url.searchParams.append("page", pageParam);
+    url.searchParams.append("limit", limitParam);
 
-      const res = await axios.get(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    const res = await axios.get(url.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      console.log("fetchStudentsForClass", res);
+    console.log("fetchStudentsForClass", res);
 
-      const sub = (
-        await axios.get(
-          `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        )
-      ).data;
-
-      const subjects =
-        sub?.data?.map((e) => ({
-          _id: e._id,
-          name: e.name,
-        })) || [];
-
-      setSubjects(subjects);
-
-      const data = res?.data;
-      let classStudents = [];
-
-      if (data?.data?.length) {
-        const levelObj = data.data[0];
-
-        const matchedClass = levelObj.classes?.find(
-          (c) => (c.class?.arm || c.class?.name) === selectedArm
-        );
-
-        setSelectedSubject(levelObj?.subject);
-
-        classStudents = matchedClass?.students || [];
-      } else if (data?.students) {
-        classStudents = data.students;
-      }
-
-      // 2️⃣ Extract classId and subjectId for status fetch
-      const classId = data?.data?.[0]?.classes?.find(
-        (c) => (c.class?.arm || c.class?.name) === selectedArm
-      )?.class?._id;
-
-      const subjectId =
-        data?.data?.[0]?.subject || teacherData?.[0]?.subject || null;
-
-      const realSubjectId = subjectId?._id ?? subjectId;
-
-      if (!classId || !realSubjectId) {
-        console.warn("Missing classId or subjectId. Cannot fetch status.");
-        setStudents(classStudents);
-        return;
-      }
-
-      // 3️⃣ Fetch result statuses
-      const scoreRes = await axios.get(
-        `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${realSubjectId}&session=2025/2026&term=1`,
+    // Get all subjects (teacherSubject)
+    const sub = (
+      await axios.get(
+        `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
+      )
+    ).data;
+
+    const subjects =
+      sub?.data?.map((e) => ({
+        _id: e._id,
+        name: e.name,
+      })) || [];
+
+    setSubjects(subjects);
+
+    const data = res?.data;
+    let classStudents = [];
+
+    if (data?.data?.length) {
+      const levelObj = data.data[0];
+
+      const matchedClass = levelObj.classes.find(
+        (c) => (c.class?.arm || c.class?.name) === selectedArm
       );
 
-      const statusList = scoreRes.data.students || [];
+      // Set subject coming from API
+      setSelectedSubject(levelObj?.subject?._id || levelObj?.subject);
 
-      // 4️⃣ Merge status into fetched students
-      const mergedStudents = classStudents.map((stu) => {
-        const found = statusList.find((s) => s.studentId === stu._id);
-        return {
-          ...stu,
-          hasRecord: found?.status === "recorded",
-        };
-      });
-
-      // 5️⃣ Save final merged list
-      setStudents(mergedStudents);
-
-      // pagination
-      const pagination = data?.pagination;
-      if (pagination) {
-        setPage(pagination.page);
-        setLimit(pagination.limit);
-        setTotal(pagination.total);
-      } else {
-        setTotal(mergedStudents.length);
-      }
-    } catch (err) {
-      console.error("fetchStudentsForClass ERROR:", err);
-      // messageApi.error("Unable to fetch students.");
-    } finally {
-      setLoading(false);
+      classStudents = matchedClass?.students || [];
+    } else if (data?.students) {
+      classStudents = data.students;
     }
-  };
+
+    // Extract classId
+    const classId = data?.data?.[0]?.classes.find(
+      (c) => (c.class?.arm || c.class?.name) === selectedArm
+    )?.class?._id;
+
+    // Extract subjectId
+    const subjectId =
+      data?.data?.[0]?.subject?._id ||
+      data?.data?.[0]?.subject ||
+      selectedSubject;
+
+    if (!classId || !subjectId) {
+      console.warn("Missing classId or subjectId. Cannot fetch status.");
+      setStudents(classStudents);
+      return;
+    }
+
+    // Fetch result statuses
+    const dashboardURL = `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subjectId}&session=2025/2026&term=1`;
+
+    const scoreRes = await axios.get(dashboardURL, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const statusList = scoreRes.data.students || [];
+
+    console.log("Status list:", statusList);
+
+    // Merge status into fetched students
+    const mergedStudents = classStudents.map((stu) => {
+      const found = statusList.find((s) => s.studentId === stu._id);
+      return {
+        ...stu,
+        hasRecord: found?.status === "recorded",
+      };
+    });
+
+    setStudents(mergedStudents);
+
+    // pagination
+    const pagination = data?.pagination;
+    if (pagination) {
+      setPage(pagination.page);
+      setLimit(pagination.limit);
+      setTotal(pagination.total);
+    } else {
+      setTotal(mergedStudents.length);
+    }
+  } catch (err) {
+    console.error("fetchStudentsForClass ERROR:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // call fetchStudents when selectedArm or page changes
   useEffect(() => {
@@ -384,6 +388,7 @@ const MyClasses = () => {
       title: "Status",
       width: 120,
       render: (_, record) =>
+     
         record.hasRecord ? (
           <span style={{ color: "green", fontWeight: 600 }}>
             <CheckCircleOutlined /> Entered

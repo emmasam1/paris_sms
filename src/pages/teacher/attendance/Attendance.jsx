@@ -30,8 +30,6 @@ const Attendance = ({ className }) => {
   const today = dayjs().format("YYYY-MM-DD");
   const { token, API_BASE_URL, loading, setLoading } = useApp();
 
-  console.log(token);
-
   const [selectedDate, setSelectedDate] = useState(today);
   const [attendance, setAttendance] = useState({});
   const [viewRecords, setViewRecords] = useState({});
@@ -49,6 +47,11 @@ const Attendance = ({ className }) => {
 
   const [domainModalOpen, setDomainModalOpen] = useState(false);
   const [selectedDomainStudent, setSelectedDomainStudent] = useState(null);
+  const [stdDetails, setStdDetails] = useState([]);
+  const [stdClass, setStdClass] = useState(null);
+  const [stdId, setStdId] = useState(null);
+  const [stdResultId, setStdResultId] = useState(null);
+  const [domainLoading, setDomainLoading] = useState(false);
 
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm();
@@ -61,6 +64,10 @@ const Attendance = ({ className }) => {
       const res = await axios.get(`${API_BASE_URL}/api/teacher/form-class`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      setStdClass(res?.data?.data?.class?._id);
+
+      console.log("first", res);
 
       const classData = res?.data?.data;
       const studentsArray = classData?.students || [];
@@ -81,6 +88,7 @@ const Attendance = ({ className }) => {
 
   useEffect(() => {
     getMyClassStudents();
+    // getStudents();
   }, []);
 
   const updateBulk = (id, field, value) => {
@@ -93,9 +101,14 @@ const Attendance = ({ className }) => {
     }));
   };
 
-  const GradeSelect = () => (
-    <Select placeholder="Grade" className="w-full">
-      {["A+", "A", "B+", "B", "C", "D", "E", "F"].map((g) => (
+  const GradeSelect = ({ value, onChange }) => (
+    <Select
+      placeholder="Grade"
+      value={value}
+      onChange={onChange}
+      className="w-full"
+    >
+      {["A+", "A", "B+", "C", "D", "E"].map((g) => (
         <Option key={g} value={g}>
           {g}
         </Option>
@@ -144,14 +157,41 @@ const Attendance = ({ className }) => {
     }
   };
 
-  const saveDomain = (values) => {
-    console.log("Saving Domain For:", selectedDomainStudent);
-    console.log("Domain Values:", values);
+  //Get student result
+  const getResult = async (id) => {
+    try {
+      const stdresult = await axios.get(
+        `${API_BASE_URL}/api/results?studentId=${id}&session=2025/2026&term=1`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+console.log(stdresult)
+      setStdResultId(stdresult?.data?.data?._id);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
-    // TODO: API CALL HERE
+  const saveDomain = async (values) => {
+    try {
+      setDomainLoading(true);
+      const res = await axios.patch(
+        `${API_BASE_URL}/api/results/${stdResultId}/domain`,
+        values,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-    message.success("Domain saved successfully");
-    setDomainModalOpen(false);
+      messageApi.success(res.data.message || "Domain Entered Successfully");
+      setDomainModalOpen(false);
+    } catch (error) {
+      console.error("Domain Save Error:", error?.response || error);
+      messageApi.error(
+        error?.response?.data?.message || "Failed to save domain"
+      );
+    } finally {
+      setDomainLoading(false);
+    }
   };
 
   // === MARK ATTENDANCE ===
@@ -310,7 +350,8 @@ const Attendance = ({ className }) => {
         onCancel={() => setDomainModalOpen(false)}
         onOk={() => form.submit()}
         okText="Save"
-        width={650} // slightly wider for 3 columns
+        confirmLoading={domainLoading} // <<< ⭐ IMPORTANT
+        width={650}
         bodyStyle={{ padding: "12px 20px" }}
       >
         <Form layout="vertical" form={form} onFinish={saveDomain} size="small">
@@ -457,6 +498,7 @@ const Attendance = ({ className }) => {
               <Table
                 dataSource={students.map((s, index) => ({
                   sn: index + 1,
+                  id: s._id,
                   regNo: s.admissionNumber,
                   name: s.fullName,
                 }))}
@@ -485,6 +527,8 @@ const Attendance = ({ className }) => {
                         onClick={() => {
                           setSelectedDomainStudent(record);
                           form.resetFields();
+                          setStdId(record.id);
+                          getResult(record.id); // <-- FIXED
                           setDomainModalOpen(true);
                         }}
                       >

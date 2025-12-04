@@ -65,15 +65,15 @@ const DashboardLayout = () => {
             "/admin/dashboard/progress",
             <LineChartOutlined />
           ),
+          getItem(
+            "PIN Management",
+            "/admin/dashboard/pin-management",
+            <KeyOutlined />
+          ),
         ]
       : []),
 
     getItem("Message", "/admin/dashboard/message", <MessageOutlined />),
-    getItem(
-      "PIN Management",
-      "/admin/dashboard/pin-management",
-      <KeyOutlined />
-    ),
     getItem("Settings", "/admin/dashboard/settings", <SettingOutlined />),
   ];
 

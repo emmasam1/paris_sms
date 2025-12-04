@@ -60,7 +60,7 @@ const App = () => {
         <Route path="students" element={<Student />} />
         <Route path="teachers" element={<Teacher />} />
         <Route path="class-management" element={<ClassManagement />} />
-        <Route path="pin-management" element={<PinManagement />} />
+
         <Route path="settings" element={<Settings />} />
         <Route path="message" element={<AdminMessage />} />
         <Route path="subject-management" element={<SubjectManagement />} />
@@ -68,6 +68,7 @@ const App = () => {
         {/* Principal-only route */}
         <Route element={<PrivateRoute allowedRoles={["principal"]} />}>
           <Route path="progress" element={<StudentProgress />} />
+          <Route path="pin-management" element={<PinManagement />} />
         </Route>
       </Route>
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Button,
   Table,
@@ -8,6 +8,7 @@ import {
   Select,
   Radio,
   message,
+  Skeleton,
 } from "antd";
 import { useApp } from "../../../context/AppContext";
 import axios from "axios";
@@ -16,33 +17,32 @@ const { Option } = Select;
 
 const PinManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [pins, setPins] = useState([]); // this will hold generated pins
+  const [pins, setPins] = useState([]); // holds generated pins
   const [mode, setMode] = useState("individual");
-  const [selectedClass, setSelectedClass] = useState(null);
-   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
+  const [classes, setClasses] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [selectedClassId, setSelectedClassId] = useState(null);
 
-  // Function to auto-generate PIN
+  const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
+  const [messageApi, contextHolder] = message.useMessage();
+  const [loader, setLoader] = useState(false);
+
+  // Auto-generate PIN function for table regeneration
   const generatePin = () => {
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
     return `SCH-${new Date().getFullYear()}-${random}`;
-  };
-
-  // Sample class/student data (normally from API)
-  const classes = ["JSS1", "JSS2", "JSS3"];
-  const students = {
-    JSS1: ["John Doe", "Mary Jane", "Paul Obi"],
-    JSS2: ["Tola Ahmed", "Chioma Eze"],
-    JSS3: ["Kingsley Okoro", "Grace Ade"],
   };
 
   // Table columns
   const columns = [
     { title: "PIN Code", dataIndex: "code", key: "code" },
     { title: "Session", dataIndex: "session", key: "session" },
-    { title: "Class", dataIndex: "class", key: "class" },
     { title: "Assigned To", dataIndex: "assignedTo", key: "assignedTo" },
-    { title: "Status", dataIndex: "status", key: "status" },
-    { title: "Generated Date", dataIndex: "generatedDate", key: "generatedDate" },
+    {
+      title: "Generated Date",
+      dataIndex: "generatedDate",
+      key: "generatedDate",
+    },
     {
       title: "Action",
       key: "action",
@@ -73,17 +73,120 @@ const PinManagement = () => {
     },
   ];
 
+  // Fetch all PINs
   const getAllPins = async () => {
+    if (!token) return;
     try {
-      setLoading(true)
-      const res = await axios.get()
+      setLoading(true);
+      const res = await axios.get(`${API_BASE_URL}/api/pin/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const pinsData = res.data.data || [];
+      const mappedPins = pinsData.map((p, idx) => ({
+        key: p._id || idx,
+        code: p.pinCode,
+        session: p.session,
+        assignedTo: p?.student?.fullName || p?.class?.name || "-",
+        generatedDate: new Date(p.createdAt).toLocaleDateString(),
+      }));
+
+      setPins(mappedPins);
     } catch (error) {
-      
+      message.error("Failed to fetch PINs");
+    } finally {
+      setLoading(false);
     }
-  }
+  };
+
+  // Fetch students
+  const getStudents = async () => {
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/student-management/student?limit=1000`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setStudents(res.data.data);
+    } catch (error) {
+      messageApi.error(
+        error?.response?.data?.message || "Failed to fetch students"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch classes
+  const getClass = async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/class-management/classes?limit=100`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const mapped = res?.data?.data?.map((cls) => ({
+        ...cls,
+        key: cls._id,
+      }));
+      setClasses(mapped);
+    } catch (error) {
+      messageApi.error("Failed to fetch classes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // PIN generation (individual or whole class)
+  const generation = async (values) => {
+    try {
+      setLoader(true);
+
+      let payload;
+      let url;
+
+      if (mode === "whole class") {
+        payload = {
+          classId: values.classId,
+          session: values.session,
+          effectiveTerms: Number(values.effectiveTerms),
+        };
+        url = `${API_BASE_URL}/api/pin/generate-bulk`;
+      } else {
+        payload = {
+          studentId: values.student,
+          session: values.session,
+          effectiveTerms: Number(values.effectiveTerms),
+        };
+        url = `${API_BASE_URL}/api/pin/generate-single`;
+      }
+
+      const res = await axios.post(url, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      messageApi.success(res.data.message || "PIN generated successfully");
+      await getAllPins();
+    } catch (error) {
+      messageApi.error(
+        error?.response?.data?.message || "Failed to generate PIN"
+      );
+    } finally {
+      setIsModalOpen(false);
+      setLoader(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!initialized || !token) return;
+    getAllPins();
+    getStudents();
+    getClass();
+  }, [initialized, token]);
 
   return (
     <div className="space-y-6">
+      {contextHolder}
+
       {/* Header */}
       <div className="flex justify-end items-center">
         <Button type="primary" onClick={() => setIsModalOpen(true)}>
@@ -92,22 +195,27 @@ const PinManagement = () => {
       </div>
 
       {/* PIN Table */}
-        <Table
-          rowKey="key"
-          columns={columns}
-          dataSource={pins}
-           bordered
-          size="small"
+      <div>
+        {loading ? (
+          <Skeleton active paragraph={{ rows: 7 }} />
+        ) : (
+          <Table
+            rowKey="key"
+            columns={columns}
+            dataSource={pins}
+            bordered
+            size="small"
             pagination={{
-              pageSize: 7,
+              pageSize: 25,
               position: ["bottomCenter"],
               className: "custom-pagination",
             }}
-            className="custom-table"
             scroll={{ x: "max-content" }}
-        />
+          />
+        )}
+      </div>
 
-      {/* Modal for PIN generation */}
+      {/* Modal */}
       <Modal
         title="Generate PIN"
         open={isModalOpen}
@@ -115,49 +223,42 @@ const PinManagement = () => {
         footer={null}
         destroyOnClose
       >
-        <Form
-          layout="vertical"
-          onFinish={(values) => {
-            if (mode === "individual") {
-              const newPin = {
-                key: pins.length + 1,
-                code: generatePin(),
-                session: values.session,
-                class: values.class,
-                assignedTo: values.student,
-                status: "Unused",
-                generatedDate: new Date().toISOString().split("T")[0],
-              };
-              setPins([...pins, newPin]);
-              message.success(`PIN generated for ${values.student}`);
-            } else {
-              const newPins = students[values.class].map((student, idx) => ({
-                key: pins.length + idx + 1,
-                code: generatePin(),
-                session: values.session,
-                class: values.class,
-                assignedTo: student,
-                status: "Unused",
-                generatedDate: new Date().toISOString().split("T")[0],
-              }));
-              setPins([...pins, ...newPins]);
-              message.success(
-                `${students[values.class].length} PIN(s) generated for ${values.class}`
-              );
-            }
-            setIsModalOpen(false);
-          }}
-        >
+        <Form layout="vertical" onFinish={generation}>
           {/* Mode Switch */}
           <Form.Item label="">
-            <Radio.Group
-              value={mode}
-              onChange={(e) => setMode(e.target.value)}
-            >
+            <Radio.Group value={mode} onChange={(e) => setMode(e.target.value)}>
               <Radio value="individual">Individual Student</Radio>
-              <Radio value="class">Whole Class</Radio>
+              <Radio value="whole class">Whole Class</Radio>
             </Radio.Group>
           </Form.Item>
+
+          {/* Class Select (Whole Class Mode) */}
+          {mode === "whole class" && (
+            <Form.Item
+              label="Class"
+              name="classId"
+              rules={[{ required: true, message: "Select a class" }]}
+            >
+              <Select
+                showSearch
+                placeholder="Search class"
+                optionFilterProp="label"
+                onChange={(value) => setSelectedClassId(value)}
+                filterOption={(input, option) =>
+                  option.label.toLowerCase().includes(input.toLowerCase())
+                }
+              >
+                {classes.map((cls) => {
+                  const label = `${cls.name} ${cls.arm || ""}`.trim();
+                  return (
+                    <Option key={cls._id} value={cls._id} label={label}>
+                      {label}
+                    </Option>
+                  );
+                })}
+              </Select>
+            </Form.Item>
+          )}
 
           {/* Session */}
           <Form.Item
@@ -166,42 +267,48 @@ const PinManagement = () => {
             rules={[{ required: true, message: "Select session" }]}
           >
             <Select placeholder="Select Session">
-              <Option value="2023/2024">2023/2024</Option>
               <Option value="2024/2025">2024/2025</Option>
+              <Option value="2025/2026">2025/2026</Option>
+              <Option value="2026/2027">2026/2027</Option>
             </Select>
           </Form.Item>
 
-          {/* Class */}
+          {/* Term */}
           <Form.Item
-            label="Class"
-            name="class"
-            rules={[{ required: true, message: "Select class" }]}
+            label="Term"
+            name="effectiveTerms"
+            rules={[{ required: true, message: "Select term" }]}
           >
-            <Select
-              placeholder="Select Class"
-              onChange={(val) => setSelectedClass(val)}
-            >
-              {classes.map((cls) => (
-                <Option key={cls} value={cls}>
-                  {cls}
-                </Option>
-              ))}
+            <Select placeholder="Select Term">
+              <Option value="1">1</Option>
             </Select>
           </Form.Item>
 
-          {/* Student (only for individual mode) */}
+          {/* Student Select (Individual Mode) */}
           {mode === "individual" && (
             <Form.Item
               label="Student"
               name="student"
               rules={[{ required: true, message: "Select a student" }]}
             >
-              <Select placeholder="Select Student" disabled={!selectedClass}>
-                {(students[selectedClass] || []).map((std) => (
-                  <Option key={std} value={std}>
-                    {std}
-                  </Option>
-                ))}
+              <Select
+                showSearch
+                placeholder="Search student by name, class, or arm"
+                optionFilterProp="label"
+                filterOption={(input, option) =>
+                  option.label.toLowerCase().includes(input.toLowerCase())
+                }
+              >
+                {students.map((std) => {
+                  const label = `${std.fullName} - ${std.class?.name || ""} ${
+                    std.class?.arm || ""
+                  }`.trim();
+                  return (
+                    <Option key={std._id} value={std._id} label={label}>
+                      {label}
+                    </Option>
+                  );
+                })}
               </Select>
             </Form.Item>
           )}
@@ -209,7 +316,7 @@ const PinManagement = () => {
           {/* Buttons */}
           <div className="flex justify-end gap-3">
             <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" loading={loader}>
               Generate
             </Button>
           </div>

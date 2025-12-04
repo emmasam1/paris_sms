@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Button,
   Table,
@@ -12,6 +12,7 @@ import {
 } from "antd";
 import { useApp } from "../../../context/AppContext";
 import axios from "axios";
+import { useReactToPrint } from "react-to-print";
 
 const { Option } = Select;
 
@@ -21,52 +22,53 @@ const PinManagement = () => {
   const [mode, setMode] = useState("individual");
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
-  const [selectedClassId, setSelectedClassId] = useState(null);
+  const [loader, setLoader] = useState(false);
 
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
-  const [loader, setLoader] = useState(false);
 
-  // Auto-generate PIN function for table regeneration
-  const generatePin = () => {
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    return `SCH-${new Date().getFullYear()}-${random}`;
-  };
+  // Printing
+  const [isPrinting, setIsPrinting] = useState(false);
+  const contentRef = useRef(null); // ref for table container
+  const promiseResolveRef = useRef(null);
+
+  // Resolve printing promise after DOM updates
+  useEffect(() => {
+    if (isPrinting && promiseResolveRef.current) {
+      promiseResolveRef.current();
+    }
+  }, [isPrinting]);
+
+  const handlePrint = useReactToPrint({
+    content: () => contentRef.current,
+    onBeforePrint: () =>
+      new Promise((resolve) => {
+        promiseResolveRef.current = resolve;
+        setIsPrinting(true);
+      }),
+    onAfterPrint: () => {
+      promiseResolveRef.current = null;
+      setIsPrinting(false);
+    },
+    pageStyle: `
+      @page { size: A4; margin: 20mm; }
+      @media print { body { -webkit-print-color-adjust: exact; } }
+    `,
+  });
 
   // Table columns
   const columns = [
     { title: "PIN Code", dataIndex: "code", key: "code" },
     { title: "Session", dataIndex: "session", key: "session" },
     { title: "Assigned To", dataIndex: "assignedTo", key: "assignedTo" },
-    {
-      title: "Generated Date",
-      dataIndex: "generatedDate",
-      key: "generatedDate",
-    },
+    { title: "Generated Date", dataIndex: "generatedDate", key: "generatedDate" },
     {
       title: "Action",
       key: "action",
       render: (_, record) => (
         <Space>
-          <Button
-            size="small"
-            onClick={() => message.info(`Viewing ${record.code}`)}
-          >
+          <Button size="small" onClick={() => message.info(`Viewing ${record.code}`)}>
             View
-          </Button>
-          <Button
-            size="small"
-            onClick={() => {
-              const updatedPins = pins.map((p) =>
-                p.key === record.key
-                  ? { ...p, code: generatePin(), status: "Regenerated" }
-                  : p
-              );
-              setPins(updatedPins);
-              message.success(`PIN regenerated for ${record.assignedTo}`);
-            }}
-          >
-            Regenerate
           </Button>
         </Space>
       ),
@@ -81,7 +83,6 @@ const PinManagement = () => {
       const res = await axios.get(`${API_BASE_URL}/api/pin/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const pinsData = res.data.data || [];
       const mappedPins = pinsData.map((p, idx) => ({
         key: p._id || idx,
@@ -90,7 +91,6 @@ const PinManagement = () => {
         assignedTo: p?.student?.fullName || p?.class?.name || "-",
         generatedDate: new Date(p.createdAt).toLocaleDateString(),
       }));
-
       setPins(mappedPins);
     } catch (error) {
       message.error("Failed to fetch PINs");
@@ -108,9 +108,7 @@ const PinManagement = () => {
       );
       setStudents(res.data.data);
     } catch (error) {
-      messageApi.error(
-        error?.response?.data?.message || "Failed to fetch students"
-      );
+      messageApi.error(error?.response?.data?.message || "Failed to fetch students");
     } finally {
       setLoading(false);
     }
@@ -124,10 +122,7 @@ const PinManagement = () => {
         `${API_BASE_URL}/api/class-management/classes?limit=100`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const mapped = res?.data?.data?.map((cls) => ({
-        ...cls,
-        key: cls._id,
-      }));
+      const mapped = res?.data?.data?.map((cls) => ({ ...cls, key: cls._id }));
       setClasses(mapped);
     } catch (error) {
       messageApi.error("Failed to fetch classes");
@@ -136,13 +131,12 @@ const PinManagement = () => {
     }
   };
 
-  // PIN generation (individual or whole class)
+  // Generate PIN
   const generation = async (values) => {
     try {
       setLoader(true);
 
-      let payload;
-      let url;
+      let payload, url;
 
       if (mode === "whole class") {
         payload = {
@@ -167,9 +161,7 @@ const PinManagement = () => {
       messageApi.success(res.data.message || "PIN generated successfully");
       await getAllPins();
     } catch (error) {
-      messageApi.error(
-        error?.response?.data?.message || "Failed to generate PIN"
-      );
+      messageApi.error(error?.response?.data?.message || "Failed to generate PIN");
     } finally {
       setIsModalOpen(false);
       setLoader(false);
@@ -187,35 +179,45 @@ const PinManagement = () => {
     <div className="space-y-6">
       {contextHolder}
 
-      {/* Header */}
-      <div className="flex justify-end items-center">
+      {/* Header Buttons */}
+      <div className="flex justify-end items-center gap-2">
         <Button type="primary" onClick={() => setIsModalOpen(true)}>
           Generate PIN
         </Button>
+        <Button
+          type="default"
+          onClick={() => {
+            if (!pins.length) {
+              message.info("There is nothing to print yet.");
+              return;
+            }
+            handlePrint();
+          }}
+        >
+          Print All PINs
+        </Button>
       </div>
 
-      {/* PIN Table */}
-      <div>
+      {/* Printable Table */}
+      <div ref={contentRef}>
         {loading ? (
           <Skeleton active paragraph={{ rows: 7 }} />
-        ) : (
+        ) : pins.length > 0 ? (
           <Table
             rowKey="key"
             columns={columns}
             dataSource={pins}
             bordered
             size="small"
-            pagination={{
-              pageSize: 25,
-              position: ["bottomCenter"],
-              className: "custom-pagination",
-            }}
+            pagination={false}
             scroll={{ x: "max-content" }}
           />
+        ) : (
+          <p>No PINs to display</p>
         )}
       </div>
 
-      {/* Modal */}
+      {/* Modal for generating PIN */}
       <Modal
         title="Generate PIN"
         open={isModalOpen}
@@ -232,7 +234,7 @@ const PinManagement = () => {
             </Radio.Group>
           </Form.Item>
 
-          {/* Class Select (Whole Class Mode) */}
+          {/* Class Select */}
           {mode === "whole class" && (
             <Form.Item
               label="Class"
@@ -243,7 +245,6 @@ const PinManagement = () => {
                 showSearch
                 placeholder="Search class"
                 optionFilterProp="label"
-                onChange={(value) => setSelectedClassId(value)}
                 filterOption={(input, option) =>
                   option.label.toLowerCase().includes(input.toLowerCase())
                 }
@@ -284,7 +285,7 @@ const PinManagement = () => {
             </Select>
           </Form.Item>
 
-          {/* Student Select (Individual Mode) */}
+          {/* Student Select */}
           {mode === "individual" && (
             <Form.Item
               label="Student"

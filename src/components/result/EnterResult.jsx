@@ -142,12 +142,12 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
       });
 
       onClick && onClick(res.data);
-      messageApi.success("Result saved successfully!");
+      messageApi.success(res.data.message || "Result saved successfully!");
       resetForm();
       onClose();
     } catch (error) {
       console.error(error);
-      message.error("Failed to save");
+     messageApi.error(error?.response?.data?.message || "Failed to save");
     } finally {
       setLoading(false);
     }

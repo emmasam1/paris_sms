@@ -26,6 +26,7 @@ import Profile from "./components/profile/Profile";
 import PrivateRoute from "./privateRoute/PrivateRoute";
 import NotFound from "./components/notfound/NotFound";
 import Attendance from "./pages/teacher/attendance/Attendance";
+import StudentProgress from "./pages/admin/progress/StudentProgress";
 
 const App = () => {
   return (
@@ -51,27 +52,22 @@ const App = () => {
         <Route path="/profile" element={<Profile />} />
       </Route>
 
-       {/* ===== SChool Owner Routes =====
-        <Route element={<PrivateRoute allowedRoles={["principal"]} />}></Route> */}
+      {/* ===== SChool Owner Routes ===== */}
 
       {/* ===== Admin Routes ===== */}
-      <Route
-        element={
-          <PrivateRoute
-            allowedRoles={["class_admin", "school_admin", "principal"]}
-          />
-        }
-      >
-        <Route path="/admin/dashboard" element={<DashboardLayout />}>
-          <Route path="" element={<Dashboard />} />
-          <Route path="students" element={<Student />} />
-          <Route path="teachers" element={<Teacher />} />
-          <Route path="class-management" element={<ClassManagement />} />
-          <Route path="pin-management" element={<PinManagement />} />
-          <Route path="settings" element={<Settings />} />
-          {/* <Route path="profile" element={<Profile />} /> */}
-          <Route path="message" element={<AdminMessage />} />
-          <Route path="subject-management" element={<SubjectManagement />} />
+      <Route path="/admin/dashboard" element={<DashboardLayout />}>
+        <Route index element={<Dashboard />} />
+        <Route path="students" element={<Student />} />
+        <Route path="teachers" element={<Teacher />} />
+        <Route path="class-management" element={<ClassManagement />} />
+        <Route path="pin-management" element={<PinManagement />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="message" element={<AdminMessage />} />
+        <Route path="subject-management" element={<SubjectManagement />} />
+
+        {/* Principal-only route */}
+        <Route element={<PrivateRoute allowedRoles={["principal"]} />}>
+          <Route path="progress" element={<StudentProgress />} />
         </Route>
       </Route>
 

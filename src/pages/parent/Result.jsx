@@ -14,99 +14,12 @@ import axios from "axios";
 import { useApp } from "../../context/AppContext";
 import SmartScholaLoader from "../../components/loader/SmartScholaLoader";
 
-// Grading helper (keeps original grading boundaries you provided)
-// function computeGradeAndRemark(total) {
-//   if (total >= 80) return { grade: "A1", remark: "EXCELLENT" };
-//   if (total >= 70) return { grade: "B2", remark: "BRILLIANT" };
-//   if (total >= 65) return { grade: "B3", remark: "MERIT" };
-//   if (total >= 60) return { grade: "C4", remark: "VERY GOOD" };
-//   if (total >= 50) return { grade: "C5", remark: "CREDIT" };
-//   if (total >= 45) return { grade: "C6", remark: "PASS" };
-//   if (total >= 40) return { grade: "D7", remark: "FAIR" };
-//   if (total >= 30) return { grade: "E8", remark: "FAIL" };
-//   return { grade: "F9", remark: "FAIL" };
-// }
-
-/* Example subjects and scores (you can pass real data via props) */
-// const pdfSubjects = [
-//   "MATHEMATICS",
-//   "ENGLISH LANGUAGE",
-//   "DIGITAL TECHNOLOGIES",
-//   "INTERMEDIATE SCIENCE",
-//   "SOCIAL AND CITIZENSHIP STUDIES (SCS)",
-//   "CREATIVE AND CULTURAL ARTS (CCA)",
-//   "HISTORY",
-//   "PHYSICAL AND HEALTH EDUCATION (PHE)",
-//   "HAUSA",
-//   "RELIGIOUS STUDIES (IRS/CRS)",
-//   "TRADE",
-//   "BUSINESS STUDIES",
-//   "FRENCH",
-// ];
-
-// const exampleScores = pdfSubjects.map((s, i) => {
-//   const ass1 = [9, 8, 9, 7, 8, 9, 8, 9, 7, 10, 8, 9, 9][i % 13];
-//   const ass2 = [9, 9, 8, 8, 7, 9, 9, 8, 9, 9, 8, 9, 9][i % 13];
-//   const test1 = [18, 17, 19, 16, 17, 18, 17, 19, 18, 20, 17, 18, 18][i % 13];
-//   const test2 = [19, 18, 20, 17, 18, 19, 18, 20, 19, 20, 18, 19, 19][i % 13];
-//   const exam = [38, 36, 39, 35, 36, 37, 36, 38, 37, 40, 35, 38, 38][i % 13];
-//   const total = ass1 + ass2 + test1 + test2 + exam;
-//   // const { grade, remark } = computeGradeAndRemark(total);
-//   return {
-//     key: `${i + 1}`,
-//     subject: s,
-//     ass1,
-//     ass2,
-//     test1,
-//     test2,
-//     exam,
-//   };
-// });
-
-const affectiveDomainData = [
-  { key: "1", domain: "ATTENTIVENESS", rating: "A+", score: 5 },
-  { key: "2", domain: "HONESTY", rating: "A+", score: 5 },
-  { key: "3", domain: "NEATNESS", rating: "A+", score: 5 },
-  { key: "4", domain: "PUNCTUALITY", rating: "A+", score: 5 },
-  { key: "5", domain: "RELATIONSHIP WITH OTHERS", rating: "A", score: 4 },
-  { key: "6", domain: "LEADERSHIP TRAITS", rating: "A+", score: 5 },
-];
-
-const psychomotorDomainData = [
-  { key: "1", domain: "CLUB INTEREST/GAMES AND SPORTS", rating: "A", score: 4 },
-  { key: "2", domain: "HAND WRITING", rating: "A", score: 4 },
-  { key: "3", domain: "AGILITY", rating: "A+", score: 5 },
-  { key: "4", domain: "ORATORY SKILLS", rating: "A+", score: 5 },
-  { key: "5", domain: "SELF CARE", rating: "A+", score: 5 },
-  { key: "6", domain: "ORGANISATIONAL SKILLS", rating: "A+", score: 5 },
-];
-
-const gradeLegendData = [
-  { key: "1", grade: "A1", rate: '80-100 "EXCELLENT"' },
-  { key: "2", grade: "B2", rate: '70-79 "BRILLIANT"' },
-  { key: "3", grade: "B3", rate: '65-69 "MERIT"' },
-  { key: "4", grade: "C4", rate: '60-64 "VERY GOOD"' },
-  { key: "5", grade: "C5", rate: '50-59 "CREDIT"' },
-  { key: "6", grade: "C6", rate: '45-49 "PASS"' },
-  { key: "7", grade: "D7", rate: '40-44 "FAIR"' },
-  { key: "8", grade: "F9", rate: '0-39 "FAIL"' },
-];
-
-const ratingKeyData = [
-  { key: "1", rating: "5=A+", remark: "EXCELLENT" },
-  { key: "2", rating: "4=A", remark: "BRILLIANT" },
-  { key: "3", rating: "3=B", remark: "V. GOOD" },
-  { key: "4", rating: "2=C", remark: "GOOD" },
-  { key: "5", rating: "1=D", remark: "FAIR" },
-  { key: "6", rating: "0=E", remark: "POOR" },
-];
-
 const ParentResult = () => {
   const navigate = useNavigate();
   const printRef = useRef(null);
   const [result, setResult] = useState([]);
   const { API_BASE_URL, token, loading, setLoading } = useApp();
-   const [classes, setClasses] = useState([]);
+  const [classes, setClasses] = useState([]);
 
   //Get Student Result
   const getStudentsResult = async () => {
@@ -114,7 +27,7 @@ const ParentResult = () => {
       setLoading(true);
 
       const res = await axios.get(
-        `${API_BASE_URL}/api/results?studentId=6929e96dbf3290e5031012ac&session=2025/2026&term=1`,
+        `${API_BASE_URL}/api/results?studentId=6929ea33bf3290e503101445&session=2025/2026&term=1`,
         {
           headers: {
             Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MmMwMjdiODgyYTkwMDkwYjIzMWRiYyIsInJvbGUiOiJ0ZWFjaGVyIiwiaWF0IjoxNzY0NjA2NTIyLCJleHAiOjE3NjUyMTEzMjJ9.TbMGc2s5-5aUNunX8Ad9TP59Gew248axPxXMGOjkmTo`,
@@ -133,41 +46,86 @@ const ParentResult = () => {
   };
 
   const getClass = async () => {
-      if (!token) return;
-      setLoading(true);
-  
-      try {
-        const res = await axios.get(
-          `${API_BASE_URL}/api/class-management/classes?limit=100`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-  
-        const data = res?.data?.data || [];
-  
-  
-        console.log("all class",data)
-  
-        setClasses(mapped);
-        setPagination((prev) => ({
-          ...prev,
-          total: mapped.length,
-        }));
-  
-        // messageApi.success(res?.data?.message || "Classes fetched successfully");
-      } catch (error) {
-        console.log(error)
-        // messageApi.error(
-          // error?.response?.data?.message || "Failed to fetch classes"
-        //);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!token) return;
+    setLoading(true);
+
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/class-management/classes?limit=100`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const data = res?.data?.data || [];
+
+      console.log("all class", data);
+
+      setClasses(mapped);
+      setPagination((prev) => ({
+        ...prev,
+        total: mapped.length,
+      }));
+
+      // messageApi.success(res?.data?.message || "Classes fetched successfully");
+    } catch (error) {
+      console.log(error);
+      // messageApi.error(
+      // error?.response?.data?.message || "Failed to fetch classes"
+      //);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     getStudentsResult();
-    getClass()
+    getClass();
   }, []);
+
+  const affectiveDomainData = [
+    {
+      key: "1",
+      domain: "ATTENTIVENESS",
+      rating: result?.domains?.attentiveness || "",
+    },
+    { key: "2", domain: "HONESTY", rating: result?.domains?.honesty || "" },
+    { key: "3", domain: "NEATNESS", rating: result?.domains?.neatness || "" },
+    { key: "4", domain: "PUNCTUALITY", rating: result?.domains?.punctuality || "" },
+    { key: "5", domain: "RELATIONSHIP WITH OTHERS", rating: result?.domains?.relationshipWithOthers || "" },
+    { key: "6", domain: "LEADERSHIP TRAITS", rating: result?.domains?.leadershipTraits || "" },
+  ];
+
+  const psychomotorDomainData = [
+    {
+      key: "1",
+      domain: "CLUB INTEREST/GAMES AND SPORTS",
+      rating: result?.domains?.clubInterestsAndSports || ""
+    },
+    { key: "2", domain: "HAND WRITING", rating: result?.domains?.handWriting || "" },
+    { key: "3", domain: "AGILITY", rating: result?.domains?.agility || "" },
+    { key: "4", domain: "ORATORY SKILLS", rating: result?.domains?.organisationalSkills || "" },
+    { key: "5", domain: "SELF CARE", rating: result?.domains?.selfCare || "" },
+    { key: "6", domain: "ORGANISATIONAL SKILLS", rating: result?.domains?.organisationalSkills || "" },
+  ];
+
+  const gradeLegendData = [
+    { key: "1", grade: "A1", rate: '80-100 "EXCELLENT"' },
+    { key: "2", grade: "B2", rate: '70-79 "BRILLIANT"' },
+    { key: "3", grade: "B3", rate: '65-69 "MERIT"' },
+    { key: "4", grade: "C4", rate: '60-64 "VERY GOOD"' },
+    { key: "5", grade: "C5", rate: '50-59 "CREDIT"' },
+    { key: "6", grade: "C6", rate: '45-49 "PASS"' },
+    { key: "7", grade: "D7", rate: '40-44 "FAIR"' },
+    { key: "8", grade: "F9", rate: '0-39 "FAIL"' },
+  ];
+
+  const ratingKeyData = [
+    { key: "1", rating: "5=A+", remark: "EXCELLENT" },
+    { key: "2", rating: "4=A", remark: "BRILLIANT" },
+    { key: "3", rating: "3=B", remark: "V. GOOD" },
+    { key: "4", rating: "2=C", remark: "GOOD" },
+    { key: "5", rating: "1=D", remark: "FAIR" },
+    { key: "6", rating: "0=E", remark: "POOR" },
+  ];
 
   const isJunior = result?.studentSnapshot?.className
     ?.toUpperCase()
@@ -273,7 +231,7 @@ const ParentResult = () => {
     present: "58",
     absent: "2",
     // noOfSubjects: pdfSubjects.length,
-    totalNoInClass: "35",
+    totalNoInClass: result?.summary?.noInClass,
     noOfArm: "A",
     classAverage: "55.50",
     formTeacher: "Mrs. Ngozi Okoro",
@@ -634,7 +592,7 @@ const ParentResult = () => {
             {/* Signatures */}
             <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8">
               <div>
-                <p>FORM TEACHER'S COMMENT: {result?.teacherRemark}.</p>
+                <p >FORM TEACHER'S COMMENT: {result?.teacherRemark}.</p>
                 <p className="my-2">
                   FORM TEACHER'S NAME:{" "}
                   <span className="underline">{studentInfo.formTeacher}</span>
@@ -644,7 +602,7 @@ const ParentResult = () => {
                 </p>
               </div>
               <div>
-                <p>PRINCIPAL'S COMMENT: ____________________________</p>
+                <p className="uppercase">PRINCIPAL'S COMMENT: {result?.principalRemark}</p>
                 <p className="my-2">
                   PRINCIPAL'S SIGNATURE: ____________________________
                 </p>

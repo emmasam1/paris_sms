@@ -68,7 +68,7 @@ const Student = () => {
     useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [assignLoading, setAssignLoading] = useState(false);
-  const [result, setResult] = useState([])
+ 
 
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
@@ -100,12 +100,11 @@ const Student = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
 
-
   //  const getStudentsResult = async () => {
   //   const id = selectedStudent?._id
   //     try {
   //       setLoading(true);
-  
+
   //       const res = await axios.get(
   //         `${API_BASE_URL}/api/results?studentId=${id}&session=2025/2026&term=1`,
   //         {
@@ -114,9 +113,9 @@ const Student = () => {
   //           },
   //         }
   //       );
-  
+
   //       setResult(res.data?.data || []);
-  
+
   //       console.log("RESULT:", res.data);
   //     } catch (error) {
   //       console.log("Error get result", error);
@@ -124,7 +123,7 @@ const Student = () => {
   //       setLoading(false);
   //     }
   //   };
-  
+
   //   useEffect(() => {
   //     getStudentsResult();
   //   }, []);
@@ -325,35 +324,13 @@ const Student = () => {
     getAllSubjects();
   }, [initialized, token]);
 
-  // const openProgressModal = (student) => {
-  //   setProgressStudent({
-  //     ...student,
-  //     results: [
-  //       {
-  //         subject: "Mathematics",
-  //         firstTest: 15,
-  //         secondTest: 18,
-  //         assignment: 10,
-  //         practical: 12,
-  //         exam: 40,
-  //       },
-  //       {
-  //         subject: "English",
-  //         firstTest: 12,
-  //         secondTest: 15,
-  //         assignment: 9,
-  //         practical: 10,
-  //         exam: 35,
-  //       },
-  //     ],
-  //   });
-  //   setIsProgressOpen(true);
-  // };
-
-  const openProgressModal = (student) => {
-    setSelectedStudent(student); // store the clicked student
-    setDrawerOpen(true); // open the drawer
-  };
+  const adminGetProgress = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/results/admin?classId=64fa2b8a1234abcd56789ef0&term=&session=2025/2026&page=1&limit=10`)
+    } catch (error) {
+      
+    }
+  }
 
   const closeDrawer = () => {
     setDrawerOpen(false);
@@ -409,7 +386,7 @@ const Student = () => {
   const openDetails = (record) => {
     setDetailsStudent(record);
     setIsDetailsOpen(true);
-    console.log(record)
+    console.log(record);
   };
 
   //Get student subjects
@@ -714,19 +691,6 @@ const Student = () => {
                 onClick: () => openAssignSubjectsModal(record),
               },
 
-              {
-                type: "divider",
-              },
-              ...(user?.role === "principal"
-                ? [
-                    {
-                      key: "4",
-                      icon: <BarChartOutlined style={{ color: "#52c41a" }} />,
-                      label: "Progress Report",
-                      onClick: () => openProgressModal(record),
-                    },
-                  ]
-                : []),
               {
                 type: "divider",
               },

@@ -10,6 +10,7 @@ import {
   LogoutOutlined,
   MessageOutlined,
   ReadOutlined,
+  LineChartOutlined,
 } from "@ant-design/icons";
 import { Layout, Menu, theme, Grid, Dropdown, Avatar, message } from "antd";
 import { Outlet, useLocation, useNavigate } from "react-router";
@@ -29,37 +30,67 @@ function getItem(label, key, icon, children) {
   return { key, icon, children, label };
 }
 
-const items = [
-  getItem("Dashboard", "/admin/dashboard", <DashboardOutlined />),
-  getItem("Students", "/admin/dashboard/students", <UserOutlined />),
-  getItem("Teachers", "/admin/dashboard/teachers", <TeamOutlined />),
-  getItem("Classes", "/admin/dashboard/class-management", <BookOutlined />),
-  getItem("Subjects", "/admin/dashboard/subject-management", <ReadOutlined />),
-  getItem("Message", "/admin/dashboard/message", <MessageOutlined />),
-  getItem("PIN Management", "/admin/dashboard/pin-management", <KeyOutlined />),
-  getItem("Settings", "/admin/dashboard/settings", <SettingOutlined />),
-];
-
-const routeTitles = {
-  "/admin/dashboard": "Dashboard",
-  "/admin/dashboard/students": "Student Management",
-  "/admin/dashboard/teachers": "Teacher Management",
-  "/admin/dashboard/class-management": "Class Management",
-  "/admin/dashboard/subject-management": "Subject Management",
-  "/admin/dashboard/message": "Message",
-  "/admin/dashboard/pin-management": "PIN Management",
-  "/admin/dashboard/settings": "Settings",
-};
-
 const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const screens = useBreakpoint();
   const location = useLocation();
   const navigate = useNavigate();
-  const [user, setUser] = useState([])
+
+  const {
+    API_BASE_URL,
+    clearSession,
+    token,
+    initialized,
+    logout,
+    user,
+    setUser,
+  } = useApp();
+
+  const items = [
+    getItem("Dashboard", "/admin/dashboard", <DashboardOutlined />),
+    getItem("Students", "/admin/dashboard/students", <UserOutlined />),
+    getItem("Teachers", "/admin/dashboard/teachers", <TeamOutlined />),
+    getItem("Classes", "/admin/dashboard/class-management", <BookOutlined />),
+    getItem(
+      "Subjects",
+      "/admin/dashboard/subject-management",
+      <ReadOutlined />
+    ),
+
+    // ✅ Only principals see this (example: extra menu)
+    ...(user?.role === "principal"
+      ? [
+          getItem(
+            "Progress",
+            "/admin/dashboard/progress",
+            <LineChartOutlined />
+          ),
+        ]
+      : []),
+
+    getItem("Message", "/admin/dashboard/message", <MessageOutlined />),
+    getItem(
+      "PIN Management",
+      "/admin/dashboard/pin-management",
+      <KeyOutlined />
+    ),
+    getItem("Settings", "/admin/dashboard/settings", <SettingOutlined />),
+  ];
+
+  const routeTitles = {
+    "/admin/dashboard": "Dashboard",
+    "/admin/dashboard/students": "Student Management",
+    "/admin/dashboard/teachers": "Teacher Management",
+    "/admin/dashboard/class-management": "Class Management",
+    "/admin/dashboard/subject-management": "Subject Management",
+    "/admin/dashboard/progress": "Student Progress",
+    "/admin/dashboard/message": "Message",
+    "/admin/dashboard/pin-management": "PIN Management",
+    "/admin/dashboard/settings": "Settings",
+  };
+  // const [user, setUser] = useState([])
 
   // ✅ Use the context-provided values
-  const { API_BASE_URL, clearSession, token, initialized, logout } = useApp();
 
   // console.log("token", token);
   // console.log("user", user);
@@ -154,7 +185,9 @@ const DashboardLayout = () => {
             <img
               src={logo}
               alt="App Logo"
-              className={`object-contain ${collapsed ? "h-10 w-10" : "h-12 w-12"}`}
+              className={`object-contain ${
+                collapsed ? "h-10 w-10" : "h-12 w-12"
+              }`}
             />
           </div>
           {!collapsed && (
@@ -270,6 +303,3 @@ const DashboardLayout = () => {
 };
 
 export default DashboardLayout;
-
-
-

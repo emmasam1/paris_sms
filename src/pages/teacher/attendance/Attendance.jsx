@@ -164,7 +164,7 @@ const Attendance = ({ className }) => {
         `${API_BASE_URL}/api/results?studentId=${id}&session=2025/2026&term=1`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-console.log(stdresult)
+
       setStdResultId(stdresult?.data?.data?._id);
     } catch (error) {
       console.log(error);
@@ -263,7 +263,7 @@ console.log(stdresult)
 
   // === OPEN MODAL WITH MANUAL ATTENDANCE ===
   const openAttendanceModal = (record) => {
-    // console.log(record);
+    console.log(record);
     form.resetFields();
     setAttendanceModalOpen(true);
     setSelectedStudentStats(record);
@@ -691,18 +691,9 @@ console.log(stdresult)
         }
       >
         {selectedStudentStats && (
-          <Form
-            form={form}
-            layout="vertical"
-            className="mt-4"
-            onFinish={handleManualSubmit}
-          >
-            {" "}
+          <Form form={form} layout="vertical" onFinish={handleManualSubmit}>
             <Row gutter={16}>
-              {" "}
-              {/* SESSION */}{" "}
               <Col span={12}>
-                {" "}
                 <Form.Item
                   label="Session"
                   name="session"
@@ -710,93 +701,93 @@ console.log(stdresult)
                     { required: true, message: "Please select a session" },
                   ]}
                 >
-                  {" "}
-                  <Select placeholder="Select session">
-                    {" "}
-                    <Option value="2024/2025">2024/2025</Option>{" "}
-                    <Option value="2025/2026">2025/2026</Option>{" "}
-                    <Option value="2026/2027">2026/2027</Option>{" "}
-                  </Select>{" "}
-                </Form.Item>{" "}
-              </Col>{" "}
-              {/* TERM */}{" "}
+                  <Select
+                    placeholder="Select session"
+                    onChange={(v) => form.setFieldValue("session", v)}
+                    options={[
+                      { value: "2024/2025", label: "2024/2025" },
+                      { value: "2025/2026", label: "2025/2026" },
+                      { value: "2026/2027", label: "2026/2027" },
+                    ]}
+                  />
+                </Form.Item>
+              </Col>
+
               <Col span={12}>
-                {" "}
                 <Form.Item
                   label="Term"
                   name="term"
                   rules={[{ required: true, message: "Please select a term" }]}
                 >
-                  {" "}
-                  <Select placeholder="Select term">
-                    {" "}
-                    <Option value={1}>First Term</Option>{" "}
-                    <Option value={2}>Second Term</Option>{" "}
-                    <Option value={3}>Third Term</Option>{" "}
-                  </Select>{" "}
-                </Form.Item>{" "}
-              </Col>{" "}
-            </Row>{" "}
+                  <Select
+                    placeholder="Select term"
+                    onChange={(v) => form.setFieldValue("term", v)}
+                    options={[
+                      { value: 1, label: "First Term" },
+                      { value: 2, label: "Second Term" },
+                      { value: 3, label: "Third Term" },
+                    ]}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
             <Row gutter={16}>
-              {" "}
               <Col span={12}>
-                {" "}
                 <Form.Item
                   label="No. of Times School Opened"
                   name="opened"
-                  rules={[
-                    { required: true, message: "Please input this value" },
-                  ]}
+                  rules={[{ required: true }]}
                 >
-                  {" "}
-                  <InputNumber min={0} style={{ width: "100%" }} />{" "}
-                </Form.Item>{" "}
-              </Col>{" "}
+                  <InputNumber
+                    min={0}
+                    style={{ width: "100%" }}
+                    onChange={(v) => form.setFieldValue("opened", v)}
+                  />
+                </Form.Item>
+              </Col>
+
               <Col span={12}>
-                {" "}
                 <Form.Item
                   label="No. of Times Present"
                   name="present"
-                  rules={[
-                    { required: true, message: "Please input this value" },
-                  ]}
+                  rules={[{ required: true }]}
                 >
-                  {" "}
-                  <InputNumber min={0} style={{ width: "100%" }} />{" "}
-                </Form.Item>{" "}
-              </Col>{" "}
-            </Row>{" "}
+                  <InputNumber
+                    min={0}
+                    style={{ width: "100%" }}
+                    onChange={(v) => form.setFieldValue("present", v)}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
             <Row gutter={16}>
-              {" "}
               <Col span={12}>
-                {" "}
                 <Form.Item
                   label="No. of Times Absent"
                   name="absent"
-                  rules={[
-                    { required: true, message: "Please input this value" },
-                  ]}
+                  rules={[{ required: true }]}
                 >
-                  {" "}
-                  <InputNumber min={0} style={{ width: "100%" }} />{" "}
-                </Form.Item>{" "}
-              </Col>{" "}
+                  <InputNumber
+                    min={0}
+                    style={{ width: "100%" }}
+                    onChange={(v) => form.setFieldValue("absent", v)}
+                  />
+                </Form.Item>
+              </Col>
+
               <Col span={12}>
-                {" "}
-                <Form.Item label=" ">
-                  {" "}
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    block
-                    loading={loading}
-                  >
-                    {" "}
-                    Submit{" "}
-                  </Button>{" "}
-                </Form.Item>{" "}
-              </Col>{" "}
-            </Row>{" "}
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={loading}
+                  block
+                >
+                  Submit
+                </Button>
+              </Col>
+            </Row>
           </Form>
         )}
       </Modal>

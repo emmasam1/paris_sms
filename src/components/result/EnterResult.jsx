@@ -28,7 +28,7 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
   // ------------------------------------------------------
   const getAllSubjects = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/subject-management/subjects`, {
+      const res = await axios.get(`${API_BASE_URL}/api/subject-management/subjects?limit=100`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const result = res.data;

@@ -282,12 +282,14 @@ const MyClasses = () => {
     }
 
     // Fetch result statuses
-    const dashboardURL = `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subjectId}&session=2025/2026&term=1`;
+    const dashboardURL = `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subject?._id}&session=2025/2026&term=1`;
+    console.log("class id", classId)
+    console.log("subject", subject?._id)
 
     const scoreRes = await axios.get(dashboardURL, {
       headers: { Authorization: `Bearer ${token}` },
     });
-
+    console.log(scoreRes)
     const statusList = scoreRes.data.students || [];
 
     console.log("Status list:", statusList);

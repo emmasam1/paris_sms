@@ -12,14 +12,26 @@ const getGrade = (total) => {
   return "F";
 };
 
-const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selectedLevel }) => {
+const EnterResult = ({
+  open,
+  onClose,
+  student,
+  teacherSubject,
+  onClick,
+  selectedLevel,
+}) => {
   const [studentScores, setStudentScores] = useState([]);
-  const { API_BASE_URL, token, loading, setLoading } = useApp();
+  const {
+    API_BASE_URL,
+    token,
+    loading,
+    setLoading,
+    selectedSubject,
+    setSelectedSubject,
+  } = useApp(); // ✅ use context
   const [messageApi, contextHolder] = message.useMessage();
   const [hasError, setHasError] = useState(false);
   const [subjects, setSubjects] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState(teacherSubject || null);
-
   const [session, setSession] = useState(null);
   const [term, setTerm] = useState(null);
 
@@ -28,12 +40,13 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
   // ------------------------------------------------------
   const getAllSubjects = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/subject-management/subjects?limit=100`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const result = res.data;
-      // console.log("All subjects:", result.data);
-      setSubjects(result.data || []);
+      const res = await axios.get(
+        `${API_BASE_URL}/api/subject-management/subjects?limit=100`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setSubjects(res.data?.data || []);
     } catch (error) {
       console.error(error);
       messageApi.error("Failed to fetch subjects");
@@ -49,21 +62,42 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
   // ------------------------------------------------------
   const isSenior = selectedLevel?.toUpperCase().startsWith("SS");
 
-  // Set limits dynamically based on level
   const limits = isSenior
-    ? { firstAssignment: 5, secondAssignment: 5, firstCATest: 10, secondCATest: 10, exam: 70 }
-    : { firstAssignment: 10, secondAssignment: 10, firstCATest: 20, secondCATest: 20, exam: 40 };
+    ? {
+        firstAssignment: 5,
+        secondAssignment: 5,
+        firstCATest: 10,
+        secondCATest: 10,
+        exam: 70,
+      }
+    : {
+        firstAssignment: 10,
+        secondAssignment: 10,
+        firstCATest: 20,
+        secondCATest: 20,
+        exam: 40,
+      };
 
   // ------------------------------------------------------
   // Load initial student scores based on selectedSubject
   // ------------------------------------------------------
+
+  useEffect(() => {
+    // Load selectedSubject from sessionStorage if it exists
+    const savedSubjectId = sessionStorage.getItem("selectedSubjectId");
+    if (savedSubjectId && subjects.length > 0) {
+      const sub = subjects.find((s) => s._id === savedSubjectId);
+      if (sub) setSelectedSubject(sub);
+    }
+  }, [subjects]); // wait until subjects are loaded
+
   useEffect(() => {
     if (selectedSubject) {
       setStudentScores([
         {
           key: selectedSubject._id,
-          subject: selectedSubject.name,
-          subjectId: selectedSubject._id,
+          subject: selectedSubject.name, // name is used in table
+          subjectId: selectedSubject._id, // id for API
           firstAssignment: 0,
           secondAssignment: 0,
           firstCATest: 0,
@@ -73,6 +107,10 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
           grade: "F",
         },
       ]);
+      sessionStorage.setItem("selectedSubjectId", selectedSubject._id);
+    } else {
+      setStudentScores([]); // no data if no subject
+      sessionStorage.removeItem("selectedSubjectId");
     }
   }, [selectedSubject]);
 
@@ -81,13 +119,13 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
   // ------------------------------------------------------
   const handleScoreChange = (key, field, value) => {
     const max = limits[field];
-
     setStudentScores((prev) =>
       prev.map((row) => {
         if (row.key !== key) return row;
 
         const updated = { ...row, [field]: value || 0 };
 
+        // Validate
         if (value > max) {
           setHasError(true);
         } else {
@@ -105,7 +143,6 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
           updated.exam;
 
         updated.grade = getGrade(updated.total);
-
         return updated;
       })
     );
@@ -137,17 +174,20 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
 
     try {
       setLoading(true);
-      const res = await axios.post(`${API_BASE_URL}/api/records/record-score`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const res = await axios.post(
+        `${API_BASE_URL}/api/records/record-score`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       onClick && onClick(res.data);
       messageApi.success(res.data.message || "Result saved successfully!");
       resetForm();
       onClose();
     } catch (error) {
       console.error(error);
-     messageApi.error(error?.response?.data?.message || "Failed to save");
+      messageApi.error(error?.response?.data?.message || "Failed to save");
     } finally {
       setLoading(false);
     }
@@ -188,8 +228,10 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
           value={r.firstAssignment}
           onChange={(v) => handleScoreChange(r.key, "firstAssignment", v)}
           style={{
-            background: r.firstAssignment > limits.firstAssignment ? "#ffccc7" : "white",
-            borderColor: r.firstAssignment > limits.firstAssignment ? "red" : "",
+            background:
+              r.firstAssignment > limits.firstAssignment ? "#ffccc7" : "white",
+            borderColor:
+              r.firstAssignment > limits.firstAssignment ? "red" : "",
           }}
         />
       ),
@@ -202,8 +244,12 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
           value={r.secondAssignment}
           onChange={(v) => handleScoreChange(r.key, "secondAssignment", v)}
           style={{
-            background: r.secondAssignment > limits.secondAssignment ? "#ffccc7" : "white",
-            borderColor: r.secondAssignment > limits.secondAssignment ? "red" : "",
+            background:
+              r.secondAssignment > limits.secondAssignment
+                ? "#ffccc7"
+                : "white",
+            borderColor:
+              r.secondAssignment > limits.secondAssignment ? "red" : "",
           }}
         />
       ),
@@ -216,7 +262,8 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
           value={r.firstCATest}
           onChange={(v) => handleScoreChange(r.key, "firstCATest", v)}
           style={{
-            background: r.firstCATest > limits.firstCATest ? "#ffccc7" : "white",
+            background:
+              r.firstCATest > limits.firstCATest ? "#ffccc7" : "white",
             borderColor: r.firstCATest > limits.firstCATest ? "red" : "",
           }}
         />
@@ -230,7 +277,8 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
           value={r.secondCATest}
           onChange={(v) => handleScoreChange(r.key, "secondCATest", v)}
           style={{
-            background: r.secondCATest > limits.secondCATest ? "#ffccc7" : "white",
+            background:
+              r.secondCATest > limits.secondCATest ? "#ffccc7" : "white",
             borderColor: r.secondCATest > limits.secondCATest ? "red" : "",
           }}
         />
@@ -311,43 +359,56 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
             <Select.Option value="3">Third Term</Select.Option>
           </Select>
         </div>
-      {/* SUBJECT SELECT */}
-      <div className="flex flex-col w-80 mb-4">
-        <label className="font-semibold mb-1">Subject</label>
-        <Select
-          value={selectedSubject?._id}
-          onChange={(id) => {
-            const fullSub = subjects.find((s) => s._id === id);
-            setSelectedSubject(fullSub);
 
-            if (fullSub) {
-              setStudentScores([
-                {
-                  key: fullSub._id,
-                  subject: fullSub.name,
-                  subjectId: fullSub._id,
-                  firstAssignment: 0,
-                  secondAssignment: 0,
-                  firstCATest: 0,
-                  secondCATest: 0,
-                  exam: 0,
-                  total: 0,
-                  grade: "F",
-                },
-              ]);
-            }
-          }}
-          placeholder="Select Subject"
-        >
-          {subjects?.map((sub) => (
-            <Select.Option key={sub._id} value={sub._id}>
-              {sub.name}
-            </Select.Option>
-          ))}
-        </Select>
+        {/* SUBJECT SELECT */}
+        <div className="flex flex-col w-80 mb-4">
+          <label className="font-semibold mb-1">Subject</label>
+          <Select
+            value={selectedSubject?._id || undefined} // shows blank if no subject
+            onChange={(id) => {
+              const fullSub = subjects.find((s) => s._id === id);
+              setSelectedSubject(fullSub);
+            }}
+            placeholder="Select Subject"
+          >
+            {subjects.map((sub) => (
+              <Select.Option key={sub._id} value={sub._id}>
+                {sub.name}
+              </Select.Option>
+            ))}
+          </Select>
+          {/* <Select
+            value={selectedSubject?._id}
+            onChange={(id) => {
+              const fullSub = subjects.find((s) => s._id === id);
+              setSelectedSubject(fullSub); // ✅ context update, auto saved to sessionStorage
+              if (fullSub) {
+                setStudentScores([
+                  {
+                    key: fullSub._id,
+                    subject: fullSub.name,
+                    subjectId: fullSub._id,
+                    firstAssignment: 0,
+                    secondAssignment: 0,
+                    firstCATest: 0,
+                    secondCATest: 0,
+                    exam: 0,
+                    total: 0,
+                    grade: "F",
+                  },
+                ]);
+              }
+            }}
+            placeholder="Select Subject"
+          >
+            {subjects?.map((sub) => (
+              <Select.Option key={sub._id} value={sub._id}>
+                {sub.name}
+              </Select.Option>
+            ))}
+          </Select> */}
+        </div>
       </div>
-      </div>
-
 
       {/* SCORE TABLE */}
       <Table

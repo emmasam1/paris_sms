@@ -9,6 +9,8 @@ import {
   Radio,
   message,
 } from "antd";
+import { useApp } from "../../../context/AppContext";
+import axios from "axios";
 
 const { Option } = Select;
 
@@ -17,6 +19,7 @@ const PinManagement = () => {
   const [pins, setPins] = useState([]); // this will hold generated pins
   const [mode, setMode] = useState("individual");
   const [selectedClass, setSelectedClass] = useState(null);
+   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
 
   // Function to auto-generate PIN
   const generatePin = () => {
@@ -69,6 +72,15 @@ const PinManagement = () => {
       ),
     },
   ];
+
+  const getAllPins = async () => {
+    try {
+      setLoading(true)
+      const res = await axios.get()
+    } catch (error) {
+      
+    }
+  }
 
   return (
     <div className="space-y-6">

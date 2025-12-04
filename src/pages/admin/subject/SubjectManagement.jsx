@@ -61,7 +61,7 @@ const SubjectManagement = () => {
     total: 0,
   });
 
-  const { API_BASE_URL, token, initialized  } = useApp();
+  const { API_BASE_URL, token, initialized } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm();
 
@@ -75,36 +75,29 @@ const SubjectManagement = () => {
     setIsAssignIsModalOpen(false);
   };
 
+  // Updated handleUnassign
+  const handleUnassign = async (record) => {
+    try {
+      setUnassignLoadingId(record._id); // start loading for this row
 
+      const res = await axios.delete(
+        `${API_BASE_URL}/api/subject-management/subject-levels/${record?._id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
+      messageApi.success(res.data.message);
 
-
-
-// Updated handleUnassign
-const handleUnassign = async (record) => {
-  try {
-    setUnassignLoadingId(record._id); // start loading for this row
-
-    const res = await axios.delete(
-      `${API_BASE_URL}/api/subject-management/subject-levels/${record?._id}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    messageApi.success(res.data.message);
-
-    // Remove from assignments table locally
-    setAssignments(prev => prev.filter(a => a._id !== record._id));
-  } catch (error) {
-    console.error(error);
-    messageApi.error(error?.response?.data?.message || "Failed to unassign");
-  } finally {
-    setUnassignLoadingId(null); // stop loading
-  }
-};
-
-
+      // Remove from assignments table locally
+      setAssignments((prev) => prev.filter((a) => a._id !== record._id));
+    } catch (error) {
+      console.error(error);
+      messageApi.error(error?.response?.data?.message || "Failed to unassign");
+    } finally {
+      setUnassignLoadingId(null); // stop loading
+    }
+  };
 
   // 🔹 Open modal for add/edit
   const openModal = (subject = null) => {
@@ -234,7 +227,6 @@ const handleUnassign = async (record) => {
 
   // 🔹 Fetch subjects (with pagination)
   const getAllSubjects = async (page = 1, limit = 10, search = "") => {
-  
     setTableLoading(true);
     try {
       const params = new URLSearchParams();
@@ -339,15 +331,15 @@ const handleUnassign = async (record) => {
     }
   };
 
-useEffect(() => {
-  if (!initialized || !token) return;
+  useEffect(() => {
+    if (!initialized || !token) return;
 
-  // Now it's safe to call your API functions
-  getAllSubjects();
-  getTeachers();
-  getClass();
-  getSubjectLevels();
-}, [initialized, token]);
+    // Now it's safe to call your API functions
+    getAllSubjects();
+    getTeachers();
+    getClass();
+    getSubjectLevels();
+  }, [initialized, token]);
 
   // 🔹 Handle pagination
   const handleTableChange = (newPagination) => {
@@ -485,41 +477,44 @@ useEffect(() => {
   ];
 
   const assignmentColumns = [
-  { title: "S/N", render: (_, __, index) => index + 1 },
-  { title: "Teacher", dataIndex: "teacher", render: (t) => t?.fullName || "--" },
-  { title: "Email", dataIndex: "teacher", render: (t) => t?.email || "--" },
-  { title: "Subject", dataIndex: "subject", render: (s) => s?.name || "--" },
-  { title: "Code", dataIndex: "subject", render: (s) => s?.code || "--" },
-  { title: "Level", dataIndex: "level" },
-  { title: "Academic Year", dataIndex: "academicYear" },
-  { title: "Term", dataIndex: "term" },
-  {
-    title: "Actions",
-    key: "actions",
-    width: 180,
-    render: (_, record) => (
-      <Space>
-        <Popconfirm
-          title={`Are you sure you want to unassign ${record.subject?.name}?`}
-          onConfirm={() => handleUnassign(record)}
-          okText="Yes"
-          cancelText="No"
-        >
-          <Button
-            type="primary"
-            danger
-            size="small"
-            loading={unassignLoadingId === record._id}
-            style={{ minWidth: 90 }}
+    { title: "S/N", render: (_, __, index) => index + 1 },
+    {
+      title: "Teacher",
+      dataIndex: "teacher",
+      render: (t) => t?.fullName || "--",
+    },
+    { title: "Email", dataIndex: "teacher", render: (t) => t?.email || "--" },
+    { title: "Subject", dataIndex: "subject", render: (s) => s?.name || "--" },
+    { title: "Code", dataIndex: "subject", render: (s) => s?.code || "--" },
+    { title: "Level", dataIndex: "level" },
+    { title: "Academic Year", dataIndex: "academicYear" },
+    { title: "Term", dataIndex: "term" },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 180,
+      render: (_, record) => (
+        <Space>
+          <Popconfirm
+            title={`Are you sure you want to unassign ${record.subject?.name}?`}
+            onConfirm={() => handleUnassign(record)}
+            okText="Yes"
+            cancelText="No"
           >
-            Unassign
-          </Button>
-        </Popconfirm>
-
-      </Space>
-    ),
-  },
-];
+            <Button
+              type="primary"
+              danger
+              size="small"
+              loading={unassignLoadingId === record._id}
+              style={{ minWidth: 90 }}
+            >
+              Unassign
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <>

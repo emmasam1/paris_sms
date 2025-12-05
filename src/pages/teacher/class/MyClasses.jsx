@@ -226,7 +226,7 @@ const MyClasses = () => {
         setTeacherData(studentsWithStatus);
       }
     } catch (error) {
-      console.error("getTeacherClassDetails error:", err);
+      console.error("getTeacherClassDetails error:", error);
       messageApi.error(
         error?.response?.data?.message ||
           "Unable to fetch teacher class details."
@@ -369,8 +369,9 @@ const MyClasses = () => {
       } else {
         setTotal(mergedStudents.length);
       }
-    } catch (err) {
-      console.error("fetchStudentsForClass ERROR:", err);
+    } catch (error) {
+      console.error("fetchStudentsForClass ERROR:", error);
+      messageApi.error(error?.response?.data?.message || "No students in this class offer this subject")
     } finally {
       setLoading(false);
     }
@@ -381,7 +382,7 @@ const MyClasses = () => {
   const getRecord = async (subjectIdParam) => {
     const subjectId = subjectIdParam || selectedSubject;
     if (!subjectId) return;
-    console.log("start");
+
     try {
       setLoading(true);
 

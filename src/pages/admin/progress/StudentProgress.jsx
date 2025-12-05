@@ -10,6 +10,7 @@ import {
   Modal,
   Menu,
   Input,
+  Space,
 } from "antd";
 import { MoreOutlined } from "@ant-design/icons";
 import axios from "axios";
@@ -22,7 +23,8 @@ const StudentProgress = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [editingSubjects, setEditingSubjects] = useState([]);
-  const [isEditing, setIsEditing] = useState(false);
+  const [originalSubjects, setOriginalSubjects] = useState([]);
+  const [editingKeys, setEditingKeys] = useState([]);
   const [messageApi, contextHolder] = message.useMessage();
 
   const [classes, setClasses] = useState([]);
@@ -33,61 +35,109 @@ const StudentProgress = () => {
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(false);
 
-  // Show modal and reset edit mode
+  // 🔹 Dynamic max values based on class
+  const getMaxValues = (className) => {
+    if (className?.toLowerCase().includes("jss")) {
+      return {
+        firstCA: 20,
+        secondCA: 20,
+        firstAssignment: 10,
+        secondAssignment: 10,
+        exam: 40,
+      };
+    } else {
+      return {
+        firstCA: 10,
+        secondCA: 10,
+        firstAssignment: 5,
+        secondAssignment: 5,
+        exam: 70,
+      };
+    }
+  };
+
   const showModal = (record) => {
+    const subjectsWithKey = record.subjects.map((sub, index) => ({
+      key: index,
+      recordId: sub._id,
+      ...sub,
+    }));
     setSelectedStudent(record);
-    setEditingSubjects(
-      record.subjects.map((sub, index) => ({
-        key: index,
-        recordId: sub._id, // ensure each subject has recordId
-        ...sub,
-      }))
-    );
-    setIsEditing(false);
+    setEditingSubjects(subjectsWithKey);
+    setOriginalSubjects(subjectsWithKey); // store original values
+    setEditingKeys([]);
     setIsModalOpen(true);
+    console.log(record)
   };
 
   const handleCancel = () => setIsModalOpen(false);
 
-  // Toggle edit mode
-  const handleEditClick = () => setIsEditing(true);
-
-  // Handle field change for editable subjects
   const handleChange = (value, key, field) => {
     setEditingSubjects((prev) =>
       prev.map((sub) =>
-        sub.key === key ? { ...sub, [field]: value } : sub
+        sub.key === key ? { ...sub, [field]: value === "" ? "" : Number(value) } : sub
       )
     );
   };
 
-  // Save all subjects
-  const handleUpdateAll = async () => {
+  const handleRowEdit = (key) => setEditingKeys((prev) => [...prev, key]);
+
+  // 🔹 Restore original values on cancel
+  const handleRowCancel = (key) => {
+    setEditingSubjects((prev) =>
+      prev.map((sub) => {
+        const original = originalSubjects.find((o) => o.key === key);
+        return sub.key === key && original ? { ...original } : sub;
+      })
+    );
+    setEditingKeys((prev) => prev.filter((k) => k !== key));
+  };
+
+  // 🔹 Row validation using dynamic max
+  const isRowValid = (record) => {
+    const max = getMaxValues(selectedStudent?.className || "");
+    return (
+      record.firstCA <= max.firstCA &&
+      record.secondCA <= max.secondCA &&
+      record.firstAssignment <= max.firstAssignment &&
+      record.secondAssignment <= max.secondAssignment &&
+      record.exam <= max.exam
+    );
+  };
+
+  const handleRowUpdate = async (record) => {
+    if (!isRowValid(record)) return;
+
     try {
-      for (const record of editingSubjects) {
-        await axios.patch(
-          `${API_BASE_URL}/api/records/update-score`,
-          {
-            recordId: record.recordId,
-            firstAssignment: record.firstAssignment,
-            secondAssignment: record.secondAssignment,
-            firstCA: record.firstCA,
-            secondCA: record.secondCA,
-            exam: record.exam,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      }
-      message.success("All subjects updated successfully!");
-      setSelectedStudent((prev) => ({ ...prev, subjects: editingSubjects }));
-      setIsEditing(false);
+      await axios.patch(
+        `${API_BASE_URL}/api/records/update-score`,
+        {
+          recordId: record.recordId,
+          firstAssignment: record.firstAssignment,
+          secondAssignment: record.secondAssignment,
+          firstCA: record.firstCA,
+          secondCA: record.secondCA,
+          exam: record.exam,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      messageApi.success(`${record.subjectName} updated successfully!`);
+      setEditingKeys((prev) => prev.filter((k) => k !== record.key));
+      setEditingSubjects((prev) =>
+        prev.map((sub) => (sub.key === record.key ? { ...record } : sub))
+      );
+
+      // Update originalSubjects so future cancels don't overwrite updated values
+      setOriginalSubjects((prev) =>
+        prev.map((sub) => (sub.key === record.key ? { ...record } : sub))
+      );
     } catch (err) {
       console.error(err);
-      message.error("Failed to update subjects");
+      messageApi.error("Failed to update subject");
     }
   };
 
-  // Fetch classes
   const fetchClasses = async () => {
     setLoadingClasses(true);
     try {
@@ -104,7 +154,7 @@ const StudentProgress = () => {
     }
   };
 
-  // Fetch student progress
+
   const fetchProgress = async () => {
     if (!selectedClassArm)
       return messageApi.warning("Please select a class and arm.");
@@ -112,7 +162,6 @@ const StudentProgress = () => {
     if (!selectedTerm) return messageApi.warning("Please select a term.");
 
     setLoadingProgress(true);
-
     try {
       const url = `${API_BASE_URL}/api/results/admin?classId=${selectedClassArm}&term=${selectedTerm}&session=${selectedSession}`;
       const res = await axios.get(url, {
@@ -122,6 +171,7 @@ const StudentProgress = () => {
       messageApi.success("Results loaded successfully.");
 
       const cleanedData = (res.data.data || []).map((item) => ({
+        recordId: item?._id,
         admissionNumber: item.studentSnapshot?.admissionNumber || "-",
         studentName: item.studentSnapshot?.fullName || "-",
         className: item.studentSnapshot?.className || "-",
@@ -182,11 +232,72 @@ const StudentProgress = () => {
     },
   ];
 
+  const modalColumns = [
+    { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
+    { title: "Subject", dataIndex: "subjectName", key: "subjectName" },
+    ...["firstCA", "secondCA", "firstAssignment", "secondAssignment", "exam"].map(
+      (field) => ({
+        title:
+          field === "firstCA"
+            ? "1st CA"
+            : field === "secondCA"
+            ? "2nd CA"
+            : field === "firstAssignment"
+            ? "1st ASS"
+            : field === "secondAssignment"
+            ? "2nd ASS"
+            : "Exam",
+        dataIndex: field,
+        key: field,
+        render: (text, record) => {
+          const max = getMaxValues(selectedStudent?.className || "");
+          const value = record[field] ?? 0;
+          return editingKeys.includes(record.key) ? (
+            <Input
+              type="number"
+              value={value}
+              onChange={(e) => handleChange(e.target.value, record.key, field)}
+              style={{ borderColor: value > max[field] ? "red" : undefined }}
+            />
+          ) : (
+            text
+          );
+        },
+      })
+    ),
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) =>
+        editingKeys.includes(record.key) ? (
+          <Space>
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => handleRowUpdate(record)}
+              disabled={!isRowValid(record)}
+            >
+              Update
+            </Button>
+            <Button size="small" onClick={() => handleRowCancel(record.key)}>
+              Cancel
+            </Button>
+          </Space>
+        ) : (
+          <Button size="small" onClick={() => handleRowEdit(record.key)}>
+            Edit
+          </Button>
+        ),
+    },
+    { title: "Total", dataIndex: "total", key: "total" },
+    { title: "Grade", dataIndex: "grade", key: "grade" },
+    { title: "Remark", dataIndex: "remark", key: "remark" },
+  ];
+
   return (
     <>
       {contextHolder}
       <Card title="Student Progress" className="w-full">
-        {/* Filters */}
         <div className="flex gap-4 mb-4 flex-wrap">
           {loadingClasses ? (
             <Skeleton.Input style={{ width: 300, height: 40 }} active />
@@ -204,7 +315,6 @@ const StudentProgress = () => {
               ))}
             </Select>
           )}
-
           {loadingClasses ? (
             <Skeleton.Input style={{ width: 200, height: 40 }} active />
           ) : (
@@ -219,7 +329,6 @@ const StudentProgress = () => {
               <Option value="2026/2027">2026/2027</Option>
             </Select>
           )}
-
           {loadingClasses ? (
             <Skeleton.Input style={{ width: 150, height: 40 }} active />
           ) : (
@@ -234,7 +343,6 @@ const StudentProgress = () => {
               <Option value="3">3rd Term</Option>
             </Select>
           )}
-
           <Button
             type="primary"
             onClick={fetchProgress}
@@ -244,7 +352,6 @@ const StudentProgress = () => {
           </Button>
         </div>
 
-        {/* Progress Table */}
         {loadingProgress ? (
           <Skeleton active paragraph={{ rows: 8 }} />
         ) : (
@@ -253,31 +360,18 @@ const StudentProgress = () => {
             dataSource={progressData.map((item, index) => ({ ...item, key: index }))}
             loading={loadingProgress}
             size="small"
-            pagination={{
-              position: ["bottomCenter"],
-              className: "custom-pagination",
-            }}
+            pagination={{ position: ["bottomCenter"], className: "custom-pagination" }}
             bordered
             scroll={{ x: "max-content" }}
           />
         )}
 
-        {/* Modal */}
         <Modal
           title={`${selectedStudent?.studentName} - Subjects`}
           open={isModalOpen}
           onCancel={handleCancel}
           width={900}
           footer={[
-            isEditing ? (
-              <Button key="update" type="primary" onClick={handleUpdateAll}>
-                Update
-              </Button>
-            ) : (
-              <Button key="edit" type="default" onClick={handleEditClick}>
-                Edit
-              </Button>
-            ),
             <Button key="close" onClick={handleCancel}>
               Close
             </Button>,
@@ -286,87 +380,7 @@ const StudentProgress = () => {
           {editingSubjects.length ? (
             <Table
               dataSource={editingSubjects}
-              columns={[
-                { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
-                { title: "Subject", dataIndex: "subjectName", key: "subjectName" },
-                {
-                  title: "1st CA",
-                  dataIndex: "firstCA",
-                  key: "firstCA",
-                  render: (text, record) =>
-                    isEditing ? (
-                      <Input
-                        value={text}
-                        onChange={(e) => handleChange(e.target.value, record.key, "firstCA")}
-                      />
-                    ) : (
-                      text
-                    ),
-                },
-                {
-                  title: "2nd CA",
-                  dataIndex: "secondCA",
-                  key: "secondCA",
-                  render: (text, record) =>
-                    isEditing ? (
-                      <Input
-                        value={text}
-                        onChange={(e) => handleChange(e.target.value, record.key, "secondCA")}
-                      />
-                    ) : (
-                      text
-                    ),
-                },
-                {
-                  title: "1st ASS",
-                  dataIndex: "firstAssignment",
-                  key: "firstAssignment",
-                  render: (text, record) =>
-                    isEditing ? (
-                      <Input
-                        value={text}
-                        onChange={(e) =>
-                          handleChange(e.target.value, record.key, "firstAssignment")
-                        }
-                      />
-                    ) : (
-                      text
-                    ),
-                },
-                {
-                  title: "2nd ASS",
-                  dataIndex: "secondAssignment",
-                  key: "secondAssignment",
-                  render: (text, record) =>
-                    isEditing ? (
-                      <Input
-                        value={text}
-                        onChange={(e) =>
-                          handleChange(e.target.value, record.key, "secondAssignment")
-                        }
-                      />
-                    ) : (
-                      text
-                    ),
-                },
-                {
-                  title: "Exam",
-                  dataIndex: "exam",
-                  key: "exam",
-                  render: (text, record) =>
-                    isEditing ? (
-                      <Input
-                        value={text}
-                        onChange={(e) => handleChange(e.target.value, record.key, "exam")}
-                      />
-                    ) : (
-                      text
-                    ),
-                },
-                { title: "Total", dataIndex: "total", key: "total" },
-                { title: "Grade", dataIndex: "grade", key: "grade" },
-                { title: "Remark", dataIndex: "remark", key: "remark" },
-              ]}
+              columns={modalColumns}
               pagination={false}
               size="small"
               bordered

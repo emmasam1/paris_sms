@@ -71,6 +71,37 @@ const MyClasses = () => {
   const [editStudentRecord, setEditStudentRecord] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [errors, setErrors] = useState({});
+
+  const isJSS = editStudentRecord?.class?.name?.toLowerCase().includes("jss");
+
+  const maxScores = isJSS
+    ? {
+        firstAssignment: 10,
+        secondAssignment: 10,
+        firstCA: 20,
+        secondCA: 20,
+        exam: 40,
+      }
+    : {
+        firstAssignment: 5,
+        secondAssignment: 5,
+        firstCA: 10,
+        secondCA: 10,
+        exam: 70,
+      };
+
+  // LIVE VALIDATION
+  const validateScore = (changedValues, allValues) => {
+    const newErrors = {};
+    Object.keys(maxScores).forEach((key) => {
+      if (Number(allValues[key]) > maxScores[key]) {
+        newErrors[key] = true;
+      }
+    });
+    setErrors(newErrors);
+  };
+
   // pagination for students table
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -367,7 +398,6 @@ const MyClasses = () => {
         return;
       }
 
-
       const mappedStudents = results.map((item) => ({
         key: item._id, // row key
         recordId: item._id, // <-- ADD THIS (this is your record ID)
@@ -389,7 +419,7 @@ const MyClasses = () => {
         status: item.status || "-",
       }));
 
-      console.log("Mapped students:", mappedStudents);
+      // console.log("Mapped students:", mappedStudents);
       setStudentsRecord(mappedStudents);
     } catch (error) {
       console.error(error);
@@ -858,6 +888,7 @@ const MyClasses = () => {
             grade: editStudentRecord?.record?.grade,
             teacherRemark: editStudentRecord?.record?.teacherRemark,
           }}
+          onValuesChange={validateScore}
           onFinish={async (values) => {
             const id = editStudentRecord.recordId;
             try {
@@ -902,32 +933,78 @@ const MyClasses = () => {
           <Row gutter={8}>
             <Col>
               <Form.Item label="1st ASS" name="firstAssignment">
-                <Input type="number" style={{ width: 70 }} />
+                <Input
+                  type="number"
+                  style={{
+                    width: 70,
+                    borderColor: errors.firstAssignment ? "red" : undefined,
+                    background: errors.firstAssignment ? "#ffe5e5" : undefined,
+                  }}
+                  max={maxScores.firstAssignment}
+                />
               </Form.Item>
             </Col>
             <Col>
               <Form.Item label="2nd ASS" name="secondAssignment">
-                <Input type="number" style={{ width: 70 }} />
+                <Input
+                  type="number"
+                  style={{
+                    width: 70,
+                    borderColor: errors.secondAssignment ? "red" : undefined,
+                    background: errors.secondAssignment ? "#ffe5e5" : undefined,
+                  }}
+                  max={maxScores.secondAssignment}
+                />
               </Form.Item>
             </Col>
             <Col>
               <Form.Item label="1st CA" name="firstCA">
-                <Input type="number" style={{ width: 70 }} />
+                <Input
+                  type="number"
+                  style={{
+                    width: 70,
+                    borderColor: errors.firstCA ? "red" : undefined,
+                    background: errors.firstCA ? "#ffe5e5" : undefined,
+                  }}
+                  max={maxScores.firstCA}
+                />
               </Form.Item>
             </Col>
             <Col>
               <Form.Item label="2nd CA" name="secondCA">
-                <Input type="number" style={{ width: 70 }} />
+                <Input
+                  type="number"
+                  style={{
+                    width: 70,
+                    borderColor: errors.secondCA ? "red" : undefined,
+                    background: errors.secondCA ? "#ffe5e5" : undefined,
+                  }}
+                  max={maxScores.secondCA}
+                />
               </Form.Item>
             </Col>
             <Col>
               <Form.Item label="Exam" name="exam">
-                <Input type="number" style={{ width: 70 }} />
+                <Input
+                  type="number"
+                  style={{
+                    width: 70,
+                    borderColor: errors.exam ? "red" : undefined,
+                    background: errors.exam ? "#ffe5e5" : undefined,
+                  }}
+                  max={maxScores.exam}
+                />
               </Form.Item>
             </Col>
             <Col>
               <Form.Item label="Grade" name="grade">
-                <Input style={{ width: 70 }} />
+                <Input
+                  style={{
+                    width: 70,
+                    borderColor: errors.grade ? "red" : undefined,
+                    background: errors.grade ? "#ffe5e5" : undefined,
+                  }}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -938,6 +1015,7 @@ const MyClasses = () => {
               type="primary"
               onClick={() => form.submit()}
               loading={isSubmitting}
+              disabled={Object.keys(errors).length > 0}
             >
               Update Record
             </Button>

@@ -238,11 +238,11 @@ const ParentDashboard = () => {
               </span>
             }
           >
-            <ul className="list-disc ml-6 space-y-1 text-gray-700">
+            {/* <ul className="list-disc ml-6 space-y-1 text-gray-700">
               <li>🏆 Best in Mathematics - February 2025</li>
               <li>⭐ Excellent Conduct Award - March 2025</li>
               <li>🎨 Art Competition Winner - April 2025</li>
-            </ul>
+            </ul> */}
           </Card>
         </Col>
       </Row>
@@ -256,7 +256,7 @@ const ParentDashboard = () => {
           </span>
         }
       >
-        <ul className="list-disc ml-6 text-gray-700 leading-relaxed space-y-2">
+        {/* <ul className="list-disc ml-6 text-gray-700 leading-relaxed space-y-2">
           <li>
             <strong>PTA Meeting:</strong> November 3rd, 2025 at 10:00 AM
           </li>
@@ -266,7 +266,7 @@ const ParentDashboard = () => {
           <li>
             <strong>End-of-Term Exams:</strong> December 1st to 10th
           </li>
-        </ul>
+        </ul> */}
       </Card>
     </div>
   );

@@ -403,7 +403,7 @@ const MyClasses = () => {
     },
     {
       title: "Actions",
-      width: 220,
+    
       render: (_, record) => (
         <Space>
           <Button

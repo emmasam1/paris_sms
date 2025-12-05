@@ -19,38 +19,33 @@ const { Option } = Select;
 const StudentProgress = () => {
   const { API_BASE_URL, token } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [messageApi, contextHolder] = message.useMessage();
 
   const [classes, setClasses] = useState([]);
   const [selectedClassArm, setSelectedClassArm] = useState(null);
-
   const [selectedSession, setSelectedSession] = useState(null);
   const [selectedTerm, setSelectedTerm] = useState(null);
-
   const [progressData, setProgressData] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(false);
 
+  // Show modal with selected student
   const showModal = (record) => {
+    setSelectedStudent(record);
     setIsModalOpen(true);
-    console.log("record from modal", record);
-  };
-  const handleOk = () => {
-    setIsModalOpen(false);
-  };
-  const handleCancel = () => {
-    setIsModalOpen(false);
   };
 
-  // Fetch classes with arms
+  const handleOk = () => setIsModalOpen(false);
+  const handleCancel = () => setIsModalOpen(false);
+
+  // Fetch classes
   const fetchClasses = async () => {
     setLoadingClasses(true);
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/class-management/classes?limit=100`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setClasses(res.data.data || []);
     } catch (error) {
@@ -65,7 +60,6 @@ const StudentProgress = () => {
   const fetchProgress = async () => {
     if (!selectedClassArm)
       return messageApi.warning("Please select a class and arm.");
-
     if (!selectedSession) return messageApi.warning("Please select a session.");
     if (!selectedTerm) return messageApi.warning("Please select a term.");
 
@@ -73,13 +67,11 @@ const StudentProgress = () => {
 
     try {
       const url = `${API_BASE_URL}/api/results/admin?classId=${selectedClassArm}&term=${selectedTerm}&session=${selectedSession}`;
-
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       messageApi.success("Results loaded successfully.");
-      console.log(res)
 
       const cleanedData = (res.data.data || []).map((item) => ({
         admissionNumber: item.studentSnapshot?.admissionNumber || "-",
@@ -93,9 +85,8 @@ const StudentProgress = () => {
         totalScoreObtainable: item.summary?.totalScoreObtainable || "-",
         totalScoreObtained: item.summary?.totalScoreObtained || "-",
         totalSubjects: item.summary?.totalSubjects || "-",
+        subjects: item.subjects || [], // Include subjects for modal
       }));
-
-
 
       setProgressData(cleanedData);
     } catch (error) {
@@ -127,8 +118,6 @@ const StudentProgress = () => {
     },
     { title: "Class", dataIndex: "className", key: "className" },
     { title: "Arm", dataIndex: "classArm", key: "classArm" },
-
-    // ACTION COLUMN
     {
       title: "Action",
       key: "action",
@@ -148,12 +137,11 @@ const StudentProgress = () => {
               {
                 key: "2",
                 label: "View Subject",
-                onClick: () => handleViewSubject(record),
+                onClick: () => console.log("View subject clicked"),
               },
             ]}
           />
         );
-
         return (
           <Dropdown overlay={menu} trigger={["click"]}>
             <Button icon={<MoreOutlined />} />
@@ -167,20 +155,49 @@ const StudentProgress = () => {
     <>
       {contextHolder}
       <Card title="Student Progress" className="w-full">
+        {/* Modal to show subjects */}
         <Modal
-          title="Basic Modal"
-          closable={{ "aria-label": "Custom Close Button" }}
+          title={selectedStudent?.studentName + " - Subjects"}
           open={isModalOpen}
           onOk={handleOk}
           onCancel={handleCancel}
+          width={800}
         >
-          <p>Some contents...</p>
-          <p>Some contents...</p>
-          <p>Some contents...</p>
+          {selectedStudent ? (
+            <Table
+              dataSource={selectedStudent.subjects?.map((sub, index) => ({
+                key: index,
+                subjectName: sub.subjectName,
+                exam: sub.exam,
+                firstCA: sub.firstCA,
+                secondCA: sub.secondCA,
+                practical: sub.practical,
+                total: sub.total,
+                grade: sub.grade,
+                remark: sub.remark,
+              }))}
+              columns={[
+                { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
+                { title: "Subject", dataIndex: "subjectName", key: "subjectName" },
+                { title: "Exam", dataIndex: "exam", key: "exam" },
+                { title: "1st CA", dataIndex: "firstCA", key: "firstCA" },
+                { title: "2nd CA", dataIndex: "secondCA", key: "secondCA" },
+                { title: "Practical", dataIndex: "practical", key: "practical" },
+                { title: "Total", dataIndex: "total", key: "total" },
+                { title: "Grade", dataIndex: "grade", key: "grade" },
+                { title: "Remark", dataIndex: "remark", key: "remark" },
+              ]}
+              pagination={false}
+              size="small"
+              bordered
+            />
+          ) : (
+            <p>No subject data available</p>
+          )}
         </Modal>
 
+        {/* Filters */}
         <div className="flex gap-4 mb-4 flex-wrap">
-          {/* CLASS DROPDOWN */}
           {loadingClasses ? (
             <Skeleton.Input style={{ width: 300, height: 40 }} active />
           ) : (
@@ -198,7 +215,6 @@ const StudentProgress = () => {
             </Select>
           )}
 
-          {/* SESSION DROPDOWN */}
           {loadingClasses ? (
             <Skeleton.Input style={{ width: 200, height: 40 }} active />
           ) : (
@@ -214,7 +230,6 @@ const StudentProgress = () => {
             </Select>
           )}
 
-          {/* TERM DROPDOWN */}
           {loadingClasses ? (
             <Skeleton.Input style={{ width: 150, height: 40 }} active />
           ) : (
@@ -239,7 +254,7 @@ const StudentProgress = () => {
           </Button>
         </div>
 
-        {/* TABLE WITH SKELETON LOADING */}
+        {/* Progress Table */}
         {loadingProgress ? (
           <Skeleton active paragraph={{ rows: 8 }} />
         ) : (

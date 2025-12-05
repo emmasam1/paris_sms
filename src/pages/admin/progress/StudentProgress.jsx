@@ -131,15 +131,7 @@ const StudentProgress = () => {
                 key: "1",
                 label: "View Result",
                 onClick: () => showModal(record),
-              },
-              {
-                type: "divider",
-              },
-              {
-                key: "2",
-                label: "View Subject",
-                onClick: () => console.log("View subject clicked"),
-              },
+              }
             ]}
           />
         );

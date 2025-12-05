@@ -30,7 +30,7 @@ const { Option } = Select;
 const MyClasses = () => {
   const { token, API_BASE_URL } = useApp();
 
-  console.log(token, API_BASE_URL)
+  // console.log(token, API_BASE_URL)
 
   // UI state
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
@@ -101,6 +101,16 @@ const MyClasses = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLevel, selectedArm]);
 
+  useEffect(() => {
+    if (selectedLevel && selectedArm) {
+      fetchStudentsForClass(1, limit); // fetch page 1 of students
+    } else {
+      setStudents([]);
+      setTotal(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLevel, selectedArm]);
+
   // ---------------------------
   // Fetch teacher-levels/classes (structure)
   // ---------------------------
@@ -158,7 +168,7 @@ const MyClasses = () => {
               (s) => s.studentId === student._id
             );
 
-            console.log(found)
+            console.log(found);
 
             return {
               ...student,
@@ -172,12 +182,11 @@ const MyClasses = () => {
           };
         });
 
-
         setTeacherData(studentsWithStatus);
       }
-    } catch (err) {
+    } catch (error) {
       console.error("getTeacherClassDetails error:", err);
-      // messageApi.error("Unable to fetch teacher class details.");
+      messageApi.error( error?.response?.data?.message || "Unable to fetch teacher class details.");
     } finally {
       setLoading(false);
     }
@@ -211,118 +220,117 @@ const MyClasses = () => {
   // Fetch students for selected level+arm with pagination
   // ---------------------------
   const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
-  if (!token || !selectedLevel || !selectedArm) return;
+    if (!token || !selectedLevel || !selectedArm) return;
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    // Fetch students
-    const url = new URL(`${API_BASE_URL}/api/teacher/students`);
-    url.searchParams.append("level", selectedLevel);
-    url.searchParams.append("arm", selectedArm);
-    url.searchParams.append("subject", selectedSubject);
-    url.searchParams.append("page", pageParam);
-    url.searchParams.append("limit", limitParam);
+      // Fetch students
+      const url = new URL(`${API_BASE_URL}/api/teacher/students`);
+      url.searchParams.append("level", selectedLevel);
+      url.searchParams.append("arm", selectedArm);
+      url.searchParams.append("subject", selectedSubject);
+      url.searchParams.append("page", pageParam);
+      url.searchParams.append("limit", limitParam);
 
-    const res = await axios.get(url.toString(), {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+      const res = await axios.get(url.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    console.log("fetchStudentsForClass", res);
+      console.log("fetchStudentsForClass", res);
 
-    // Get all subjects (teacherSubject)
-    const sub = (
-      await axios.get(
-        `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
-    ).data;
+      // Get all subjects (teacherSubject)
+      const sub = (
+        await axios.get(
+          `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        )
+      ).data;
 
-    const subjects =
-      sub?.data?.map((e) => ({
-        _id: e._id,
-        name: e.name,
-      })) || [];
+      const subjects =
+        sub?.data?.map((e) => ({
+          _id: e._id,
+          name: e.name,
+        })) || [];
 
-    setSubjects(subjects);
+      setSubjects(subjects);
 
-    const data = res?.data;
-    let classStudents = [];
+      const data = res?.data;
+      let classStudents = [];
 
-    if (data?.data?.length) {
-      const levelObj = data.data[0];
+      if (data?.data?.length) {
+        const levelObj = data.data[0];
 
-      const matchedClass = levelObj.classes.find(
+        const matchedClass = levelObj.classes.find(
+          (c) => (c.class?.arm || c.class?.name) === selectedArm
+        );
+
+        // Set subject coming from API
+        setSelectedSubject(levelObj?.subject?._id || levelObj?.subject);
+
+        classStudents = matchedClass?.students || [];
+      } else if (data?.students) {
+        classStudents = data.students;
+      }
+
+      // Extract classId
+      const classId = data?.data?.[0]?.classes.find(
         (c) => (c.class?.arm || c.class?.name) === selectedArm
-      );
+      )?.class?._id;
 
-      // Set subject coming from API
-      setSelectedSubject(levelObj?.subject?._id || levelObj?.subject);
+      // Extract subjectId
+      const subjectId =
+        data?.data?.[0]?.subject?._id ||
+        data?.data?.[0]?.subject ||
+        selectedSubject;
 
-      classStudents = matchedClass?.students || [];
-    } else if (data?.students) {
-      classStudents = data.students;
+      if (!classId || !subjectId) {
+        console.warn("Missing classId or subjectId. Cannot fetch status.");
+        setStudents(classStudents);
+        return;
+      }
+
+      // Fetch result statuses
+      const dashboardURL = `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subject?._id}&session=2025/2026&term=1`;
+      console.log("class id", classId);
+      console.log("subject", subject?._id);
+
+      const scoreRes = await axios.get(dashboardURL, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log(scoreRes);
+      const statusList = scoreRes.data.students || [];
+
+      console.log("Status list:", statusList);
+
+      // Merge status into fetched students
+      const mergedStudents = classStudents.map((stu) => {
+        const found = statusList.find((s) => s.studentId === stu._id);
+        return {
+          ...stu,
+          hasRecord: found?.status === "recorded",
+        };
+      });
+
+      setStudents(mergedStudents);
+
+      // pagination
+      const pagination = data?.pagination;
+      if (pagination) {
+        setPage(pagination.page);
+        setLimit(pagination.limit);
+        setTotal(pagination.total);
+      } else {
+        setTotal(mergedStudents.length);
+      }
+    } catch (err) {
+      console.error("fetchStudentsForClass ERROR:", err);
+    } finally {
+      setLoading(false);
     }
-
-    // Extract classId
-    const classId = data?.data?.[0]?.classes.find(
-      (c) => (c.class?.arm || c.class?.name) === selectedArm
-    )?.class?._id;
-
-    // Extract subjectId
-    const subjectId =
-      data?.data?.[0]?.subject?._id ||
-      data?.data?.[0]?.subject ||
-      selectedSubject;
-
-    if (!classId || !subjectId) {
-      console.warn("Missing classId or subjectId. Cannot fetch status.");
-      setStudents(classStudents);
-      return;
-    }
-
-    // Fetch result statuses
-    const dashboardURL = `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subject?._id}&session=2025/2026&term=1`;
-    console.log("class id", classId)
-    console.log("subject", subject?._id)
-
-    const scoreRes = await axios.get(dashboardURL, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    console.log(scoreRes)
-    const statusList = scoreRes.data.students || [];
-
-    console.log("Status list:", statusList);
-
-    // Merge status into fetched students
-    const mergedStudents = classStudents.map((stu) => {
-      const found = statusList.find((s) => s.studentId === stu._id);
-      return {
-        ...stu,
-        hasRecord: found?.status === "recorded",
-      };
-    });
-
-    setStudents(mergedStudents);
-
-    // pagination
-    const pagination = data?.pagination;
-    if (pagination) {
-      setPage(pagination.page);
-      setLimit(pagination.limit);
-      setTotal(pagination.total);
-    } else {
-      setTotal(mergedStudents.length);
-    }
-  } catch (err) {
-    console.error("fetchStudentsForClass ERROR:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   // call fetchStudents when selectedArm or page changes
   useEffect(() => {
@@ -392,7 +400,6 @@ const MyClasses = () => {
       title: "Status",
       width: 120,
       render: (_, record) =>
-     
         record.hasRecord ? (
           <span style={{ color: "green", fontWeight: 600 }}>
             <CheckCircleOutlined /> Entered
@@ -403,7 +410,7 @@ const MyClasses = () => {
     },
     {
       title: "Actions",
-    
+
       render: (_, record) => (
         <Space>
           <Button

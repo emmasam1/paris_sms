@@ -9,6 +9,10 @@ import {
   Skeleton,
   message,
   Select,
+  Form,
+  Input,
+  Row,
+  Col,
 } from "antd";
 import {
   EditOutlined,
@@ -29,6 +33,7 @@ const { Option } = Select;
 
 const MyClasses = () => {
   const { token, API_BASE_URL } = useApp();
+  const [form] = Form.useForm();
 
   // console.log(token, API_BASE_URL)
 
@@ -43,6 +48,7 @@ const MyClasses = () => {
   const [subject, setSubject] = useState(null); // teacherSubject from API
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [filteredSubjects, setFilteredSubjects] = useState([]);
+  const [studentsRecord, setStudentsRecord] = useState([]);
 
   // teacher data structure: levels -> classes -> students
   const [teacherData, setTeacherData] = useState([]); // full payload: data[]
@@ -60,6 +66,10 @@ const MyClasses = () => {
   // loading & messages
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+
+  const [isEditRecordModalOpen, setIsEditRecordModalOpen] = useState(false);
+  const [editStudentRecord, setEditStudentRecord] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // pagination for students table
   const [page, setPage] = useState(1);
@@ -186,7 +196,10 @@ const MyClasses = () => {
       }
     } catch (error) {
       console.error("getTeacherClassDetails error:", err);
-      messageApi.error( error?.response?.data?.message || "Unable to fetch teacher class details.");
+      messageApi.error(
+        error?.response?.data?.message ||
+          "Unable to fetch teacher class details."
+      );
     } finally {
       setLoading(false);
     }
@@ -237,7 +250,7 @@ const MyClasses = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("fetchStudentsForClass", res);
+      // console.log("fetchStudentsForClass", res);
 
       // Get all subjects (teacherSubject)
       const sub = (
@@ -294,16 +307,16 @@ const MyClasses = () => {
 
       // Fetch result statuses
       const dashboardURL = `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subject?._id}&session=2025/2026&term=1`;
-      console.log("class id", classId);
-      console.log("subject", subject?._id);
+      // console.log("class id", classId);
+      // console.log("subject", subject?._id);
 
       const scoreRes = await axios.get(dashboardURL, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(scoreRes);
+      // console.log(scoreRes);
       const statusList = scoreRes.data.students || [];
 
-      console.log("Status list:", statusList);
+      // console.log("Status list:", statusList);
 
       // Merge status into fetched students
       const mergedStudents = classStudents.map((stu) => {
@@ -332,6 +345,69 @@ const MyClasses = () => {
     }
   };
 
+  // Assuming your component has a state setter: const [students, setStudents] = useState([]);
+
+  const getRecord = async (subjectIdParam) => {
+    const subjectId = subjectIdParam || selectedSubject;
+    if (!subjectId) return;
+    console.log("start");
+    try {
+      setLoading(true);
+
+      const res = await axios.get(
+        `${API_BASE_URL}/api/teacher/records?subjectId=${selectedSubject}&session=2025/2026&term=1`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const results = res.data?.data?.results;
+
+      if (!Array.isArray(results) || results.length === 0) {
+        console.warn("No results found!", results);
+        setStudents([]);
+        return;
+      }
+
+
+      const mappedStudents = results.map((item) => ({
+        key: item._id, // row key
+        recordId: item._id, // <-- ADD THIS (this is your record ID)
+        studentId: item.student.id,
+        fullName: `${item.student.firstName} ${item.student.lastName}`,
+        admissionNumber: item.student.admissionNumber || "-",
+        gender: item.gender || "-",
+        class: item.student.class,
+        record: {
+          firstAssignment: item.firstAssignment,
+          secondAssignment: item.secondAssignment,
+          firstCA: item.firstCA,
+          secondCA: item.secondCA,
+          exam: item.exam,
+          total: item.total,
+          grade: item.grade,
+          teacherRemark: item.teacherRemark,
+        },
+        status: item.status || "-",
+      }));
+
+      console.log("Mapped students:", mappedStudents);
+      setStudentsRecord(mappedStudents);
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to fetch records");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // console.log(token, API_BASE_URL)
+
+  useEffect(() => {
+    if (selectedSubject) {
+      getRecord();
+    }
+  }, [selectedSubject]);
+
+  // You must remove the previous manual HTML row generation and setStudentsRows(rows) call!
   // call fetchStudents when selectedArm or page changes
   useEffect(() => {
     // whenever arm changes, fetch page 1
@@ -410,7 +486,7 @@ const MyClasses = () => {
     },
     {
       title: "Actions",
-
+      width: 50,
       render: (_, record) => (
         <Space>
           <Button
@@ -426,18 +502,6 @@ const MyClasses = () => {
           >
             Enter
           </Button>
-
-          {/* <Button
-            type="primary"
-            size="small"
-            icon={<FormOutlined />}
-            onClick={() => {
-              setActiveStudent(record);
-              setIsResultModalOpen(true);
-            }}
-          >
-            Edit
-          </Button> */}
         </Space>
       ),
     },
@@ -463,6 +527,104 @@ const MyClasses = () => {
         </Button>
       ),
     },
+  ];
+
+  const columns = [
+    {
+      title: "S/N",
+      render: (_, __, index) => index + 1,
+      width: 70, // Added width for better layout
+    },
+    {
+      title: "Full Name",
+      dataIndex: "fullName",
+      width: 180,
+    },
+    // {
+    //   title: "Admission No",
+    //   dataIndex: "admissionNumber",
+    //   width: 150,
+    // },
+    {
+      title: "Class",
+      width: 150,
+      render: (record) => {
+        // More robust rendering: get name and arm, use '-' if class is missing.
+        const name = record.class?.name;
+        const arm = record.class?.arm;
+
+        if (name && arm) return `${name} - ${arm}`;
+        if (name) return name;
+        if (arm) return arm;
+        return "-";
+      },
+    },
+    {
+      title: "1st ASS",
+      // Safely access nested record.exam, default to 0
+      render: (record) => record.record?.firstAssignment ?? 0,
+      width: 80,
+    },
+    {
+      title: "2nd ASS",
+      // Safely access nested record.exam, default to 0
+      render: (record) => record.record?.secondAssignment ?? 0,
+      width: 80,
+    },
+    {
+      title: "1st CA",
+      // Safely access nested record.exam, default to 0
+      render: (record) => record.record?.firstCA ?? 0,
+      width: 80,
+    },
+    {
+      title: "2nd CA",
+      // Safely access nested record.exam, default to 0
+      render: (record) => record.record?.secondCA ?? 0,
+      width: 80,
+    },
+    {
+      title: "Exam",
+      // Safely access nested record.exam, default to 0
+      render: (record) => record.record?.exam ?? 0,
+      width: 80,
+    },
+    {
+      title: "Total",
+      // Safely access nested record.total, default to 0
+      render: (record) => record.record?.total ?? 0,
+      width: 80,
+    },
+    {
+      title: "Grade",
+      // Safely access nested record.grade, default to '-'
+      render: (record) => record.record?.grade ?? "-",
+      width: 80,
+    },
+    {
+      title: "Actions",
+      width: 50,
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="primary"
+            size="small"
+            icon={<FormOutlined />}
+            onClick={() => {
+              setEditStudentRecord(record); // set selected record
+              setIsEditRecordModalOpen(true); // open modal
+              // console.log(record);
+            }}
+          >
+            Edit
+          </Button>
+        </Space>
+      ),
+    },
+
+    // Add an Action column here if needed, or remove this comment
+
+    ,
   ];
 
   return (
@@ -602,6 +764,35 @@ const MyClasses = () => {
               </Modal>
             </TabPane>
 
+            {/* VIEW RESULT */}
+            <TabPane
+              tab={
+                <span>
+                  <BarChartOutlined /> View and Edit Record
+                </span>
+              }
+              key="3"
+            >
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 7 }} />
+              ) : (
+                <Table
+                  columns={columns}
+                  size="small"
+                  bordered
+                  // This points to the state variable, which getRecord must set correctly
+                  dataSource={studentsRecord}
+                  // This ensures a unique key for each row based on the fetched data
+                  rowKey={(item) => item.studentId || item._id}
+                  loading={loading}
+                  pagination={{
+                    position: ["bottomCenter"],
+                    className: "custom-pagination",
+                  }}
+                  scroll={{ x: "max-content" }}
+                />
+              )}
+            </TabPane>
             {/* PROGRESS TAB */}
             <TabPane
               tab={
@@ -609,7 +800,7 @@ const MyClasses = () => {
                   <BarChartOutlined /> Progress
                 </span>
               }
-              key="3"
+              key="4"
             >
               {loading ? (
                 <Skeleton active paragraph={{ rows: 7 }} />
@@ -647,6 +838,112 @@ const MyClasses = () => {
           </Tabs>
         </Card>
       </div>
+
+      <Modal
+        title={`Edit Record - ${editStudentRecord?.fullName}`}
+        open={isEditRecordModalOpen}
+        onCancel={() => setIsEditRecordModalOpen(false)}
+        footer={null} // remove default footer
+        width={550}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{
+            firstAssignment: editStudentRecord?.record?.firstAssignment,
+            secondAssignment: editStudentRecord?.record?.secondAssignment,
+            firstCA: editStudentRecord?.record?.firstCA,
+            secondCA: editStudentRecord?.record?.secondCA,
+            exam: editStudentRecord?.record?.exam,
+            grade: editStudentRecord?.record?.grade,
+            teacherRemark: editStudentRecord?.record?.teacherRemark,
+          }}
+          onFinish={async (values) => {
+            const id = editStudentRecord.recordId;
+            try {
+              setIsSubmitting(true);
+
+              const payload = {
+                recordId: id,
+                firstAssignment: values.firstAssignment,
+                secondAssignment: values.secondAssignment,
+                firstCA: values.firstCA,
+                secondCA: values.secondCA,
+                exam: values.exam,
+              };
+
+              await axios.patch(
+                `${API_BASE_URL}/api/records/update-score`,
+                payload,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+
+              // UPDATE LOCAL UI
+              setStudentsRecord((prev) =>
+                prev.map((stu) =>
+                  stu.studentId === editStudentRecord.studentId
+                    ? { ...stu, record: { ...stu.record, ...values } }
+                    : stu
+                )
+              );
+
+              messageApi.success("Record updated successfully!");
+              setIsEditRecordModalOpen(false);
+            } catch (error) {
+              console.log("❌ API Error:", error);
+              messageApi.error("Failed to update record");
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
+        >
+          <Row gutter={8}>
+            <Col>
+              <Form.Item label="1st ASS" name="firstAssignment">
+                <Input type="number" style={{ width: 70 }} />
+              </Form.Item>
+            </Col>
+            <Col>
+              <Form.Item label="2nd ASS" name="secondAssignment">
+                <Input type="number" style={{ width: 70 }} />
+              </Form.Item>
+            </Col>
+            <Col>
+              <Form.Item label="1st CA" name="firstCA">
+                <Input type="number" style={{ width: 70 }} />
+              </Form.Item>
+            </Col>
+            <Col>
+              <Form.Item label="2nd CA" name="secondCA">
+                <Input type="number" style={{ width: 70 }} />
+              </Form.Item>
+            </Col>
+            <Col>
+              <Form.Item label="Exam" name="exam">
+                <Input type="number" style={{ width: 70 }} />
+              </Form.Item>
+            </Col>
+            <Col>
+              <Form.Item label="Grade" name="grade">
+                <Input style={{ width: 70 }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Centered submit button */}
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <Button
+              type="primary"
+              onClick={() => form.submit()}
+              loading={isSubmitting}
+            >
+              Update Record
+            </Button>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 };

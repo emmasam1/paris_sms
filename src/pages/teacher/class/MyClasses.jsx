@@ -420,7 +420,7 @@ const MyClasses = () => {
             Enter
           </Button>
 
-          <Button
+          {/* <Button
             type="primary"
             size="small"
             icon={<FormOutlined />}
@@ -430,7 +430,7 @@ const MyClasses = () => {
             }}
           >
             Edit
-          </Button>
+          </Button> */}
         </Space>
       ),
     },

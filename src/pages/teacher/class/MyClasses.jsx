@@ -30,6 +30,8 @@ const { Option } = Select;
 const MyClasses = () => {
   const { token, API_BASE_URL } = useApp();
 
+  console.log(token, API_BASE_URL)
+
   // UI state
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);

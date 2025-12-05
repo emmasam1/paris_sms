@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Select, Button, Table, message, Card, Skeleton } from "antd";
+import {
+  Select,
+  Button,
+  Table,
+  message,
+  Card,
+  Skeleton,
+  Dropdown,
+  Modal,
+  Menu,
+} from "antd";
+import { MoreOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useApp } from "../../../context/AppContext";
 
@@ -7,11 +18,12 @@ const { Option } = Select;
 
 const StudentProgress = () => {
   const { API_BASE_URL, token } = useApp();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const [classes, setClasses] = useState([]);
   const [selectedClassArm, setSelectedClassArm] = useState(null);
 
-  // NEW: session + term states
   const [selectedSession, setSelectedSession] = useState(null);
   const [selectedTerm, setSelectedTerm] = useState(null);
 
@@ -19,13 +31,26 @@ const StudentProgress = () => {
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(false);
 
+  const showModal = (record) => {
+    setIsModalOpen(true);
+    console.log("record from modal", record);
+  };
+  const handleOk = () => {
+    setIsModalOpen(false);
+  };
+  const handleCancel = () => {
+    setIsModalOpen(false);
+  };
+
   // Fetch classes with arms
   const fetchClasses = async () => {
     setLoadingClasses(true);
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/class-management/classes?limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       setClasses(res.data.data || []);
     } catch (error) {
@@ -36,36 +61,48 @@ const StudentProgress = () => {
     }
   };
 
-  console.log(token, API_BASE_URL)
-
   // Fetch student progress
   const fetchProgress = async () => {
     if (!selectedClassArm)
-      return message.warning("Please select a class and arm.");
+      return messageApi.warning("Please select a class and arm.");
 
-    if (!selectedSession)
-      return message.warning("Please select a session.");
-
-    if (!selectedTerm)
-      return message.warning("Please select a term.");
+    if (!selectedSession) return messageApi.warning("Please select a session.");
+    if (!selectedTerm) return messageApi.warning("Please select a term.");
 
     setLoadingProgress(true);
 
-    console.log(selectedClassArm)
-
     try {
-      // ✅ Create Payload (session + term + arm)
       const url = `${API_BASE_URL}/api/results/admin?classId=${selectedClassArm}&term=${selectedTerm}&session=${selectedSession}`;
 
-    //   api/results/admin?classId=64fa2b8a1234abcd56789ef0&term=&session=2025/2026&page=1&limit=10
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setProgressData(res.data.data || []);
+      messageApi.success("Results loaded successfully.");
+      console.log(res)
+
+      const cleanedData = (res.data.data || []).map((item) => ({
+        admissionNumber: item.studentSnapshot?.admissionNumber || "-",
+        studentName: item.studentSnapshot?.fullName || "-",
+        className: item.studentSnapshot?.className || "-",
+        classArm: item.studentSnapshot?.classArm || "-",
+        classAverage: item.summary?.classAverage || "-",
+        finalAverage: item.summary?.finalAverage || "-",
+        noInClass: item.summary?.noInClass || "-",
+        overallGrade: item.summary?.overallGrade || "-",
+        totalScoreObtainable: item.summary?.totalScoreObtainable || "-",
+        totalScoreObtained: item.summary?.totalScoreObtained || "-",
+        totalSubjects: item.summary?.totalSubjects || "-",
+      }));
+
+
+
+      setProgressData(cleanedData);
     } catch (error) {
       console.error(error);
-      message.error("Failed to fetch student progress.");
+      messageApi.error(
+        error?.response?.data?.message || "Failed to load results"
+      );
     } finally {
       setLoadingProgress(false);
     }
@@ -76,81 +113,154 @@ const StudentProgress = () => {
   }, []);
 
   const columns = [
+    {
+      title: "S/N",
+      key: "sn",
+      render: (_, __, index) => index + 1,
+      width: 70,
+    },
     { title: "Student Name", dataIndex: "studentName", key: "studentName" },
+    {
+      title: "Admission No",
+      dataIndex: "admissionNumber",
+      key: "admissionNumber",
+    },
     { title: "Class", dataIndex: "className", key: "className" },
-    { title: "Arm", dataIndex: "armName", key: "armName" },
-    { title: "Subject", dataIndex: "subjectName", key: "subjectName" },
-    { title: "Score", dataIndex: "score", key: "score" },
-    { title: "Grade", dataIndex: "grade", key: "grade" },
+    { title: "Arm", dataIndex: "classArm", key: "classArm" },
+
+    // ACTION COLUMN
+    {
+      title: "Action",
+      key: "action",
+      width: 100,
+      render: (_, record) => {
+        const menu = (
+          <Menu
+            items={[
+              {
+                key: "1",
+                label: "View Result",
+                onClick: () => showModal(record),
+              },
+              {
+                type: "divider",
+              },
+              {
+                key: "2",
+                label: "View Subject",
+                onClick: () => handleViewSubject(record),
+              },
+            ]}
+          />
+        );
+
+        return (
+          <Dropdown overlay={menu} trigger={["click"]}>
+            <Button icon={<MoreOutlined />} />
+          </Dropdown>
+        );
+      },
+    },
   ];
 
   return (
-    <Card title="Student Progress" className="w-full">
-      <div className="flex gap-4 mb-4 flex-wrap">
+    <>
+      {contextHolder}
+      <Card title="Student Progress" className="w-full">
+        <Modal
+          title="Basic Modal"
+          closable={{ "aria-label": "Custom Close Button" }}
+          open={isModalOpen}
+          onOk={handleOk}
+          onCancel={handleCancel}
+        >
+          <p>Some contents...</p>
+          <p>Some contents...</p>
+          <p>Some contents...</p>
+        </Modal>
 
-        {/* CLASS DROPDOWN */}
-        {loadingClasses ? (
-          <Skeleton.Input style={{ width: 300 }} active />
-        ) : (
-          <Select
-            placeholder="Select Class - Arm"
-            style={{ width: 300 }}
-            value={selectedClassArm}
-            onChange={setSelectedClassArm}
+        <div className="flex gap-4 mb-4 flex-wrap">
+          {/* CLASS DROPDOWN */}
+          {loadingClasses ? (
+            <Skeleton.Input style={{ width: 300, height: 40 }} active />
+          ) : (
+            <Select
+              placeholder="Select Class - Arm"
+              style={{ width: 300 }}
+              value={selectedClassArm}
+              onChange={setSelectedClassArm}
+            >
+              {classes.map((cls) => (
+                <Option key={cls._id} value={cls._id}>
+                  {cls.name} - {cls.arm}
+                </Option>
+              ))}
+            </Select>
+          )}
+
+          {/* SESSION DROPDOWN */}
+          {loadingClasses ? (
+            <Skeleton.Input style={{ width: 200, height: 40 }} active />
+          ) : (
+            <Select
+              placeholder="Select Session"
+              style={{ width: 200 }}
+              value={selectedSession}
+              onChange={setSelectedSession}
+            >
+              <Option value="2024/2025">2024/2025</Option>
+              <Option value="2025/2026">2025/2026</Option>
+              <Option value="2026/2027">2026/2027</Option>
+            </Select>
+          )}
+
+          {/* TERM DROPDOWN */}
+          {loadingClasses ? (
+            <Skeleton.Input style={{ width: 150, height: 40 }} active />
+          ) : (
+            <Select
+              placeholder="Select Term"
+              style={{ width: 150 }}
+              value={selectedTerm}
+              onChange={setSelectedTerm}
+            >
+              <Option value="1">1st Term</Option>
+              <Option value="2">2nd Term</Option>
+              <Option value="3">3rd Term</Option>
+            </Select>
+          )}
+
+          <Button
+            type="primary"
+            onClick={fetchProgress}
+            loading={loadingProgress}
           >
-            {classes.map((cls) => (
-              <Option key={cls._id} value={cls._id}>
-                {cls.name} - {cls.arm}
-              </Option>
-            ))}
-          </Select>
+            Fetch Progress
+          </Button>
+        </div>
+
+        {/* TABLE WITH SKELETON LOADING */}
+        {loadingProgress ? (
+          <Skeleton active paragraph={{ rows: 8 }} />
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={progressData.map((item, index) => ({
+              ...item,
+              key: index,
+            }))}
+            loading={loadingProgress}
+            size="small"
+            pagination={{
+              position: ["bottomCenter"],
+              className: "custom-pagination",
+            }}
+            bordered
+            scroll={{ x: "max-content" }}
+          />
         )}
-
-        {/* SESSION DROPDOWN */}
-        <Select
-          placeholder="Select Session"
-          style={{ width: 200 }}
-          value={selectedSession}
-          onChange={setSelectedSession}
-        >
-        
-          <Option value="2024/2025">2024/2025</Option>
-          <Option value="2025/2026">2025/2026</Option>
-          <Option value="2026/2027">2026/2027</Option>
-        </Select>
-
-        {/* TERM DROPDOWN */}
-        <Select
-          placeholder="Select Term"
-          style={{ width: 150 }}
-          value={selectedTerm}
-          onChange={setSelectedTerm}
-        >
-          <Option value="1st Term">1st Term</Option>
-          <Option value="2nd Term">2nd Term</Option>
-          <Option value="3rd Term">3rd Term</Option>
-        </Select>
-
-        <Button
-          type="primary"
-          onClick={fetchProgress}
-          loading={loadingProgress}
-        >
-          Fetch Progress
-        </Button>
-      </div>
-
-      <Table
-        columns={columns}
-        dataSource={progressData.map((item, index) => ({
-          ...item,
-          key: index,
-        }))}
-        loading={loadingProgress}
-        pagination={{ pageSize: 10 }}
-        bordered
-      />
-    </Card>
+      </Card>
+    </>
   );
 };
 

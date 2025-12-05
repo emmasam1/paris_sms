@@ -58,9 +58,12 @@ const PinManagement = () => {
 
   // Table columns
   const columns = [
+    { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     { title: "PIN Code", dataIndex: "code", key: "code" },
     { title: "Session", dataIndex: "session", key: "session" },
     { title: "Assigned To", dataIndex: "assignedTo", key: "assignedTo" },
+    { title: "Class", dataIndex: "class", key: "class" },
+    { title: "Arm", dataIndex: "arm", key: "arm" },
     { title: "Generated Date", dataIndex: "generatedDate", key: "generatedDate" },
     {
       title: "Action",
@@ -83,12 +86,15 @@ const PinManagement = () => {
       const res = await axios.get(`${API_BASE_URL}/api/pin/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      // console.log(res)
       const pinsData = res.data.data || [];
       const mappedPins = pinsData.map((p, idx) => ({
         key: p._id || idx,
         code: p.pinCode,
         session: p.session,
         assignedTo: p?.student?.fullName || p?.class?.name || "-",
+        class: p?.student?.class?.name,
+        arm: p?.student?.class?.arm,
         generatedDate: new Date(p.createdAt).toLocaleDateString(),
       }));
       setPins(mappedPins);

@@ -389,7 +389,7 @@ const SubjectManagement = () => {
         ],
       }));
 
-      console.log("Formatted assigned:", formatted);
+      // console.log("Formatted assigned:", formatted);
 
       setSubjects(formatted);
 

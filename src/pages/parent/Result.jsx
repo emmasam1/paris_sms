@@ -649,7 +649,7 @@ const ParentResult = () => {
                   <span className="underline">{studentInfo.formTeacher}</span>
                 </p>
                 <p>
-                  DATE: <span className="underline">13TH DEC., 2024</span>
+                  DATE: <span className="font-bold">12th December, 2025</span>
                 </p>
               </div>
               <div>
@@ -659,7 +659,7 @@ const ParentResult = () => {
                 <p className="my-2">
                   PRINCIPAL'S SIGNATURE: ____________________________
                 </p>
-                <p>DATE: ____________________________</p>
+                <p>DATE: <span className="font-bold">12th December, 2025</span></p>
               </div>
             </div>
           </div>

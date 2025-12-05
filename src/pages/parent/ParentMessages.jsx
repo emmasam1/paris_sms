@@ -73,7 +73,7 @@ const ParentMessages = ({ onBack }) => {
         <div className="w-1/3 border-r border-gray-200 bg-white p-4 overflow-y-auto">
           <h2 className="text-lg font-semibold mb-4 text-gray-700">Messages</h2>
           <div className="space-y-3">
-            {chats.map((chat) => (
+            {/* {chats.map((chat) => (
               <motion.div
                 key={chat.id}
                 whileHover={{ scale: 1.02 }}
@@ -102,7 +102,7 @@ const ParentMessages = ({ onBack }) => {
                   )}
                 </div>
               </motion.div>
-            ))}
+            ))} */}
           </div>
         </div>
 

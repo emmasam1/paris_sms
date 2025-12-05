@@ -72,6 +72,7 @@ const StudentProgress = () => {
       });
 
       messageApi.success("Results loaded successfully.");
+      console.log(res)
 
       const cleanedData = (res.data.data || []).map((item) => ({
         admissionNumber: item.studentSnapshot?.admissionNumber || "-",

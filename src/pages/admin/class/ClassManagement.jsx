@@ -85,13 +85,13 @@ const ClassManagement = () => {
   const getStudents = async () => {
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/student-management/student?limit=100`,
+        `${API_BASE_URL}/api/student-management/student?limit=400`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      // console.log(res);
+      console.log(res);
 
       const studentsWithFullName = (res?.data?.data || []).map((s) => ({
         ...s,
@@ -190,31 +190,35 @@ const ClassManagement = () => {
 
   //Add student to class
   const addStudentToClass = async (values) => {
-    setLoading(true);
-    try {
-      if (!currentClass?._id) return;
+  setLoading(true);
+  try {
+    const payload = {
+      studentIds: values.studentIds, // array of selected students
+      classId: currentClass._id,
+    };
 
-      const payload = {
-        studentIds: values.studentIds, // array of selected student IDs
-        classId: currentClass._id,
-      };
+    const res = await axios.post(
+      `${API_BASE_URL}/api/class-management/students/assign-class`,
+      payload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const res = await axios.post(
-        `${API_BASE_URL}/api/class-management/students/assign-class?limit=30`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      getClass();
-      await getStudents();
-      message.success(res?.data?.message || "Students added successfully!");
-      setIsAddStudentModalOpen(false);
-    } catch (error) {
-      console.error("Error adding students:", error);
-      message.error(error?.response?.data?.message || "Failed to add students");
-    } finally {
-      setLoading(false);
-    }
-  };
+    message.success(res?.data?.message || "Students added successfully!");
+
+    await getStudents(); // refresh student list
+    await getClass(); // refresh class list
+
+    setIsAddStudentModalOpen(false);
+  } catch (error) {
+    console.error("Error adding students:", error);
+    message.error(
+      error?.response?.data?.message || "Failed to add students"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // 🔹 Handle AntD table pagination change
   const handleTableChange = (paginationConfig) => {
@@ -674,49 +678,49 @@ const ClassManagement = () => {
       </Modal>
 
       {/* Add student to class modal */}
-      <Modal
-        title={`Add Student to ${currentClass?.name || ""}`}
-        open={isAddStudentModalOpen}
-        onCancel={() => setIsAddStudentModalOpen(false)}
-        footer={null} // use form buttons instead
+     {/* Add student to class modal */}
+<Modal
+  title={`Add Student to ${currentClass?.name || ""}`}
+  open={isAddStudentModalOpen}
+  onCancel={() => {
+    setIsAddStudentModalOpen(false);
+  }}
+  footer={null}
+  destroyOnClose
+  width={500}
+>
+  <Form layout="vertical" onFinish={addStudentToClass}>
+    <Form.Item
+      label="Select Students"
+      name="studentIds"
+      rules={[{ required: true, message: "Please select student(s)" }]}
+    >
+      <Select
+        mode="multiple"
+        placeholder="Select students"
+        showSearch
+        optionFilterProp="children"
+        style={{ width: "100%" }}
       >
-        <Form layout="vertical" onFinish={addStudentToClass}>
-          <Form.Item
-            label="Select Students"
-            name="studentIds"
-            rules={[
-              { required: true, message: "Please select at least one student" },
-            ]}
-          >
-            <Select
-              mode="multiple"
-              placeholder="Select students"
-              showSearch
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {students
-                .filter((s) => !s.class || s.class === null) // ✅ Only students with no class
-                .map((s) => (
-                  <Select.Option key={s._id} value={s._id}>
-                    {s.studentName} - {s.name} {s.arm}
-                  </Select.Option>
-                ))}
-            </Select>
-          </Form.Item>
+        {students.map((std) => (
+          <Option key={std._id} value={std._id}>
+            {std.studentName} — {std.class?.name || "No Class"}
+          </Option>
+        ))}
+      </Select>
+    </Form.Item>
 
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => setIsAddStudentModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Add Students
-            </Button>
-          </div>
-        </Form>
-      </Modal>
+    <div className="flex justify-end gap-2 mt-4">
+      <Button onClick={() => setIsAddStudentModalOpen(false)}>
+        Cancel
+      </Button>
+      <Button type="primary" htmlType="submit" loading={loading}>
+        Assign Students
+      </Button>
+    </div>
+  </Form>
+</Modal>
+
 
       {/* View Class Modal */}
       <Modal

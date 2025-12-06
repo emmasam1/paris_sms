@@ -107,40 +107,40 @@ const MyClasses = () => {
   const [limit, setLimit] = useState(20);
   const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    if (!selectedLevel || !selectedArm) {
-      setFilteredSubjects([]);
-      setSelectedSubject(null);
-      return;
-    }
+  // useEffect(() => {
+  //   if (!selectedLevel || !selectedArm) {
+  //     setFilteredSubjects([]);
+  //     setSelectedSubject(null);
+  //     return;
+  //   }
 
-    // Find the level object
-    const levelObj = teacherData.find((l) => l.level === selectedLevel);
-    if (!levelObj) return;
+  //   // Find the level object
+  //   const levelObj = teacherData.find((l) => l.level === selectedLevel);
+  //   if (!levelObj) return;
 
-    // Find the selected arm class
-    const classObj = levelObj.classes?.find(
-      (c) => c.class?.arm === selectedArm || c.class?.name === selectedArm
-    );
+  //   // Find the selected arm class
+  //   const classObj = levelObj.classes?.find(
+  //     (c) => c.class?.arm === selectedArm || c.class?.name === selectedArm
+  //   );
 
-    if (!classObj) return;
+  //   if (!classObj) return;
 
-    // Get subject(s) for that class
-    const classSubject = classObj.subject || levelObj.subject || null;
+  //   // Get subject(s) for that class
+  //   const classSubject = classObj.subject || levelObj.subject || null;
 
-    if (classSubject) {
-      setFilteredSubjects([classSubject]);
-      // setSelectedSubject(classSubject._id);
-    } else {
-      setFilteredSubjects([]);
-      setSelectedSubject(null);
-    }
+  //   if (classSubject) {
+  //     setFilteredSubjects([classSubject]);
+  //     // setSelectedSubject(classSubject._id);
+  //   } else {
+  //     setFilteredSubjects([]);
+  //     setSelectedSubject(null);
+  //   }
 
-    // Fetch students for that class
-    fetchStudentsForClass(1, limit);
+  //   // Fetch students for that class
+  //   fetchStudentsForClass(1, limit);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLevel, selectedArm]);
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [selectedLevel, selectedArm]);
 
   useEffect(() => {
     if (selectedLevel && selectedArm) {
@@ -307,9 +307,14 @@ const MyClasses = () => {
       if (data?.data?.length) {
         const levelObj = data.data[0];
 
-        const matchedClass = levelObj.classes.find(
-          (c) => (c.class?.arm || c.class?.name) === selectedArm
-        );
+        const matchedClass = levelObj.classes.find((c) => {
+          const name = c.class?.name?.toLowerCase();
+          const arm = c.class?.arm?.toLowerCase();
+          return (
+            name === selectedLevel?.toLowerCase() &&
+            arm === selectedArm?.toLowerCase()
+          );
+        });
 
         // Set subject coming from API
         setSelectedSubject(levelObj?.subject?._id || levelObj?.subject);
@@ -371,7 +376,10 @@ const MyClasses = () => {
       }
     } catch (error) {
       console.error("fetchStudentsForClass ERROR:", error);
-      messageApi.error(error?.response?.data?.message || "No students in this class offer this subject")
+      messageApi.error(
+        error?.response?.data?.message ||
+          "No students in this class offer this subject"
+      );
     } finally {
       setLoading(false);
     }
@@ -379,56 +387,109 @@ const MyClasses = () => {
 
   // Assuming your component has a state setter: const [students, setStudents] = useState([]);
 
+  // const getRecord = async (subjectIdParam) => {
+  //   const subjectId = subjectIdParam || selectedSubject;
+  //   if (!subjectId) return;
+
+  //   try {
+  //     setLoading(true);
+
+  //     const res = await axios.get(
+  //       `${API_BASE_URL}/api/teacher/records?subjectId=${selectedSubject}&session=2025/2026&term=1`,
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
+
+  //     const results = res.data?.data?.results;
+
+  //     if (!Array.isArray(results) || results.length === 0) {
+  //       console.warn("No results found!", results);
+  //       setStudents([]);
+  //       return;
+  //     }
+
+  //     console.log(results)
+      
+  //     const mappedStudents = results.map((item) => ({
+  //       key: item._id, // row key
+  //       recordId: item._id, // <-- ADD THIS (this is your record ID)
+  //       studentId: item.student.id,
+  //       fullName: `${item.student.firstName} ${item.student.lastName}`,
+  //       admissionNumber: item.student.admissionNumber || "-",
+  //       gender: item.gender || "-",
+  //       class: item.student.class,
+  //       record: {
+  //         firstAssignment: item.firstAssignment,
+  //         secondAssignment: item.secondAssignment,
+  //         firstCA: item.firstCA,
+  //         secondCA: item.secondCA,
+  //         exam: item.exam,
+  //         total: item.total,
+  //         grade: item.grade,
+  //         teacherRemark: item.teacherRemark,
+  //       },
+  //       status: item.status || "-",
+  //     }));
+
+  //     // console.log("Mapped students:", mappedStudents);
+  //     setStudentsRecord(mappedStudents);
+  //   } catch (error) {
+  //     console.error(error);
+  //     message.error("Failed to fetch records");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const getRecord = async (subjectIdParam) => {
-    const subjectId = subjectIdParam || selectedSubject;
-    if (!subjectId) return;
+  const subjectId = subjectIdParam || selectedSubject;
+  if (!subjectId) return;
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const res = await axios.get(
-        `${API_BASE_URL}/api/teacher/records?subjectId=${selectedSubject}&session=2025/2026&term=1`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    const res = await axios.get(
+      `${API_BASE_URL}/api/teacher/records?subjectId=${subjectId}&session=2025/2026&term=1&limit=500`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const results = res.data?.data?.results;
+    const results = res.data?.data?.results;
 
-      if (!Array.isArray(results) || results.length === 0) {
-        console.warn("No results found!", results);
-        setStudents([]);
-        return;
-      }
-
-      const mappedStudents = results.map((item) => ({
-        key: item._id, // row key
-        recordId: item._id, // <-- ADD THIS (this is your record ID)
-        studentId: item.student.id,
-        fullName: `${item.student.firstName} ${item.student.lastName}`,
-        admissionNumber: item.student.admissionNumber || "-",
-        gender: item.gender || "-",
-        class: item.student.class,
-        record: {
-          firstAssignment: item.firstAssignment,
-          secondAssignment: item.secondAssignment,
-          firstCA: item.firstCA,
-          secondCA: item.secondCA,
-          exam: item.exam,
-          total: item.total,
-          grade: item.grade,
-          teacherRemark: item.teacherRemark,
-        },
-        status: item.status || "-",
-      }));
-
-      // console.log("Mapped students:", mappedStudents);
-      setStudentsRecord(mappedStudents);
-    } catch (error) {
-      console.error(error);
-      message.error("Failed to fetch records");
-    } finally {
-      setLoading(false);
+    if (!Array.isArray(results) || results.length === 0) {
+      console.warn("No results found!", results);
+      setStudents([]);
+      return;
     }
-  };
+
+    const mappedStudents = results.map((item) => ({
+      key: item._id,
+      recordId: item._id,
+      studentId: item.student.id,
+      fullName: `${item.student.firstName} ${item.student.lastName}`,
+      admissionNumber: item.student.admissionNumber || "-",
+      gender: item.gender || "-",
+      class: item.student.class,
+      record: {
+        firstAssignment: item.firstAssignment,
+        secondAssignment: item.secondAssignment,
+        firstCA: item.firstCA,
+        secondCA: item.secondCA,
+        exam: item.exam,
+        total: item.total,
+        grade: item.grade,
+        teacherRemark: item.teacherRemark,
+      },
+      status: item.status || "-",
+    }));
+
+    setStudentsRecord(mappedStudents);
+  } catch (error) {
+    console.error(error);
+    message.error("Failed to fetch records");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // console.log(token, API_BASE_URL)
 

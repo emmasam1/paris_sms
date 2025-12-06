@@ -190,35 +190,32 @@ const ClassManagement = () => {
 
   //Add student to class
   const addStudentToClass = async (values) => {
-  setLoading(true);
-  try {
-    const payload = {
-      studentIds: values.studentIds, // array of selected students
-      classId: currentClass._id,
-    };
+    setLoading(true);
+    try {
+      const payload = {
+        studentIds: values.studentIds, // array of selected students
+        classId: currentClass._id,
+      };
 
-    const res = await axios.post(
-      `${API_BASE_URL}/api/class-management/students/assign-class`,
-      payload,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+      const res = await axios.post(
+        `${API_BASE_URL}/api/class-management/students/assign-class`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    message.success(res?.data?.message || "Students added successfully!");
+      message.success(res?.data?.message || "Students added successfully!");
 
-    await getStudents(); // refresh student list
-    await getClass(); // refresh class list
+      await getStudents(); // refresh student list
+      await getClass(); // refresh class list
 
-    setIsAddStudentModalOpen(false);
-  } catch (error) {
-    console.error("Error adding students:", error);
-    message.error(
-      error?.response?.data?.message || "Failed to add students"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setIsAddStudentModalOpen(false);
+    } catch (error) {
+      console.error("Error adding students:", error);
+      message.error(error?.response?.data?.message || "Failed to add students");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 🔹 Handle AntD table pagination change
   const handleTableChange = (paginationConfig) => {
@@ -678,49 +675,48 @@ const ClassManagement = () => {
       </Modal>
 
       {/* Add student to class modal */}
-     {/* Add student to class modal */}
-<Modal
-  title={`Add Student to ${currentClass?.name || ""}`}
-  open={isAddStudentModalOpen}
-  onCancel={() => {
-    setIsAddStudentModalOpen(false);
-  }}
-  footer={null}
-  destroyOnClose
-  width={500}
->
-  <Form layout="vertical" onFinish={addStudentToClass}>
-    <Form.Item
-      label="Select Students"
-      name="studentIds"
-      rules={[{ required: true, message: "Please select student(s)" }]}
-    >
-      <Select
-        mode="multiple"
-        placeholder="Select students"
-        showSearch
-        optionFilterProp="children"
-        style={{ width: "100%" }}
+      {/* Add student to class modal */}
+      <Modal
+        title={`Add Student to ${currentClass?.name || ""}`}
+        open={isAddStudentModalOpen}
+        onCancel={() => {
+          setIsAddStudentModalOpen(false);
+        }}
+        footer={null}
+        destroyOnClose
+        width={500}
       >
-        {students.map((std) => (
-          <Option key={std._id} value={std._id}>
-            {std.studentName} — {std.class?.name || "No Class"}
-          </Option>
-        ))}
-      </Select>
-    </Form.Item>
+        <Form layout="vertical" onFinish={addStudentToClass}>
+          <Form.Item
+            label="Select Students"
+            name="studentIds"
+            rules={[{ required: true, message: "Please select student(s)" }]}
+          >
+            <Select
+              mode="multiple"
+              placeholder="Select students"
+              showSearch
+              optionFilterProp="children"
+              style={{ width: "100%" }}
+            >
+              {students.map((std) => (
+                <Option key={std._id} value={std._id}>
+                  {std.studentName} — {std.class?.name || "No Class"}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
 
-    <div className="flex justify-end gap-2 mt-4">
-      <Button onClick={() => setIsAddStudentModalOpen(false)}>
-        Cancel
-      </Button>
-      <Button type="primary" htmlType="submit" loading={loading}>
-        Assign Students
-      </Button>
-    </div>
-  </Form>
-</Modal>
-
+          <div className="flex justify-end gap-2 mt-4">
+            <Button onClick={() => setIsAddStudentModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              Assign Students
+            </Button>
+          </div>
+        </Form>
+      </Modal>
 
       {/* View Class Modal */}
       <Modal

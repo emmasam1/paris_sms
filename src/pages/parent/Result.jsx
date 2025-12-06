@@ -14,6 +14,7 @@ import axios from "axios";
 import { useApp } from "../../context/AppContext";
 import SmartScholaLoader from "../../components/loader/SmartScholaLoader";
 import { useLocation } from "react-router";
+import principalSignature from "../../assets/SIGNATURE.png";
 
 const ParentResult = () => {
   const navigate = useNavigate();
@@ -25,7 +26,6 @@ const ParentResult = () => {
   const { term } = location.state || {};
   const [messageApi, contextHolder] = message.useMessage();
   const [printLoading, setPrintLoading] = useState(false);
-  
 
   //Get Student Result
   const getStudentsResult = async () => {
@@ -283,21 +283,19 @@ const ParentResult = () => {
       element.style.width = "794px";
       element.style.minWidth = "794px";
 
-      const dataUrl = await toPng(element, {
+      const dataUrl = await toPng(printRef.current, {
         cacheBust: true,
         backgroundColor: "#FFFFFF",
         pixelRatio: 3,
+        quality: 1,
       });
-
-      // Restore original style
-      element.style.width = originalWidth;
-      element.style.minWidth = originalMinWidth;
 
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
 
       const img = new Image();
+
       img.src = dataUrl;
       img.onload = () => {
         const imgAspect = img.height / img.width;
@@ -311,12 +309,10 @@ const ParentResult = () => {
           renderWidth = pdfWidth;
           renderHeight = pdfWidth * imgAspect;
         }
+        // pdf.addImage(dataUrl, "PNG", x, y, renderWidth, renderHeight);
+        pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
 
-        const x = (pdfWidth - renderWidth) / 2;
-        const y = 0;
-
-        pdf.addImage(dataUrl, "PNG", x, y, renderWidth, renderHeight);
-        pdf.save("student_result.pdf");
+        pdf.save("Paris Africana.pdf");
         setPrintLoading(false);
       };
     } catch (err) {
@@ -639,7 +635,9 @@ const ParentResult = () => {
             {/* Signatures */}
             <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8">
               <div>
-                <p className="uppercase">FORM TEACHER'S COMMENT: {result?.teacherRemark}.</p>
+                <p className="uppercase">
+                  FORM TEACHER'S COMMENT: {result?.teacherRemark}.
+                </p>
                 <p className="my-2">
                   FORM TEACHER'S NAME:{" "}
                   <span className="underline">{studentInfo.formTeacher}</span>
@@ -652,8 +650,9 @@ const ParentResult = () => {
                 <p className="uppercase">
                   PRINCIPAL'S COMMENT: {result?.principalRemark}
                 </p>
-                <p className="my-2">
-                  PRINCIPAL'S SIGNATURE: ____________________________
+                <p className="my-2 flex items-center gap-2">
+                  PRINCIPAL'S SIGNATURE:{" "}
+                  <img src={principalSignature} alt="" className="w-25 -mt-2" />
                 </p>
                 <p>
                   DATE: <span className="font-bold">12th December, 2025</span>

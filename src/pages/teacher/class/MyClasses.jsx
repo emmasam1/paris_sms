@@ -453,7 +453,7 @@ const MyClasses = () => {
     );
 
     const results = res.data?.data?.results;
-    console.log(results)
+    // console.log(results)
 
     if (!Array.isArray(results) || results.length === 0) {
       console.warn("No results found!", results);
@@ -484,7 +484,7 @@ const MyClasses = () => {
       status: item.status || "-",
     }));
 
-    console.log("mapped", mappedStudents)
+    // console.log("mapped", mappedStudents)
 
     setStudentsRecord(mappedStudents);
   } catch (error) {

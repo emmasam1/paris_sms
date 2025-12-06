@@ -453,12 +453,14 @@ const MyClasses = () => {
     );
 
     const results = res.data?.data?.results;
+    console.log(results)
 
     if (!Array.isArray(results) || results.length === 0) {
       console.warn("No results found!", results);
       setStudents([]);
       return;
     }
+
 
     const mappedStudents = results.map((item) => ({
       key: item._id,
@@ -478,8 +480,11 @@ const MyClasses = () => {
         grade: item.grade,
         teacherRemark: item.teacherRemark,
       },
+      subject: item.subject.name,
       status: item.status || "-",
     }));
+
+    console.log("mapped", mappedStudents)
 
     setStudentsRecord(mappedStudents);
   } catch (error) {
@@ -639,7 +644,7 @@ const MyClasses = () => {
     // },
     {
       title: "Class",
-      width: 150,
+      // width: 150,
       render: (record) => {
         // More robust rendering: get name and arm, use '-' if class is missing.
         const name = record.class?.name;
@@ -650,6 +655,10 @@ const MyClasses = () => {
         if (arm) return arm;
         return "-";
       },
+    },
+    {
+      title: "Subject",
+      dataIndex: "subject",
     },
     {
       title: "1st ASS",

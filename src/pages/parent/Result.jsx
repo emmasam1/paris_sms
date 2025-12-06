@@ -25,6 +25,7 @@ const ParentResult = () => {
   const { term } = location.state || {};
   const [messageApi, contextHolder] = message.useMessage();
   const [printLoading, setPrintLoading] = useState(false);
+  
 
   //Get Student Result
   const getStudentsResult = async () => {
@@ -37,10 +38,10 @@ const ParentResult = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      console.log("RESULT:", res);
 
-      setResult(res.data?.data || []);
-      messageApi.success(res.data.message);
-      console.log("RESULT:", res.data);
+      setResult(res?.data || []);
+      // messageApi.success(res.data.message);
     } catch (error) {
       console.log("Error get result", error);
       messageApi.error(error?.response?.data?.message || "No result yet");
@@ -49,42 +50,42 @@ const ParentResult = () => {
     }
   };
 
-  const getClass = async () => {
-    if (!token) return;
-    setLoading(true);
+  // const getClass = async () => {
+  //   if (!token) return;
+  //   setLoading(true);
 
-    try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/class-management/classes?limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  //   try {
+  //     const res = await axios.get(
+  //       `${API_BASE_URL}/api/class-management/classes?limit=100`,
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
 
-      const data = res?.data?.data || [];
+  //     const data = res?.data?.data || [];
 
-      console.log("all class", data);
+  //     console.log("all class", data);
 
-      setClasses(mapped);
-      setPagination((prev) => ({
-        ...prev,
-        total: mapped.length,
-      }));
+  //     setClasses(mapped);
+  //     setPagination((prev) => ({
+  //       ...prev,
+  //       total: mapped.length,
+  //     }));
 
-      // messageApi.success(res?.data?.message || "Classes fetched successfully");
-    } catch (error) {
-      console.log(error);
-      // messageApi.error(
-      // error?.response?.data?.message || "Failed to fetch classes"
-      //);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     // messageApi.success(res?.data?.message || "Classes fetched successfully");
+  //   } catch (error) {
+  //     console.log(error);
+  //     // messageApi.error(
+  //     // error?.response?.data?.message || "Failed to fetch classes"
+  //     //);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   useEffect(() => {
     if (!initialized || !token) return;
 
     getStudentsResult();
-    getClass();
+    // getClass();
   }, [initialized, token]);
 
   const affectiveDomainData = [
@@ -157,18 +158,18 @@ const ParentResult = () => {
     { key: "6", rating: "0=E", remark: "POOR" },
   ];
 
-  const isJunior = result?.studentSnapshot?.className
-    ?.toUpperCase()
-    .includes("JSS");
+  const isJunior = result?.student?.className?.toUpperCase().includes("JSS");
 
   const columns = [
     {
       title: "SUBJECTS",
-      dataIndex: "subject",
-      key: "subject",
+      dataIndex: "subjectName",
+      key: "subjectName",
       align: "left",
       width: 200,
-      render: (subject) => <span className="font-medium">{subject.name}</span>,
+      render: (subjectName) => (
+        <span className="font-medium">{subjectName}</span>
+      ),
     },
     {
       title: `1st Ass. ${isJunior ? 10 : 5}%`,
@@ -267,65 +268,63 @@ const ParentResult = () => {
     formTeacher: "Mrs. Ngozi Okoro",
   };
 
- const handlePDF = async () => {
-  if (!printRef.current) return;
-  try {
-    setPrintLoading(true);
+  const handlePDF = async () => {
+    if (!printRef.current) return;
+    try {
+      setPrintLoading(true);
 
-    const element = printRef.current;
+      const element = printRef.current;
 
-    // Save original style
-    const originalWidth = element.style.width;
-    const originalMinWidth = element.style.minWidth;
+      // Save original style
+      const originalWidth = element.style.width;
+      const originalMinWidth = element.style.minWidth;
 
-    // Force fixed A4 width in pixels (approx 794px at 96 DPI)
-    element.style.width = "794px";
-    element.style.minWidth = "794px";
+      // Force fixed A4 width in pixels (approx 794px at 96 DPI)
+      element.style.width = "794px";
+      element.style.minWidth = "794px";
 
-    const dataUrl = await toPng(element, {
-      cacheBust: true,
-      backgroundColor: "#FFFFFF",
-      pixelRatio: 3,
-    });
+      const dataUrl = await toPng(element, {
+        cacheBust: true,
+        backgroundColor: "#FFFFFF",
+        pixelRatio: 3,
+      });
 
-    // Restore original style
-    element.style.width = originalWidth;
-    element.style.minWidth = originalMinWidth;
+      // Restore original style
+      element.style.width = originalWidth;
+      element.style.minWidth = originalMinWidth;
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
-    const img = new Image();
-    img.src = dataUrl;
-    img.onload = () => {
-      const imgAspect = img.height / img.width;
-      const pdfAspect = pdfHeight / pdfWidth;
+      const img = new Image();
+      img.src = dataUrl;
+      img.onload = () => {
+        const imgAspect = img.height / img.width;
+        const pdfAspect = pdfHeight / pdfWidth;
 
-      let renderWidth, renderHeight;
-      if (imgAspect > pdfAspect) {
-        renderHeight = pdfHeight;
-        renderWidth = pdfHeight / imgAspect;
-      } else {
-        renderWidth = pdfWidth;
-        renderHeight = pdfWidth * imgAspect;
-      }
+        let renderWidth, renderHeight;
+        if (imgAspect > pdfAspect) {
+          renderHeight = pdfHeight;
+          renderWidth = pdfHeight / imgAspect;
+        } else {
+          renderWidth = pdfWidth;
+          renderHeight = pdfWidth * imgAspect;
+        }
 
-      const x = (pdfWidth - renderWidth) / 2;
-      const y = 0;
+        const x = (pdfWidth - renderWidth) / 2;
+        const y = 0;
 
-      pdf.addImage(dataUrl, "PNG", x, y, renderWidth, renderHeight);
-      pdf.save("student_result.pdf");
+        pdf.addImage(dataUrl, "PNG", x, y, renderWidth, renderHeight);
+        pdf.save("student_result.pdf");
+        setPrintLoading(false);
+      };
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("Failed to generate PDF. Check console for details.");
       setPrintLoading(false);
-    };
-  } catch (err) {
-    console.error("PDF generation failed:", err);
-    alert("Failed to generate PDF. Check console for details.");
-    setPrintLoading(false);
-  }
-};
-
-
+    }
+  };
 
   // small Tailwind/Ant classes for Ant Table adjustments (if you use Tailwind)
   const customTableStyle =
@@ -421,7 +420,7 @@ const ParentResult = () => {
                   MOTTO: KNOWLEDGE AND DISCIPLINE
                 </p>
                 <p className="font-extrabold mt-1 text-xl leading-tight">
-                  {result?.studentSnapshot?.className?.startsWith("JSS")
+                  {result?.student?.className?.startsWith("JSS")
                     ? "JUNIOR SECONDARY SCHOOL"
                     : "SENIOR SECONDARY SCHOOL"}
                 </p>
@@ -433,10 +432,10 @@ const ParentResult = () => {
               </div>
 
               {/* image */}
-              {result?.studentSnapshot?.avatar && (
+              {result?.student?.avatar && (
                 <div className="w-[150px] h-[150px] flex-shrink-0 overflow-hidden rounded-lg">
                   <img
-                    src={result.studentSnapshot.avatar}
+                    src={result.student.avatar}
                     alt=""
                     className="w-full object-containe"
                   />
@@ -449,27 +448,24 @@ const ParentResult = () => {
               <div className="col-span-8 grid grid-cols-2 gap-y-1">
                 <div className="text-xl">
                   NAME:{" "}
-                  <span className="font-bold">
-                    {result?.studentSnapshot?.fullName}
-                  </span>
+                  <span className="font-bold">{result?.student?.fullName}</span>
                 </div>
                 <div className="text-xl">
                   ADMISSION NO:{" "}
                   <span className="font-bold">
-                    {result?.studentSnapshot?.admissionNumber}
+                    {result?.student?.admissionNumber}
                   </span>
                 </div>
                 <div className="text-xl">
                   GENDER:{" "}
                   <span className="font-bold capitalize">
-                    {result?.studentSnapshot?.gender}
+                    {result?.student?.gender}
                   </span>
                 </div>
                 <div className="text-xl">
                   CLASS:{" "}
                   <span className="font-bold uppercase">
-                    {result?.studentSnapshot?.className}{" "}
-                    {result?.studentSnapshot?.classArm}
+                    {result?.student?.className} {result?.student?.classArm}
                   </span>
                 </div>
               </div>
@@ -643,7 +639,7 @@ const ParentResult = () => {
             {/* Signatures */}
             <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8">
               <div>
-                <p>FORM TEACHER'S COMMENT: {result?.teacherRemark}.</p>
+                <p className="uppercase">FORM TEACHER'S COMMENT: {result?.teacherRemark}.</p>
                 <p className="my-2">
                   FORM TEACHER'S NAME:{" "}
                   <span className="underline">{studentInfo.formTeacher}</span>
@@ -659,7 +655,9 @@ const ParentResult = () => {
                 <p className="my-2">
                   PRINCIPAL'S SIGNATURE: ____________________________
                 </p>
-                <p>DATE: <span className="font-bold">12th December, 2025</span></p>
+                <p>
+                  DATE: <span className="font-bold">12th December, 2025</span>
+                </p>
               </div>
             </div>
           </div>

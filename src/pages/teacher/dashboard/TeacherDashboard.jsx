@@ -37,6 +37,7 @@ const TeacherDashboard = () => {
     totalClasses: 0,
   });
   const [messageApi, contextHolder] = message.useMessage();
+  const [userLoaded, setUserLoaded] = useState(false);
 
   const [announcements, setAnnouncements] = useState([
     {
@@ -75,6 +76,7 @@ const TeacherDashboard = () => {
       console.error("Error fetching user data:", error);
     } finally {
       setLoading(false);
+      setUserLoaded(true);
     }
   };
 
@@ -107,7 +109,7 @@ const TeacherDashboard = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        console.log(resultRes);
+        // console.log("testing",resultRes);
 
         if (resultRes.data.success) {
           const stats = resultRes.data.stats;
@@ -198,14 +200,15 @@ const TeacherDashboard = () => {
     }
     return `Welcome ${user.title} ${user.firstName} ${user.lastName}`;
   };
-  
+
   // console.log(user)
 
   return (
     <div>
       {contextHolder}
 
-      {user?.needsPasswordChange === true ? <ChangePassword /> : null}
+      {userLoaded && user?.needsPasswordChange && <ChangePassword />}
+
       {/* Welcome */}
       <Skeleton loading={loading} active paragraph={false}>
         <h2 className="text-xl font-bold mb-4">{getWelcomeText()}</h2>

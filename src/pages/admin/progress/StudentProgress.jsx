@@ -168,6 +168,8 @@ const StudentProgress = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // console.log(res)
+
       messageApi.success("Results loaded successfully.");
 
       const cleanedData = (res.data.data || []).map((item) => ({
@@ -235,7 +237,7 @@ const StudentProgress = () => {
   const modalColumns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     { title: "Subject", dataIndex: "subjectName", key: "subjectName" },
-    ...["firstCA", "secondCA", "firstAssignment", "secondAssignment", "exam"].map(
+    ...["firstAssignment", "secondAssignment", "firstCA", "secondCA", "exam"].map(
       (field) => ({
         title:
           field === "firstCA"

@@ -117,38 +117,38 @@ const ParentResult = () => {
       dataIndex: "subjectName",
       key: "subjectName",
       align: "left",
-      width: 200,
+      width: 180,
       render: (subjectName) => (
         <span className="font-medium">{subjectName}</span>
       ),
     },
     {
       title: `1st Ass. ${isJunior ? 10 : 5}%`,
-      dataIndex: "firstCA",
-      key: "firstCA",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: `2nd Ass. ${isJunior ? 10 : 5}%`,
-      dataIndex: "secondCA",
-      key: "secondCA",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: `1st Test ${isJunior ? 20 : 10}%`,
       dataIndex: "firstAssignment",
       key: "firstAssignment",
       align: "center",
       width: 70,
     },
     {
-      title: `2nd Test ${isJunior ? 20 : 10}%`,
+      title: `2nd Ass. ${isJunior ? 10 : 5}%`,
       dataIndex: "secondAssignment",
       key: "secondAssignment",
       align: "center",
+      width: 75,
+    },
+    {
+      title: `1st Test ${isJunior ? 20 : 10}%`,
+      dataIndex: "firstCA",
+      key: "firstCA",
+      align: "center",
       width: 70,
+    },
+    {
+      title: `2nd Test ${isJunior ? 20 : 10}%`,
+      dataIndex: "secondCA",
+      key: "secondCA",
+      align: "center",
+      width: 80,
     },
     {
       title: `EXAM ${isJunior ? 40 : 70}%`,
@@ -329,17 +329,20 @@ const ParentResult = () => {
 
   return (
     <>
-      <style>{`
-       .domain-table .ant-table-thead > tr > th,
-      .domain-table .ant-table-tbody > tr > td {
-      font-size: 10px !important; /* Reduce font size */
-      padding: 2px !important;    /* Optional: tighten padding */
+     <style>{`
+  .domain-table .ant-table-thead > tr > th,
+  .domain-table .ant-table-tbody > tr > td {
+    font-size: 10px !important; /* Reduce font size */
+    padding: 2px !important;    /* Optional: tighten padding */
   }
-      .custom-result-table .ant-table-tbody > tr > td {
-         font-size: 12px !important;
-      }
 
-      `}</style>
+  .custom-result-table .ant-table-tbody > tr > td,
+  .custom-result-table .ant-table-thead > tr > th {
+    font-size: 12px !important; /* Set font size to 12px */
+    padding: 3px !important; 
+  }
+`}</style>
+
 
       <div ref={printRef} className="result-container">
         <div className="p-6 relative">
@@ -427,19 +430,19 @@ const ParentResult = () => {
                     <h1 className="text-lg font-extrabold uppercase leading-tight">
                       {result?.school}
                     </h1>
-                    <p className="font-bold mt-1 text-[14px] leading-tight uppercase">
+                    <p className="font-bold mt-1 text-[13px] leading-tight uppercase">
                       {result?.address}
                     </p>
-                    <p className="text-lg font-extrabold text-[#990099] uppercase leading-tight">
+                    <p className=" font-extrabold text-[#990099] uppercase leading-tight">
                       MOTTO: KNOWLEDGE AND DISCIPLINE
                     </p>
-                    <p className="font-extrabold mt-1 text-lg leading-tight">
+                    <p className="font-extrabold mt-1  leading-tight">
                       {result?.student?.className?.startsWith("JSS")
                         ? "JUNIOR SECONDARY SCHOOL"
                         : "SENIOR SECONDARY SCHOOL"}
                     </p>
 
-                    <p className="font-bold mt-1 text-lg leading-tight">
+                    <p className="font-bold mt-1 leading-tight">
                       END OF FIRST TERM RESULT FOR {result?.session} ACADEMIC
                       SESSION
                     </p>
@@ -459,8 +462,8 @@ const ParentResult = () => {
 
                 {/* Student Info and Attendance */}
                 <div className="grid grid-cols-12 gap-y-1 mb-3 text-xs font-semibold border border-black p-1">
-                  <div className="col-span-8 grid grid-cols-2 gap-y-1">
-                    <div className="">
+                  <div className="col-span-8 grid grid-cols-1">
+                    <div className="text-[15px]">
                       NAME:{" "}
                       <span className="font-bold">
                         {result?.student?.fullName}
@@ -486,21 +489,21 @@ const ParentResult = () => {
                     </div>
                   </div>
 
-                  <div className="col-span-4 grid grid-cols-1 gap-y-1 text-[10px] border-l border-black pl-2">
-                    <div className="font-bold text-lg">ATTENDANCE</div>
-                    <div className="text-[12px]">
+                  <div className="col-span-4 grid grid-cols-1 gap-y-1 border-l border-black pl-2">
+                    <div className="font-bold text-[13px] !mb-2">ATTENDANCE</div>
+                    <div className="text-[11px]">
                       NO. OF TIMES SCHOOL OPENED:{" "}
                       <span className="font-extrabold">
                         {studentInfo.schoolOpened}
                       </span>
                     </div>
-                    <div className="text-[12px]">
+                    <div className="text-[11px]">
                       NO. OF TIMES PRESENT:{" "}
                       <span className="font-extrabold">
                         {studentInfo.present}
                       </span>
                     </div>
-                    <div className="text-[12px]">
+                    <div className="text-[11px]">
                       NO. OF TIMES ABSENT:{" "}
                       <span className="font-extrabold">
                         {studentInfo.absent}

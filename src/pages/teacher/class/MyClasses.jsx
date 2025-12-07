@@ -630,12 +630,12 @@ const MyClasses = () => {
     {
       title: "S/N",
       render: (_, __, index) => index + 1,
-      width: 70, // Added width for better layout
+      // width: 70, // Added width for better layout
     },
     {
       title: "Full Name",
       dataIndex: "fullName",
-      width: 180,
+      // width: 180,
     },
     // {
     //   title: "Admission No",
@@ -664,43 +664,43 @@ const MyClasses = () => {
       title: "1st ASS",
       // Safely access nested record.exam, default to 0
       render: (record) => record.record?.firstAssignment ?? 0,
-      width: 80,
+      // width: 80,
     },
     {
       title: "2nd ASS",
       // Safely access nested record.exam, default to 0
       render: (record) => record.record?.secondAssignment ?? 0,
-      width: 80,
+      // width: 80,
     },
     {
       title: "1st CA",
       // Safely access nested record.exam, default to 0
       render: (record) => record.record?.firstCA ?? 0,
-      width: 80,
+      // width: 80,
     },
     {
       title: "2nd CA",
       // Safely access nested record.exam, default to 0
       render: (record) => record.record?.secondCA ?? 0,
-      width: 80,
+      // width: 80,
     },
     {
       title: "Exam",
       // Safely access nested record.exam, default to 0
       render: (record) => record.record?.exam ?? 0,
-      width: 80,
+      // width: 80,
     },
     {
       title: "Total",
       // Safely access nested record.total, default to 0
       render: (record) => record.record?.total ?? 0,
-      width: 80,
+      // width: 80,
     },
     {
       title: "Grade",
       // Safely access nested record.grade, default to '-'
       render: (record) => record.record?.grade ?? "-",
-      width: 80,
+      // width: 80,
     },
     {
       title: "Actions",

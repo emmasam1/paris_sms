@@ -75,7 +75,7 @@ const Attendance = ({ className }) => {
       setStudents(studentsArray);
       setStudentsList(studentsArray);
 
-      console.log("hi", res);
+      // console.log("hi", res);
 
       messageApi.success("Students loaded");
     } catch (error) {

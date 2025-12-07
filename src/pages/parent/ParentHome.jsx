@@ -215,7 +215,7 @@ const ParentDashboard = () => {
           >
             <div className="mt-4 space-y-2">
               <Text>
-                <strong>School Admin:</strong> Mrs. Ada
+                <strong>School Admin:</strong>
               </Text>
               <p>"Next term's resumption date is 12th January, 2026."</p>
             </div>

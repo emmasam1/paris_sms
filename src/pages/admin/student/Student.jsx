@@ -617,6 +617,7 @@ const Student = () => {
       dataIndex: "name",
       key: "name",
       ellipsis: true,
+      render: (value) => (value ? value.toString().toUpperCase() : "-"),
     },
     {
       title: "Gender",

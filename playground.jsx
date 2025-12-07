@@ -1415,3 +1415,42 @@ const ParentResult = () => {
 
 export default ParentResult;
 
+ // .custom-result-table * {
+        //   font-size: 10px !important;
+        //   padding: 2px !important;
+        // }
+
+        // .result-container * {
+        //   font-size: 11px;
+        // }
+
+        // .ant-table-cell {
+        //   padding: 2px !important;
+        //   line-height: 1 !important;
+        // }
+
+        // .ant-table-thead > tr > th {
+        //   padding: 2px !important;
+        //   font-size: 11px !important;
+        // }
+
+        // .ant-table-tbody > tr > td {
+        //   padding: 2px !important;
+        //   font-size: 10px !important;
+        // }
+
+        // .ant-table {
+        //   font-size: 10px !important;
+        // }
+
+        // .ant-table table {
+        //   table-layout: fixed !important;
+        // }
+
+        // @media print {
+        //   .result-container {
+        //     transform: scale(0.92);
+        //     transform-origin: top left;
+        //   }
+        // }
+

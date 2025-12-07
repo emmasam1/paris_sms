@@ -61,7 +61,7 @@ const Attendance = ({ className }) => {
     if (!token) return;
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/teacher/form-class`, {
+      const res = await axios.get(`${API_BASE_URL}/api/teacher/form-class?limit=50`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -75,7 +75,7 @@ const Attendance = ({ className }) => {
       setStudents(studentsArray);
       setStudentsList(studentsArray);
 
-      // console.log(res);
+      console.log("hi", res);
 
       messageApi.success("Students loaded");
     } catch (error) {

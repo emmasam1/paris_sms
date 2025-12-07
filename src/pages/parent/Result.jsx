@@ -89,8 +89,6 @@ const ParentResult = () => {
     // getClass();
   }, [initialized, token]);
 
- 
-
   const gradeLegendData = [
     { key: "1", grade: "A1", rate: '80-100 "EXCELLENT"' },
     { key: "2", grade: "B2", rate: '70-79 "BRILLIANT"' },
@@ -221,7 +219,7 @@ const ParentResult = () => {
     formTeacher: "Mrs. Ngozi Okoro",
   };
 
-   const affectiveDomainData = [
+  const affectiveDomainData = [
     {
       key: "1",
       domain: "ATTENTIVENESS",
@@ -332,44 +330,15 @@ const ParentResult = () => {
   return (
     <>
       <style>{`
-        .custom-result-table * {
-          font-size: 10px !important;
-          padding: 2px !important;
-        }
+       .domain-table .ant-table-thead > tr > th,
+      .domain-table .ant-table-tbody > tr > td {
+      font-size: 10px !important; /* Reduce font size */
+      padding: 2px !important;    /* Optional: tighten padding */
+  }
+      .custom-result-table .ant-table-tbody > tr > td {
+         font-size: 12px !important;
+      }
 
-        .result-container * {
-          font-size: 11px;
-        }
-
-        .ant-table-cell {
-          padding: 2px !important;
-          line-height: 1 !important;
-        }
-
-        .ant-table-thead > tr > th {
-          padding: 2px !important;
-          font-size: 11px !important;
-        }
-
-        .ant-table-tbody > tr > td {
-          padding: 2px !important;
-          font-size: 10px !important;
-        }
-
-        .ant-table {
-          font-size: 10px !important;
-        }
-
-        .ant-table table {
-          table-layout: fixed !important;
-        }
-
-        @media print {
-          .result-container {
-            transform: scale(0.92);
-            transform-origin: top left;
-          }
-        }
       `}</style>
 
       <div ref={printRef} className="result-container">
@@ -569,12 +538,12 @@ const ParentResult = () => {
                   bordered
                   size="small"
                   rowKey={(record) => record._id}
-                  className="custom-result-table !text-[12px]"
+                  className="custom-result-table"
                 />
 
                 {/* Summary and Grading/Rating */}
                 <div className="grid grid-cols-12 gap-x-4 mt-2 text-xs">
-                  <div className="col-span-5 grid grid-cols-2 gap-y-1">
+                  <div className="col-span-5 grid grid-cols-2 gap-y-1 text-[11px]">
                     <div className="col-span-2 font-bold underline">
                       SUMMARY
                     </div>
@@ -618,6 +587,7 @@ const ParentResult = () => {
 
                     <div className="col-span-2 mt-2">
                       <Table
+                        className="domain-table"
                         columns={[
                           {
                             title: "GRADE",
@@ -652,6 +622,7 @@ const ParentResult = () => {
                         bordered
                         size="small"
                         rowKey="key"
+                        className="domain-table"
                       />
                     </div>
                     <div>
@@ -662,11 +633,13 @@ const ParentResult = () => {
                         bordered
                         size="small"
                         rowKey="key"
+                        className="domain-table"
                       />
                     </div>
 
                     <div className="col-span-2 mt-2">
                       <Table
+                        className="domain-table"
                         columns={[
                           {
                             title: "RATING",

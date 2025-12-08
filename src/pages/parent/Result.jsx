@@ -16,6 +16,8 @@ import SmartScholaLoader from "../../components/loader/SmartScholaLoader";
 import { useLocation } from "react-router";
 import principalSignature from "../../assets/SIGNATURE.png";
 import "./result.css";
+// import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const ParentResult = () => {
   const navigate = useNavigate();
@@ -270,58 +272,163 @@ const ParentResult = () => {
   ];
 
   const handlePDF = async () => {
-    if (!printRef.current) return;
-    try {
-      setPrintLoading(true);
+  if (!printRef.current) return;
+  setPrintLoading(true);
 
-      const element = printRef.current;
+  try {
+    const element = printRef.current;
 
-      // Save original style
-      const originalWidth = element.style.width;
-      const originalMinWidth = element.style.minWidth;
+    // Force fixed width for A4 (approx 794px at 96 DPI)
+    const originalWidth = element.style.width;
+    element.style.width = "794px";
 
-      // Force fixed A4 width in pixels (approx 794px at 96 DPI)
-      element.style.width = "794px";
-      element.style.minWidth = "794px";
+    // Capture the element as canvas
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#FFFFFF",
+    });
 
-      const dataUrl = await toPng(printRef.current, {
-        cacheBust: true,
-        backgroundColor: "#FFFFFF",
-        pixelRatio: 3,
-        quality: 1,
-      });
+    // Restore original width
+    element.style.width = originalWidth;
 
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
 
-      const img = new Image();
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      img.src = dataUrl;
-      img.onload = () => {
-        const imgAspect = img.height / img.width;
-        const pdfAspect = pdfHeight / pdfWidth;
+    const imgProps = pdf.getImageProperties(imgData);
+    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-        let renderWidth, renderHeight;
-        if (imgAspect > pdfAspect) {
-          renderHeight = pdfHeight;
-          renderWidth = pdfHeight / imgAspect;
-        } else {
-          renderWidth = pdfWidth;
-          renderHeight = pdfWidth * imgAspect;
-        }
-        // pdf.addImage(dataUrl, "PNG", x, y, renderWidth, renderHeight);
-        pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+    let heightLeft = imgHeight;
+    let position = 0;
 
-        pdf.save("Paris Africana.pdf");
-        setPrintLoading(false);
-      };
-    } catch (err) {
-      console.error("PDF generation failed:", err);
-      alert("Failed to generate PDF. Check console for details.");
-      setPrintLoading(false);
+    // First page
+    pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
+    heightLeft -= pdfHeight;
+
+    // Add extra pages if needed
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfHeight;
     }
-  };
+
+    pdf.save("Paris Africana.pdf");
+    setPrintLoading(false);
+  } catch (err) {
+    console.error("PDF generation failed:", err);
+    alert("Failed to generate PDF. Check console for details.");
+    setPrintLoading(false);
+  }
+};
+
+//   const handlePDF = async () => {
+//   if (!printRef.current) return;
+//   setPrintLoading(true);
+
+//   try {
+//     const element = printRef.current;
+
+//     // Force A4 width in pixels (~794px at 96 DPI)
+//     const originalWidth = element.style.width;
+//     element.style.width = "794px";
+
+//     // Generate high-quality PNG
+//     const dataUrl = await toPng(element, { backgroundColor: "#FFFFFF", pixelRatio: 3, cacheBust: true });
+
+//     // Restore original width
+//     element.style.width = originalWidth;
+
+//     const pdf = new jsPDF("p", "mm", "a4");
+//     const pdfWidth = pdf.internal.pageSize.getWidth();
+//     const pdfHeight = pdf.internal.pageSize.getHeight();
+
+//     const img = new Image();
+//     img.src = dataUrl;
+//     img.onload = () => {
+//       const imgWidth = pdfWidth;
+//       const imgHeight = (img.height * pdfWidth) / img.width;
+
+//       let heightLeft = imgHeight;
+//       let position = 0;
+
+//       pdf.addImage(dataUrl, "PNG", 0, position, imgWidth, imgHeight);
+//       heightLeft -= pdfHeight;
+
+//       while (heightLeft > 0) {
+//         position = heightLeft - imgHeight;
+//         pdf.addPage();
+//         pdf.addImage(dataUrl, "PNG", 0, position, imgWidth, imgHeight);
+//         heightLeft -= pdfHeight;
+//       }
+
+//       pdf.save("Paris Africana.pdf");
+//       setPrintLoading(false);
+//     };
+//   } catch (err) {
+//     console.error("PDF generation failed:", err);
+//     alert("Failed to generate PDF. Check console for details.");
+//     setPrintLoading(false);
+//   }
+// };
+
+
+  // const handlePDF = async () => {
+  //   if (!printRef.current) return;
+  //   try {
+  //     setPrintLoading(true);
+
+  //     const element = printRef.current;
+
+  //     // Save original style
+  //     const originalWidth = element.style.width;
+  //     const originalMinWidth = element.style.minWidth;
+
+  //     // Force fixed A4 width in pixels (approx 794px at 96 DPI)
+  //     element.style.width = "794px";
+  //     element.style.minWidth = "794px";
+
+  //     const dataUrl = await toPng(printRef.current, {
+  //       cacheBust: true,
+  //       backgroundColor: "#FFFFFF",
+  //       pixelRatio: 3,
+  //       quality: 1,
+  //     });
+
+  //     const pdf = new jsPDF("p", "mm", "a4");
+  //     const pdfWidth = pdf.internal.pageSize.getWidth();
+  //     const pdfHeight = pdf.internal.pageSize.getHeight();
+
+  //     const img = new Image();
+
+  //     img.src = dataUrl;
+  //     img.onload = () => {
+  //       const imgAspect = img.height / img.width;
+  //       const pdfAspect = pdfHeight / pdfWidth;
+
+  //       let renderWidth, renderHeight;
+  //       if (imgAspect > pdfAspect) {
+  //         renderHeight = pdfHeight;
+  //         renderWidth = pdfHeight / imgAspect;
+  //       } else {
+  //         renderWidth = pdfWidth;
+  //         renderHeight = pdfWidth * imgAspect;
+  //       }
+  //       // pdf.addImage(dataUrl, "PNG", x, y, renderWidth, renderHeight);
+  //       pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+
+  //       pdf.save("Paris Africana.pdf");
+  //       setPrintLoading(false);
+  //     };
+  //   } catch (err) {
+  //     console.error("PDF generation failed:", err);
+  //     alert("Failed to generate PDF. Check console for details.");
+  //     setPrintLoading(false);
+  //   }
+  // };
 
   // small Tailwind/Ant classes for Ant Table adjustments (if you use Tailwind)
   const customTableStyle =
@@ -332,19 +439,19 @@ const ParentResult = () => {
      <style>{`
   .domain-table .ant-table-thead > tr > th,
   .domain-table .ant-table-tbody > tr > td {
-    font-size: 10px !important; /* Reduce font size */
+    font-size: 8px !important; /* Reduce font size */
     padding: 2px !important;    /* Optional: tighten padding */
   }
 
   .custom-result-table .ant-table-tbody > tr > td,
   .custom-result-table .ant-table-thead > tr > th {
-    font-size: 12px !important; /* Set font size to 12px */
+    font-size: 8px !important; /* Set font size to 12px */
     padding: 3px !important; 
   }
 `}</style>
 
 
-      <div ref={printRef} className="result-container">
+      <div ref={printRef}>
         <div className="p-6 relative">
           {contextHolder}
           {loading ? (
@@ -546,7 +653,7 @@ const ParentResult = () => {
 
                 {/* Summary and Grading/Rating */}
                 <div className="grid grid-cols-12 gap-x-4 mt-2 text-xs">
-                  <div className="col-span-5 grid grid-cols-2 gap-y-1 text-[11px]">
+                  <div className="col-span-5 grid grid-cols-2 gap-y-1 text-[8px]">
                     <div className="col-span-2 font-bold underline">
                       SUMMARY
                     </div>
@@ -674,7 +781,7 @@ const ParentResult = () => {
                 </div>
 
                 {/* Signatures */}
-                <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8">
+                <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8 text-[10px]">
                   <div>
                     <p className="uppercase font-semibold">
                       FORM TEACHER'S COMMENT: {result?.teacherRemark}.

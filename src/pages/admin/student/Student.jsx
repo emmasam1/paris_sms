@@ -560,6 +560,8 @@ const Student = () => {
     );
   };
 
+  console.log(token, API_BASE_URL)
+
   const handleDelete = async (record) => {
     console.log(record);
     try {

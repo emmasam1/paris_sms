@@ -67,7 +67,7 @@ const StudentProgress = () => {
     setOriginalSubjects(subjectsWithKey); // store original values
     setEditingKeys([]);
     setIsModalOpen(true);
-    console.log(record)
+    console.log(record);
   };
 
   const handleCancel = () => setIsModalOpen(false);
@@ -75,7 +75,9 @@ const StudentProgress = () => {
   const handleChange = (value, key, field) => {
     setEditingSubjects((prev) =>
       prev.map((sub) =>
-        sub.key === key ? { ...sub, [field]: value === "" ? "" : Number(value) } : sub
+        sub.key === key
+          ? { ...sub, [field]: value === "" ? "" : Number(value) }
+          : sub
       )
     );
   };
@@ -154,6 +156,7 @@ const StudentProgress = () => {
     }
   };
 
+  // console.log(token, API_BASE_URL)
 
   const fetchProgress = async () => {
     if (!selectedClassArm)
@@ -163,12 +166,13 @@ const StudentProgress = () => {
 
     setLoadingProgress(true);
     try {
-      const url = `${API_BASE_URL}/api/results/admin?classId=${selectedClassArm}&term=${selectedTerm}&session=${selectedSession}`;
+      const url = `${API_BASE_URL}/api/results/admin?classId=${selectedClassArm}&term=${selectedTerm}&session=${selectedSession}&limit=50`;
+
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log(res)
+      // console.log(res);
 
       messageApi.success("Results loaded successfully.");
 
@@ -206,7 +210,11 @@ const StudentProgress = () => {
   const columns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1, width: 70 },
     { title: "Student Name", dataIndex: "studentName", key: "studentName" },
-    { title: "Admission No", dataIndex: "admissionNumber", key: "admissionNumber" },
+    {
+      title: "Admission No",
+      dataIndex: "admissionNumber",
+      key: "admissionNumber",
+    },
     { title: "Class", dataIndex: "className", key: "className" },
     { title: "Arm", dataIndex: "classArm", key: "classArm" },
     {
@@ -237,36 +245,40 @@ const StudentProgress = () => {
   const modalColumns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     { title: "Subject", dataIndex: "subjectName", key: "subjectName" },
-    ...["firstAssignment", "secondAssignment", "firstCA", "secondCA", "exam"].map(
-      (field) => ({
-        title:
-          field === "firstCA"
-            ? "1st CA"
-            : field === "secondCA"
-            ? "2nd CA"
-            : field === "firstAssignment"
-            ? "1st ASS"
-            : field === "secondAssignment"
-            ? "2nd ASS"
-            : "Exam",
-        dataIndex: field,
-        key: field,
-        render: (text, record) => {
-          const max = getMaxValues(selectedStudent?.className || "");
-          const value = record[field] ?? 0;
-          return editingKeys.includes(record.key) ? (
-            <Input
-              type="number"
-              value={value}
-              onChange={(e) => handleChange(e.target.value, record.key, field)}
-              style={{ borderColor: value > max[field] ? "red" : undefined }}
-            />
-          ) : (
-            text
-          );
-        },
-      })
-    ),
+    ...[
+      "firstAssignment",
+      "secondAssignment",
+      "firstCA",
+      "secondCA",
+      "exam",
+    ].map((field) => ({
+      title:
+        field === "firstCA"
+          ? "1st CA"
+          : field === "secondCA"
+          ? "2nd CA"
+          : field === "firstAssignment"
+          ? "1st ASS"
+          : field === "secondAssignment"
+          ? "2nd ASS"
+          : "Exam",
+      dataIndex: field,
+      key: field,
+      render: (text, record) => {
+        const max = getMaxValues(selectedStudent?.className || "");
+        const value = record[field] ?? 0;
+        return editingKeys.includes(record.key) ? (
+          <Input
+            type="number"
+            value={value}
+            onChange={(e) => handleChange(e.target.value, record.key, field)}
+            style={{ borderColor: value > max[field] ? "red" : undefined }}
+          />
+        ) : (
+          text
+        );
+      },
+    })),
     {
       title: "Action",
       key: "action",
@@ -359,10 +371,18 @@ const StudentProgress = () => {
         ) : (
           <Table
             columns={columns}
-            dataSource={progressData.map((item, index) => ({ ...item, key: index }))}
+            dataSource={progressData.map((item, index) => ({
+              ...item,
+              key: index,
+            }))}
             loading={loadingProgress}
             size="small"
-            pagination={{ position: ["bottomCenter"], className: "custom-pagination" }}
+            pagination={{
+              position: ["bottomCenter"],
+              showSizeChanger: true,
+              pageSizeOptions: ["10", "20", "50"],
+              className: "custom-pagination",
+            }}
             bordered
             scroll={{ x: "max-content" }}
           />

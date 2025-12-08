@@ -281,7 +281,7 @@ const MyClasses = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log("fetchStudentsForClass", res);
+      console.log("fetchStudentsForClass", res);
 
       // Get all subjects (teacherSubject)
       const sub = (

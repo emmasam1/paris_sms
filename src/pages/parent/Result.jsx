@@ -209,7 +209,7 @@ const ParentResult = () => {
 
   const studentInfo = {
     termStarted: "15TH JANUARY, 2025",
-    termEnded: "5TH JANUARY, 2025",
+    termEnded: "5TH DECEMBER, 2025",
     nextTermBegins: "12TH JANUARY, 2026",
     schoolOpened: result?.student?.opened,
     present: result?.student?.present,

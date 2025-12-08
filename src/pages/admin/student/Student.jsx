@@ -68,7 +68,6 @@ const Student = () => {
     useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [assignLoading, setAssignLoading] = useState(false);
- 
 
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
@@ -232,7 +231,7 @@ const Student = () => {
   const getAllSubjects = async () => {
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/subject-management/subjects?limit=100000`,
+        `${API_BASE_URL}/api/subject-management/subjects?limit=100`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -245,15 +244,11 @@ const Student = () => {
     }
   };
 
-  const openAssignSubjectsModal = (student) => {
+  const openAssignSubjectsModal = async (student) => {
     setSelectedStudent(student);
-
-    // FIX: extract only the IDs
-    setSelectedSubjects(student?.subjects?.map((s) => s._id) || []);
-
     setOpenAssignSubjectsModal(true);
-    getAllSubjects();
-    getStdentSubjects(student);
+    await getAllSubjects(); // load all subjects
+    getStdentSubjects(student); // fetch assigned subjects
   };
 
   const assignSubject = async () => {
@@ -326,11 +321,11 @@ const Student = () => {
 
   const adminGetProgress = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/results/admin?classId=64fa2b8a1234abcd56789ef0&term=&session=2025/2026&page=1&limit=10`)
-    } catch (error) {
-      
-    }
-  }
+      const res = await axios.get(
+        `${API_BASE_URL}/api/results/admin?classId=64fa2b8a1234abcd56789ef0&term=&session=2025/2026&page=1&limit=10`
+      );
+    } catch (error) {}
+  };
 
   const closeDrawer = () => {
     setDrawerOpen(false);
@@ -391,21 +386,23 @@ const Student = () => {
 
   //Get student subjects
   const getStdentSubjects = async (student) => {
-    const id = student?._id;
+    if (!student?._id) return;
 
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/student-management/students/${id}/subjects`,
+        `${API_BASE_URL}/api/student-management/students/${student._id}/subjects`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const subjectsArr = res?.data?.data || [];
       setStdSunject(subjectsArr);
 
-      // FIX: set selected subject IDs
+      // ✅ Only set selectedSubjects here after full API response
       setSelectedSubjects(subjectsArr.map((sub) => sub._id));
     } catch (error) {
-      console.log(error || "Error getting subjects");
+      console.log("Error getting subjects:", error);
+      setStdSunject([]);
+      setSelectedSubjects([]);
     }
   };
 
@@ -560,7 +557,7 @@ const Student = () => {
     );
   };
 
-  console.log(token, API_BASE_URL)
+  console.log(token, API_BASE_URL);
 
   const handleDelete = async (record) => {
     console.log(record);
@@ -1525,18 +1522,12 @@ const Student = () => {
               mode="multiple"
               placeholder="Select subjects"
               value={selectedSubjects}
-              onChange={setSelectedSubjects}
-              loading={assignLoading}
+              onChange={(val) => setSelectedSubjects(val)}
               style={{ width: "100%" }}
-              showSearch
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                option?.children?.toLowerCase().includes(input.toLowerCase())
-              }
             >
-              {subjects?.map((s) => (
-                <Option key={s._id} value={s._id}>
-                  {s.name}
+              {subjects.map((sub) => (
+                <Option key={sub._id} value={sub._id}>
+                  {sub.name}
                 </Option>
               ))}
             </Select>

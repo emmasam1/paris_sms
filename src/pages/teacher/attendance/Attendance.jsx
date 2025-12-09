@@ -115,7 +115,7 @@ const Attendance = ({ className }) => {
 
       setAttendanceData(tableData);
 
-      console.log("Attendance API Response", attendanceData);
+      // console.log("Attendance API Response", attendanceData);
     } catch (error) {
       console.error("Error fetching attendance:", error);
       messageApi.error("Failed to fetch attendance");

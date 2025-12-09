@@ -12,13 +12,22 @@ const getGrade = (total) => {
   return "F";
 };
 
-const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selectedLevel }) => {
+const EnterResult = ({
+  open,
+  onClose,
+  student,
+  teacherSubject,
+  onClick,
+  selectedLevel,
+}) => {
   const [studentScores, setStudentScores] = useState([]);
   const { API_BASE_URL, token, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [hasError, setHasError] = useState(false);
   const [subjects, setSubjects] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState(teacherSubject || null);
+  const [selectedSubject, setSelectedSubject] = useState(
+    teacherSubject || null
+  );
 
   const [session, setSession] = useState(null);
   const [term, setTerm] = useState(null);
@@ -28,9 +37,12 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
   // ------------------------------------------------------
   const getAllSubjects = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/subject-management/subjects?limit=100`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(
+        `${API_BASE_URL}/api/subject-management/subjects?limit=100`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const result = res.data;
       // console.log("All subjects:", result.data);
       setSubjects(result.data || []);
@@ -51,8 +63,20 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
 
   // Set limits dynamically based on level
   const limits = isSenior
-    ? { firstAssignment: 5, secondAssignment: 5, firstCATest: 10, secondCATest: 10, exam: 70 }
-    : { firstAssignment: 10, secondAssignment: 10, firstCATest: 20, secondCATest: 20, exam: 40 };
+    ? {
+        firstAssignment: 5,
+        secondAssignment: 5,
+        firstCATest: 10,
+        secondCATest: 10,
+        exam: 70,
+      }
+    : {
+        firstAssignment: 10,
+        secondAssignment: 10,
+        firstCATest: 20,
+        secondCATest: 20,
+        exam: 40,
+      };
 
   // ------------------------------------------------------
   // Load initial student scores based on selectedSubject
@@ -137,9 +161,13 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
 
     try {
       setLoading(true);
-      const res = await axios.post(`${API_BASE_URL}/api/records/record-score`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.post(
+        `${API_BASE_URL}/api/records/record-score`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       onClick && onClick(res.data);
       messageApi.success("Result saved successfully!");
@@ -188,8 +216,10 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
           value={r.firstAssignment}
           onChange={(v) => handleScoreChange(r.key, "firstAssignment", v)}
           style={{
-            background: r.firstAssignment > limits.firstAssignment ? "#ffccc7" : "white",
-            borderColor: r.firstAssignment > limits.firstAssignment ? "red" : "",
+            background:
+              r.firstAssignment > limits.firstAssignment ? "#ffccc7" : "white",
+            borderColor:
+              r.firstAssignment > limits.firstAssignment ? "red" : "",
           }}
         />
       ),
@@ -202,8 +232,12 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
           value={r.secondAssignment}
           onChange={(v) => handleScoreChange(r.key, "secondAssignment", v)}
           style={{
-            background: r.secondAssignment > limits.secondAssignment ? "#ffccc7" : "white",
-            borderColor: r.secondAssignment > limits.secondAssignment ? "red" : "",
+            background:
+              r.secondAssignment > limits.secondAssignment
+                ? "#ffccc7"
+                : "white",
+            borderColor:
+              r.secondAssignment > limits.secondAssignment ? "red" : "",
           }}
         />
       ),
@@ -216,7 +250,8 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
           value={r.firstCATest}
           onChange={(v) => handleScoreChange(r.key, "firstCATest", v)}
           style={{
-            background: r.firstCATest > limits.firstCATest ? "#ffccc7" : "white",
+            background:
+              r.firstCATest > limits.firstCATest ? "#ffccc7" : "white",
             borderColor: r.firstCATest > limits.firstCATest ? "red" : "",
           }}
         />
@@ -230,7 +265,8 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
           value={r.secondCATest}
           onChange={(v) => handleScoreChange(r.key, "secondCATest", v)}
           style={{
-            background: r.secondCATest > limits.secondCATest ? "#ffccc7" : "white",
+            background:
+              r.secondCATest > limits.secondCATest ? "#ffccc7" : "white",
             borderColor: r.secondCATest > limits.secondCATest ? "red" : "",
           }}
         />
@@ -293,6 +329,8 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
       {contextHolder}
 
       {/* SESSION & TERM SELECT */}
+      <div className="flex">
+
       <div className="flex gap-4 mb-4">
         <div className="flex flex-col w-40">
           <label className="font-semibold mb-1">Session</label>
@@ -311,8 +349,9 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
             <Select.Option value="3">Third Term</Select.Option>
           </Select>
         </div>
-      {/* SUBJECT SELECT */}
-      <div className="flex flex-col w-80 mb-4">
+      </div>
+
+      <div className="flex flex-col w-80 mb-4 ml-4">
         <label className="font-semibold mb-1">Subject</label>
         <Select
           value={selectedSubject?._id}
@@ -347,7 +386,6 @@ const EnterResult = ({ open, onClose, student, teacherSubject, onClick, selected
         </Select>
       </div>
       </div>
-
 
       {/* SCORE TABLE */}
       <Table

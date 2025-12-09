@@ -26,40 +26,36 @@ const PinManagement = () => {
   const [loader, setLoader] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
 
+  // PAGINATION STATE
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
   const printRef = useRef(null);
 
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
 
-  // 📌 DOWNLOAD PDF FUNCTION (18 per page)
+  // PDF DOWNLOAD
   const downloadPDF = async () => {
     if (!pins.length) return message.info("Nothing to print");
 
     setDownloadLoading(true);
 
     const input = printRef.current;
-
     input.style.display = "block";
 
-    // Slice into pages of 18 items
     const pages = [];
     for (let i = 0; i < pins.length; i += 18) {
       pages.push(pins.slice(i, i + 18));
     }
 
     const pdf = new jsPDF("p", "mm", "a4");
-
     let firstPage = true;
 
     for (const pagePins of pages) {
-      // render only current page pins
       input.innerHTML = `
         <h2 style="text-align:center; margin-bottom:15px;">PIN LIST</h2>
-        <div style="
-          display:grid;
-          grid-template-columns:repeat(2,1fr);
-          gap:10px;
-        ">
+        <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px;">
           ${pagePins
             .map(
               (p) => `
@@ -71,7 +67,7 @@ const PinManagement = () => {
               font-size:14px;
             ">
               <h3 style="margin:0; font-size:16px;">PIN: ${p.code}</h3>
-              <p><b>Name:</b> <span style="text-transform:uppercase; font-weight:600;">${p.assignedTo}</span></p>
+              <p><b>Name:</b> ${p.assignedTo}</p>
               <p><b>Class:</b> ${p.class} - ${p.arm}</p>
               <p><b>Session:</b> ${p.session}</p>
               <p><b>Website:</b> https://paris-sms.vercel.app</p>
@@ -85,13 +81,10 @@ const PinManagement = () => {
       const canvas = await html2canvas(input, { scale: 2 });
       const imgData = canvas.toDataURL("image/png");
 
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
       if (!firstPage) pdf.addPage();
       firstPage = false;
 
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
     }
 
     pdf.save("pins.pdf");
@@ -100,10 +93,10 @@ const PinManagement = () => {
   };
 
   const columns = [
-    { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
-    { title: "PIN Code", dataIndex: "code", key: "code" },
+    { title: "S/N", key: "sn", render: (_, __, index) => (page - 1) * limit + index + 1 },
+    { title: "PIN Code", dataIndex: "pin", key: "pin" },
     { title: "Session", dataIndex: "session", key: "session" },
-    { title: "Assigned To", dataIndex: "assignedTo", key: "assignedTo" },
+    { title: "Assigned To", dataIndex: "studentName", key: "studentName" },
     { title: "Class", dataIndex: "class", key: "class" },
     { title: "Arm", dataIndex: "arm", key: "arm" },
     {
@@ -113,33 +106,49 @@ const PinManagement = () => {
     },
   ];
 
-  const getAllPins = async () => {
-    if (!token) return;
+const getAllPins = async () => {
+  if (!token) return;
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const res = await axios.get(`${API_BASE_URL}/api/pin/all`, {
+    const res = await axios.get(
+      `${API_BASE_URL}/api/pin/dashboard?limit=1000&page=1`,
+      {
         headers: { Authorization: `Bearer ${token}` },
-      });
+      }
+    );
 
-      const pinsData = res.data.data || [];
-      const mappedPins = pinsData.map((p, idx) => ({
-        key: p._id || idx,
-        code: p.pinCode,
-        session: p.session,
-        assignedTo: p?.student?.fullName || p?.class?.name || "-",
-        class: p?.student?.class?.name,
-        arm: p?.student?.class?.arm,
-        generatedDate: new Date(p.createdAt).toLocaleDateString(),
-      }));
-      setPins(mappedPins);
-    } catch (error) {
-      message.error("Failed to fetch PINs");
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.log(res)
+
+    const studentsList = res.data?.students || [];
+
+    const mappedPins = studentsList.map((std, idx) => ({
+      key: std.studentId || idx,
+
+      studentName: std.fullName,
+      admissionNumber: std.admissionNumber,
+      class: std.class?.name || "",
+      arm: std.class?.arm || "",
+
+     pin: std.pinCode || "--",        // ✅ FIXED
+  session: std.session || "--", 
+      generatedDate: new Date(std.createdAt).toLocaleDateString(),
+
+      gender: std.gender,
+      status: std.status,
+    }));
+
+    setPins(mappedPins);
+  } catch (error) {
+    console.log(error);
+    message.error("Failed to fetch PINs");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   const getStudents = async () => {
     try {
@@ -194,7 +203,7 @@ const PinManagement = () => {
       messageApi.success(res.data.message || "PIN generated successfully");
       await getAllPins();
       setIsModalOpen(false);
-    } catch (error) {
+    } catch {
       messageApi.error("Failed to generate PIN");
     } finally {
       setLoader(false);
@@ -212,15 +221,21 @@ const PinManagement = () => {
     <div className="space-y-6">
       {contextHolder}
 
-      {/* HEADER BUTTONS */}
-      <div className="flex justify-end items-center gap-2">
-        <Button type="primary" onClick={() => setIsModalOpen(true)}>
-          Generate PIN
-        </Button>
+      {/* HEADER */} 
+      <div className="flex justify-between items-center">
+        <div className="flex justify-end items-center gap-2">
+          <Button type="primary" onClick={() => setIsModalOpen(true)}>
+            Generate PIN
+          </Button>
 
-        <Button type="default" onClick={downloadPDF} loading={downloadLoading}>
-          Download PDF
-        </Button>
+          <Button
+            type="default"
+            onClick={downloadPDF}
+            loading={downloadLoading}
+          >
+            Download PDF
+          </Button>
+        </div>
       </div>
 
       {/* TABLE */}
@@ -230,14 +245,28 @@ const PinManagement = () => {
         <Table
           rowKey="key"
           columns={columns}
-          dataSource={pins}
+          dataSource={pins.slice((page - 1) * limit, page * limit)}
           bordered
           size="small"
-          pagination={false}
+          pagination={{
+            pageSizeOptions: ["18", "20", "50"],
+            showSizeChanger: true,
+            current: page,
+            pageSize: limit,
+             position: ["bottomCenter"],
+            className: "custom-pagination",
+            total: pins.length,
+            onChange: (p, l) => {
+              setPage(p);
+              setLimit(l);
+            },
+          }}
+          className="custom-table"
+          scroll={{ x: "max-content" }}
         />
       )}
 
-      {/* HIDDEN PRINT AREA */}
+      {/* Hidden Print Container */}
       <div
         ref={printRef}
         style={{
@@ -257,7 +286,7 @@ const PinManagement = () => {
         destroyOnClose
       >
         <Form layout="vertical" onFinish={generation}>
-          <Form.Item label="">
+          <Form.Item>
             <Radio.Group value={mode} onChange={(e) => setMode(e.target.value)}>
               <Radio value="individual">Individual Student</Radio>
               <Radio value="whole class">Whole Class</Radio>

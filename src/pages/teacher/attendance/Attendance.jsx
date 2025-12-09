@@ -86,6 +86,12 @@ const Attendance = ({ className }) => {
     }
   };
 
+  const getAttendance = async () => {
+
+  }
+
+  // api/attendance/attendance-summary
+
   useEffect(() => {
     getMyClassStudents();
     // getStudents();

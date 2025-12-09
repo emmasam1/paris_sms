@@ -408,7 +408,7 @@ const MyClasses = () => {
   //     }
 
   //     console.log(results)
-      
+
   //     const mappedStudents = results.map((item) => ({
   //       key: item._id, // row key
   //       recordId: item._id, // <-- ADD THIS (this is your record ID)
@@ -441,60 +441,58 @@ const MyClasses = () => {
   // };
 
   const getRecord = async (subjectIdParam) => {
-  const subjectId = subjectIdParam || selectedSubject;
-  if (!subjectId) return;
+    const subjectId = subjectIdParam || selectedSubject;
+    if (!subjectId) return;
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const res = await axios.get(
-      `${API_BASE_URL}/api/teacher/records?subjectId=${subjectId}&session=2025/2026&term=1&limit=500`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+      const res = await axios.get(
+        `${API_BASE_URL}/api/teacher/records?subjectId=${subjectId}&session=2025/2026&term=1&limit=500`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    const results = res.data?.data?.results;
-    // console.log(results)
+      const results = res.data?.data?.results;
+      // console.log(results)
 
-    if (!Array.isArray(results) || results.length === 0) {
-      console.warn("No results found!", results);
-      setStudents([]);
-      return;
+      if (!Array.isArray(results) || results.length === 0) {
+        console.warn("No results found!", results);
+        setStudents([]);
+        return;
+      }
+
+      const mappedStudents = results.map((item) => ({
+        key: item._id,
+        recordId: item._id,
+        studentId: item.student.id,
+        fullName: `${item.student.firstName} ${item.student.lastName}`,
+        admissionNumber: item.student.admissionNumber || "-",
+        gender: item.gender || "-",
+        class: item.student.class,
+        record: {
+          firstAssignment: item.firstAssignment,
+          secondAssignment: item.secondAssignment,
+          firstCA: item.firstCA,
+          secondCA: item.secondCA,
+          exam: item.exam,
+          total: item.total,
+          grade: item.grade,
+          teacherRemark: item.teacherRemark,
+        },
+        subject: item.subject.name,
+        status: item.status || "-",
+      }));
+
+      // console.log("mapped", mappedStudents)
+
+      setStudentsRecord(mappedStudents);
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to fetch records");
+    } finally {
+      setLoading(false);
     }
-
-
-    const mappedStudents = results.map((item) => ({
-      key: item._id,
-      recordId: item._id,
-      studentId: item.student.id,
-      fullName: `${item.student.firstName} ${item.student.lastName}`,
-      admissionNumber: item.student.admissionNumber || "-",
-      gender: item.gender || "-",
-      class: item.student.class,
-      record: {
-        firstAssignment: item.firstAssignment,
-        secondAssignment: item.secondAssignment,
-        firstCA: item.firstCA,
-        secondCA: item.secondCA,
-        exam: item.exam,
-        total: item.total,
-        grade: item.grade,
-        teacherRemark: item.teacherRemark,
-      },
-      subject: item.subject.name,
-      status: item.status || "-",
-    }));
-
-    // console.log("mapped", mappedStudents)
-
-    setStudentsRecord(mappedStudents);
-  } catch (error) {
-    console.error(error);
-    message.error("Failed to fetch records");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   // console.log(token, API_BASE_URL)
 
@@ -985,7 +983,7 @@ const MyClasses = () => {
               // UPDATE LOCAL UI
               setStudentsRecord((prev) =>
                 prev.map((stu) =>
-                  stu.studentId === editStudentRecord.studentId
+                  stu.recordId === editStudentRecord.recordId
                     ? { ...stu, record: { ...stu.record, ...values } }
                     : stu
                 )

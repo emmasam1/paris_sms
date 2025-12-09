@@ -129,33 +129,40 @@ const Teacher = () => {
   }, [editingTeacher]);
 
   // ✅ Fetch teachers
-  const getTeachers = async (page = 1, limit = 60, search = "") => {
-    if (!token) return;
-    setIsFetching(true);
-    try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/staff-management/staff/all?page=${page}&limit=${limit}${
-          search ? `&search=${search}` : ""
-        }`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+ const getTeachers = async (page = 1, limit = 200, search = "") => {
+  if (!token) return;
 
-      const result = res.data.data || [];
-      messageApi.success(res?.data?.message);
-      console.log(result);
-      setStaff(result);
-      setPagination({
-        current: res.data.pagination?.page || 1,
-        pageSize: res.data.pagination?.limit || 10,
-        total: res.data.pagination?.total || result.length,
-      });
-    } catch (error) {
-      console.error(error);
-      messageApi.error("Failed to load staff");
-    } finally {
-      setIsFetching(false);
+  setIsFetching(true);
+
+  try {
+    const res = await axios.get(
+      `${API_BASE_URL}/api/staff-management/staff/all?page=${page}&limit=${limit}${
+        search ? `&search=${search}` : ""
+      }`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const result = res.data.data || [];
+
+    if (page === 1) {
+      setStaff(result); // first page → replace
+    } else {
+      setStaff((prev) => [...prev, ...result]); // next pages → append
     }
-  };
+
+    setPagination({
+      current: res.data.pagination?.page || page,
+      pageSize: res.data.pagination?.limit || limit,
+      total: res.data.pagination?.total || result.length,
+    });
+
+  } catch (error) {
+    console.error(error);
+    messageApi.error("Failed to load staff");
+  } finally {
+    setIsFetching(false);
+  }
+};
 
   //Change staff role
   const changeStaffRole = async (newRole) => {

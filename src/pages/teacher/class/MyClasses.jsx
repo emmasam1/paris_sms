@@ -776,7 +776,7 @@ useEffect(() => {
                 </Option>
               ))}
             </Select>
-            <Select
+            {/* <Select
               placeholder="Select Subject"
               style={{ width: 260 }}
               value={selectedSubject}
@@ -787,7 +787,7 @@ useEffect(() => {
                   {sub.name}
                 </Select.Option>
               ))}
-            </Select>
+            </Select> */}
 
             <Select
               placeholder="Select Arm"

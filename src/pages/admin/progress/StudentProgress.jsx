@@ -106,7 +106,7 @@ const StudentProgress = () => {
       record.exam <= max.exam
     );
   };
-
+// console.log(token)
   const handleRowUpdate = async (record) => {
     if (!isRowValid(record)) return;
 

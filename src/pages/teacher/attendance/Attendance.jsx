@@ -56,6 +56,9 @@ const Attendance = ({ className }) => {
   const [messageApi, contextHolder] = message.useMessage();
   const [form] = Form.useForm();
 
+  const [editAttendanceModalOpen, setEditAttendanceModalOpen] = useState(false);
+  const [selectedAttendance, setSelectedAttendance] = useState(null);
+
   // === FETCH STUDENTS ===
   const getMyClassStudents = async () => {
     if (!token) return;
@@ -136,6 +139,48 @@ const Attendance = ({ className }) => {
       },
     }));
   };
+
+  const openEditAttendanceModal = (record) => {
+    
+  setSelectedAttendance(record);
+  form.setFieldsValue({
+    opened: record.attendance.no_of_times_opened,
+    present: record.attendance.no_of_times_present,
+    absent: record.attendance.no_of_times_absent,
+    session: record.attendance.session,
+    term: record.attendance.term,
+  });
+  setEditAttendanceModalOpen(true);
+};
+
+
+const handleEditAttendanceSubmit = async (values) => {
+  if (!selectedAttendance) return;
+  try {
+    setLoading(true);
+    const res = await axios.patch(
+      `${API_BASE_URL}/api/attendance/${selectedAttendance._id}`,
+      {
+        session: values.session,
+        term: values.term,
+        no_of_times_opened: values.opened,
+        no_of_times_present: values.present,
+        no_of_times_absent: values.absent,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    messageApi.success(res.data.message || "Attendance updated successfully!");
+    setEditAttendanceModalOpen(false);
+    getAttendance(); // Refresh table
+  } catch (error) {
+    console.error(error);
+    messageApi.error("Failed to update attendance");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const GradeSelect = ({ value, onChange }) => (
     <Select
@@ -348,44 +393,56 @@ const Attendance = ({ className }) => {
     },
   ];
 
-  const columns = [
-    { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
-    { title: "Full Name", dataIndex: "fullName", key: "fullName" },
-    {
-      title: "Attendance Status",
-      key: "status",
-      render: (_, record) => (
-        <Tag color={record.status === "has-attendance" ? "green" : "red"}>
-          {record.status === "has-attendance" ? "Taken" : "Not Taken"}
-        </Tag>
-      ),
-    },
-    {
-      title: "Times Opened",
-      dataIndex: ["attendance", "no_of_times_opened"],
-      key: "no_of_times_opened",
-    },
-    {
-      title: "Times Present",
-      dataIndex: ["attendance", "no_of_times_present"],
-      key: "no_of_times_present",
-    },
-    {
-      title: "Times Absent",
-      dataIndex: ["attendance", "no_of_times_absent"],
-      key: "no_of_times_absent",
-    },
-    {
-      title: "Session",
-      dataIndex: ["attendance", "session"],
-      key: "session",
-    },
-    {
-      title: "Term",
-      dataIndex: ["attendance", "term"],
-      key: "term",
-    },
-  ];
+const columns = [
+  { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
+  { title: "Full Name", dataIndex: "fullName", key: "fullName" },
+  {
+    title: "Attendance Status",
+    key: "status",
+    render: (_, record) => (
+      <Tag color={record.status === "has-attendance" ? "green" : "red"}>
+        {record.status === "has-attendance" ? "Taken" : "Not Taken"}
+      </Tag>
+    ),
+  },
+  {
+    title: "Times Opened",
+    dataIndex: ["attendance", "no_of_times_opened"],
+    key: "no_of_times_opened",
+  },
+  {
+    title: "Times Present",
+    dataIndex: ["attendance", "no_of_times_present"],
+    key: "no_of_times_present",
+  },
+  {
+    title: "Times Absent",
+    dataIndex: ["attendance", "no_of_times_absent"],
+    key: "no_of_times_absent",
+  },
+  {
+    title: "Session",
+    dataIndex: ["attendance", "session"],
+    key: "session",
+  },
+  {
+    title: "Term",
+    dataIndex: ["attendance", "term"],
+    key: "term",
+  },
+  {
+    title: "Action",
+    key: "action",
+    render: (_, record) => (
+      <Button
+        type="link"
+        onClick={() => openEditAttendanceModal(record)}
+      >
+        Edit
+      </Button>
+    ),
+  },
+];
 
   const viewColumns = [
     { title: "Reg No", dataIndex: "regNo" },
@@ -867,6 +924,75 @@ const Attendance = ({ className }) => {
           </Form>
         )}
       </Modal>
+
+
+      <Modal
+  title={`Edit Attendance – ${selectedAttendance?.fullName}`}
+  open={editAttendanceModalOpen}
+  onCancel={() => setEditAttendanceModalOpen(false)}
+  footer={null}
+>
+  {selectedAttendance && (
+    <Form
+      form={form}
+      layout="vertical"
+      onFinish={handleEditAttendanceSubmit}
+    >
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item
+            label="Session"
+            name="session"
+            rules={[{ required: true }]}
+          >
+            <Select
+              options={[
+                { value: "2024/2025", label: "2024/2025" },
+                { value: "2025/2026", label: "2025/2026" },
+                { value: "2026/2027", label: "2026/2027" },
+              ]}
+            />
+          </Form.Item>
+        </Col>
+
+        <Col span={12}>
+          <Form.Item label="Term" name="term" rules={[{ required: true }]}>
+            <Select
+              options={[
+                { value: 1, label: "First Term" },
+                { value: 2, label: "Second Term" },
+                { value: 3, label: "Third Term" },
+              ]}
+            />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Row gutter={16}>
+        <Col span={8}>
+          <Form.Item label="No. of Times Opened" name="opened">
+            <InputNumber min={0} style={{ width: "100%" }} />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="No. of Times Present" name="present">
+            <InputNumber min={0} style={{ width: "100%" }} />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="No. of Times Absent" name="absent">
+            <InputNumber min={0} style={{ width: "100%" }} />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Button type="primary" htmlType="submit" block loading={loading}>
+        Save Changes
+      </Button>
+    </Form>
+  )}
+</Modal>
+
     </Card>
   );
 };

@@ -24,7 +24,7 @@ import {
   FormOutlined,
 } from "@ant-design/icons";
 import EnterResult from "../../../components/result/EnterResult";
-import ProgressChart from "../../../components/progress/ProgressChart";
+// import ProgressChart from "../../../components/progress/ProgressChart";
 import ResultSheet from "../../../components/resultSheet/ResultSheet";
 import axios from "axios";
 import { useApp } from "../../../context/AppContext";
@@ -38,7 +38,7 @@ const MyClasses = () => {
 
   // UI state
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
-  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+  // const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isViewResultModalOpen, setIsViewResultModalOpen] = useState(false);
 
   // active row / subject
@@ -499,27 +499,27 @@ const MyClasses = () => {
     },
   ];
 
-  const progressColumns = [
-    { title: "Reg No", dataIndex: "admissionNumber", key: "admissionNumber" },
-    { title: "Name", dataIndex: "fullName", key: "fullName" },
-    {
-      title: "Actions",
-      width: 200,
-      render: (_, record) => (
-        <Button
-          type="default"
-          size="small"
-          icon={<BarChartOutlined />}
-          onClick={() => {
-            setActiveStudent(record);
-            setIsProgressModalOpen(true);
-          }}
-        >
-          View Progress
-        </Button>
-      ),
-    },
-  ];
+  // const progressColumns = [
+  //   { title: "Reg No", dataIndex: "admissionNumber", key: "admissionNumber" },
+  //   { title: "Name", dataIndex: "fullName", key: "fullName" },
+  //   {
+  //     title: "Actions",
+  //     width: 200,
+  //     render: (_, record) => (
+  //       <Button
+  //         type="default"
+  //         size="small"
+  //         icon={<BarChartOutlined />}
+  //         onClick={() => {
+  //           setActiveStudent(record);
+  //           setIsProgressModalOpen(true);
+  //         }}
+  //       >
+  //         View Progress
+  //       </Button>
+  //     ),
+  //   },
+  // ];
 
   const columns = [
     {
@@ -789,7 +789,7 @@ const MyClasses = () => {
             </TabPane>
 
             {/* PROGRESS */}
-            <TabPane
+            {/* <TabPane
               tab={
                 <span>
                   <BarChartOutlined /> Progress
@@ -829,7 +829,7 @@ const MyClasses = () => {
               >
                 <ProgressChart studentName={activeStudent?.fullName} />
               </Modal>
-            </TabPane>
+            </TabPane> */}
           </Tabs>
         </Card>
       </div>

@@ -31,6 +31,7 @@ import {
   PlusOutlined,
   MinusOutlined,
   KeyOutlined ,
+  SwapOutlined 
 } from "@ant-design/icons";
 import teacher_img from "../../../assets/teacher.jpg";
 import { useApp } from "../../../context/AppContext";
@@ -141,7 +142,7 @@ const Teacher = () => {
 
       const result = res.data.data || [];
       messageApi.success(res?.data?.message);
-      // console.log(result);
+      console.log(result);
       setStaff(result);
       setPagination({
         current: res.data.pagination?.page || 1,
@@ -206,13 +207,12 @@ const Teacher = () => {
   };
 
   // ✅ Debounced search
-  useEffect(() => {
-    if (!initialized || !token) return;
-    const timeout = setTimeout(() => {
-      getTeachers(1, pagination.pageSize, searchText);
-    }, 600);
-    return () => clearTimeout(timeout);
-  }, [searchText]);
+ // 🚀 Load teachers on first mount
+useEffect(() => {
+  if (!initialized || !token) return;
+  getTeachers(1, pagination.pageSize, "");
+}, [initialized, token]);
+
 
   // ✅ Avatar fallback
   const renderAvatar = (record) => {

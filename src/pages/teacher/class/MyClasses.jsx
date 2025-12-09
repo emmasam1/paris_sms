@@ -47,7 +47,6 @@ const MyClasses = () => {
   const [activeSubjects, setActiveSubjects] = useState(null);
   const [subject, setSubject] = useState(null); // teacherSubject from API
   const [selectedSubject, setSelectedSubject] = useState(null);
-  const [filteredSubjects, setFilteredSubjects] = useState([]);
   const [studentsRecord, setStudentsRecord] = useState([]);
 
   // teacher data structure: levels -> classes -> students
@@ -440,6 +439,32 @@ const MyClasses = () => {
   //   }
   // };
 
+  const getSubjects = async () => {
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      console.log("all subjects", res);
+      const cleaned = res.data?.data?.map((s) => ({
+        _id: s._id,
+        name: s.name,
+      }));
+
+      setSubjects(cleaned);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    getSubjects();
+  }, []);
+
+  console.log(token)
+
   const getRecord = async (subjectIdParam) => {
     const subjectId = subjectIdParam || selectedSubject;
     if (!subjectId) return;
@@ -497,23 +522,21 @@ const MyClasses = () => {
   // console.log(token, API_BASE_URL)
 
   useEffect(() => {
-    if (selectedSubject) {
+    if (selectedLevel && selectedArm && selectedSubject) {
       getRecord();
     }
-  }, [selectedSubject]);
+  }, [selectedLevel, selectedArm, selectedSubject]);
 
   // You must remove the previous manual HTML row generation and setStudentsRows(rows) call!
   // call fetchStudents when selectedArm or page changes
-  useEffect(() => {
-    // whenever arm changes, fetch page 1
-    if (selectedArm) {
-      fetchStudentsForClass(1, limit);
-    } else {
-      setStudents([]);
-      setTotal(0);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedArm, selectedLevel]);
+useEffect(() => {
+  if (selectedLevel && selectedArm && selectedSubject) {
+    fetchStudentsForClass(1, limit);
+  } else {
+    setStudents([]);
+    setTotal(0);
+  }
+}, [selectedLevel, selectedArm, selectedSubject]);
 
   // handling pagination change triggered by table
   const handlePageChange = (newPage, newPageSize) => {
@@ -746,18 +769,18 @@ const MyClasses = () => {
                 </Option>
               ))}
             </Select>
-            {/* <Select
+            <Select
               placeholder="Select Subject"
+              style={{ width: 260 }}
               value={selectedSubject}
               onChange={(value) => setSelectedSubject(value)}
-              style={{ width: "100%" }}
             >
               {subjects?.map((sub) => (
                 <Select.Option key={sub._id} value={sub._id}>
                   {sub.name}
                 </Select.Option>
               ))}
-            </Select> */}
+            </Select>
 
             <Select
               placeholder="Select Arm"
@@ -774,6 +797,17 @@ const MyClasses = () => {
                 </Option>
               ))}
             </Select>
+            <Button
+              onClick={() => {
+                if (!selectedLevel || !selectedArm || !selectedSubject) {
+                  message.error("Select Level, Subject and Arm first");
+                  return;
+                }
+                getRecord();
+              }}
+            >
+              Get Record
+            </Button>
           </div>
 
           <Tabs defaultActiveKey="1">

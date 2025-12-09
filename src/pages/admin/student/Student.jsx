@@ -569,7 +569,7 @@ const Student = () => {
       });
 
       const res = await axios.delete(
-        `${API_BASE_URL}/api/class-management/classes/${record._id}`,
+        `${API_BASE_URL}/api/admin/student/${record._id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

@@ -661,63 +661,61 @@ const Student = () => {
       key: "parentPhone",
       // render: (_, record) => record.parent?.phone || "-",
     },
-    {
-      title: "Actions",
-      key: "action",
-      // width: 200,
-      render: (_, record) => {
-        const menu = (
-          <Menu
-            className="p-2 rounded-lg shadow-md"
-            style={{ width: 160 }}
-            items={[
-              {
-                key: "1",
-                icon: <EyeOutlined />,
-                label: "View Details",
-                onClick: () => openDetails(record),
-              },
-              {
-                key: "2",
-                icon: <EditOutlined />,
-                label: "Edit Student",
-                onClick: () => openEditModal(record),
-              },
-              {
-                key: "3",
-                icon: <BookOutlined />,
-                label: "Assign Subjects",
-                onClick: () => openAssignSubjectsModal(record),
-              },
-
-              {
-                type: "divider",
-              },
-              {
-                key: "5",
-                icon: <DeleteOutlined style={{ color: "#ff4d4f" }} />,
-                label: (
-                  <Popconfirm
-                    title="Delete student?"
-                    onConfirm={() => handleDelete(record)}
-                    okText="Yes"
-                    cancelText="No"
-                  >
-                    <span className="text-red-500">Delete</span>
-                  </Popconfirm>
-                ),
-              },
-            ]}
-          />
-        );
-
-        return (
-          <Dropdown overlay={menu} trigger={["click"]}>
-            <Button icon={<MoreOutlined />} />
-          </Dropdown>
-        );
+   {
+  title: "Actions",
+  key: "action",
+  render: (_, record) => {
+    const items = [
+      {
+        key: "1",
+        icon: <EyeOutlined />,
+        label: "View Details",
+        onClick: () => openDetails(record),
       },
-    },
+      {
+        key: "2",
+        icon: <EditOutlined />,
+        label: "Edit Student",
+        onClick: () => openEditModal(record),
+      },
+      {
+        key: "3",
+        icon: <BookOutlined />,
+        label: "Assign Subjects",
+        onClick: () => openAssignSubjectsModal(record),
+      },
+      { type: "divider" },
+    ];
+
+    // ✅ Add delete button only for principal
+    if (user.role === "principal") {
+      items.push({
+        key: "5",
+        icon: <DeleteOutlined style={{ color: "#ff4d4f" }} />,
+        label: (
+          <Popconfirm
+            title="Delete student?"
+            onConfirm={() => handleDelete(record)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <span className="text-red-500">Delete</span>
+          </Popconfirm>
+        ),
+      });
+    }
+
+    return (
+      <Dropdown
+        overlay={<Menu className="p-2" items={items} />}
+        trigger={["click"]}
+      >
+        <Button icon={<MoreOutlined />} />
+      </Dropdown>
+    );
+  },
+},
+
   ];
 
   // -----------------------------------------

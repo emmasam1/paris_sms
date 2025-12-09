@@ -49,7 +49,7 @@ const Attendance = ({ className }) => {
   const [selectedDomainStudent, setSelectedDomainStudent] = useState(null);
   const [stdDetails, setStdDetails] = useState([]);
   const [stdClass, setStdClass] = useState(null);
-  const [stdId, setStdId] = useState(null);
+  const [attendanceData, setAttendanceData] = useState([]);
   const [stdResultId, setStdResultId] = useState(null);
   const [domainLoading, setDomainLoading] = useState(false);
 
@@ -61,9 +61,12 @@ const Attendance = ({ className }) => {
     if (!token) return;
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/teacher/form-class?limit=50`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(
+        `${API_BASE_URL}/api/teacher/form-class?limit=50`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       setStdClass(res?.data?.data?.class?._id);
 
@@ -87,14 +90,41 @@ const Attendance = ({ className }) => {
   };
 
   const getAttendance = async () => {
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/attendance/attendance-summary?limit=50`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-  }
+      // console.log("Attendance API Response:", res.data); // debug log
 
-  // api/attendance/attendance-summary
+      // Correct path to students array
+      const studentsArray = res.data?.students || [];
+
+      // Optional: map to table-friendly format
+      const tableData = studentsArray.map((s) => ({
+        _id: s.studentId,
+        fullName: s.fullName,
+        admissionNumber: s.admissionNumber,
+        class: s.class,
+        status: s.status,
+        attendance: s.attendance,
+      }));
+
+      // console.log("Attendance Table Data:", tableData);
+
+      setAttendanceData(tableData);
+
+      console.log("Attendance API Response", attendanceData);
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+      messageApi.error("Failed to fetch attendance");
+    }
+  };
 
   useEffect(() => {
     getMyClassStudents();
-    // getStudents();
+    getAttendance();
   }, []);
 
   const updateBulk = (id, field, value) => {
@@ -164,22 +194,21 @@ const Attendance = ({ className }) => {
   };
 
   //Get student result
- const getResult = async (id) => {
-  try {
-    const stdresult = await axios.get(
-      `${API_BASE_URL}/api/results?studentId=${id}&session=2025/2026&term=1`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+  const getResult = async (id) => {
+    try {
+      const stdresult = await axios.get(
+        `${API_BASE_URL}/api/results?studentId=${id}&session=2025/2026&term=1`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    const resultId = stdresult?.data?.data?._id;
-    setStdResultId(resultId);
-    return resultId;   // ⭐ return result ID
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-};
-
+      const resultId = stdresult?.data?.data?._id;
+      setStdResultId(resultId);
+      return resultId; // ⭐ return result ID
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
+  };
 
   const saveDomain = async (values) => {
     try {
@@ -285,8 +314,8 @@ const Attendance = ({ className }) => {
     { title: "Reg No", dataIndex: "regNo", key: "regNo" },
     { title: "Student Name", dataIndex: "name", key: "name" },
     {
-      title: "Status",
-      key: "status",
+      title: "Attendance",
+      key: "attendance",
       render: (_, record) => (
         <Radio.Group
           onChange={(e) => handleAttendanceChange(record.id, e.target.value)}
@@ -307,6 +336,7 @@ const Attendance = ({ className }) => {
         </Radio.Group>
       ),
     },
+
     {
       title: "Take Manual Attendance",
       key: "manual",
@@ -315,6 +345,45 @@ const Attendance = ({ className }) => {
           Take Manual Attendance
         </Button>
       ),
+    },
+  ];
+
+  const columns = [
+    { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
+    { title: "Full Name", dataIndex: "fullName", key: "fullName" },
+    {
+      title: "Attendance Status",
+      key: "status",
+      render: (_, record) => (
+        <Tag color={record.status === "has-attendance" ? "green" : "red"}>
+          {record.status === "has-attendance" ? "Taken" : "Not Taken"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Times Opened",
+      dataIndex: ["attendance", "no_of_times_opened"],
+      key: "no_of_times_opened",
+    },
+    {
+      title: "Times Present",
+      dataIndex: ["attendance", "no_of_times_present"],
+      key: "no_of_times_present",
+    },
+    {
+      title: "Times Absent",
+      dataIndex: ["attendance", "no_of_times_absent"],
+      key: "no_of_times_absent",
+    },
+    {
+      title: "Session",
+      dataIndex: ["attendance", "session"],
+      key: "session",
+    },
+    {
+      title: "Term",
+      dataIndex: ["attendance", "term"],
+      key: "term",
     },
   ];
 
@@ -667,32 +736,22 @@ const Attendance = ({ className }) => {
 
         {/* ======================= VIEW ATTENDANCE ======================= */}
         <Tabs.TabPane tab="View Attendance" key="4">
-          {Object.keys(viewRecords).length === 0 ? (
-            <p className="text-gray-400 text-center mt-6">
-              No attendance records yet.
-            </p>
-          ) : (
-            <Collapse accordion className="rounded-xl overflow-hidden">
-              {Object.entries(viewRecords).map(([date, records]) => (
-                <Panel
-                  header={`${date} (${records.length} students)`}
-                  key={date}
-                >
-                  <Table
-                    dataSource={records}
-                    columns={viewColumns}
-                    rowKey="id"
-                    bordered
-                    className="rounded-md"
-                    pagination={{
-                      position: ["bottomCenter"],
-                    }}
-                    size="small"
-                  />
-                </Panel>
-              ))}
-            </Collapse>
-          )}
+          {/* {console.log("Rendering attendanceData:", attendanceData)} */}
+          <Table
+            dataSource={attendanceData}
+            columns={columns}
+            rowKey={(record) => record._id}
+            bordered
+            size="small"
+            pagination={{
+              position: ["bottomCenter"],
+              className: "custom-pagination",
+              showSizeChanger: true, // ✅ show page size dropdown
+              pageSizeOptions: ["5", "10", "20", "50"],
+            }}
+            className="custom-table"
+            scroll={{ x: "max-content" }}
+          />
         </Tabs.TabPane>
       </Tabs>
 

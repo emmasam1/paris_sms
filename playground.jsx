@@ -1,1456 +1,1132 @@
-// ParentResult.jsx
-import React, { useEffect, useRef, useState } from "react";
-import { Card, Table, Button, Space, message } from "antd";
+import React, { useEffect, useState } from "react";
 import {
-  FilePdfOutlined,
-  PrinterOutlined,
-  CloseOutlined,
+  Card,
+  Table,
+  Button,
+  Modal,
+  Space,
+  Tabs,
+  Skeleton,
+  message,
+  Select,
+  Form,
+  Input,
+  Row,
+  Col,
+} from "antd";
+import {
+  EditOutlined,
+  BarChartOutlined,
+  UserOutlined,
+  CheckCircleOutlined,
+  PlusOutlined,
+  FormOutlined,
 } from "@ant-design/icons";
-import { toPng } from "html-to-image";
-import jsPDF from "jspdf";
-import { useNavigate } from "react-router";
-import logo from "../../assets/logo.jpeg";
+import EnterResult from "../../../components/result/EnterResult";
+import ProgressChart from "../../../components/progress/ProgressChart";
+import ResultSheet from "../../../components/resultSheet/ResultSheet";
 import axios from "axios";
-import { useApp } from "../../context/AppContext";
-import SmartScholaLoader from "../../components/loader/SmartScholaLoader";
-import { useLocation } from "react-router";
-import principalSignature from "../../assets/SIGNATURE.png"
+import { useApp } from "../../../context/AppContext";
 
+const { TabPane } = Tabs;
+const { Option } = Select;
 
-const ParentResult = () => {
-  const navigate = useNavigate();
-  const printRef = useRef(null);
-  const [result, setResult] = useState([]);
-  const { API_BASE_URL, token, loading, setLoading, initialized } = useApp();
-  const [classes, setClasses] = useState([]);
-  const location = useLocation();
-  const { term } = location.state || {};
+const MyClasses = () => {
+  const { token, API_BASE_URL } = useApp();
+  const [form] = Form.useForm();
+
+  // console.log(token, API_BASE_URL)
+
+  // UI state
+  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+  const [isViewResultModalOpen, setIsViewResultModalOpen] = useState(false);
+
+  // active row / subject
+  const [activeStudent, setActiveStudent] = useState(null);
+  const [activeSubjects, setActiveSubjects] = useState(null);
+  const [subject, setSubject] = useState(null); // teacherSubject from API
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [studentsRecord, setStudentsRecord] = useState([]);
+
+  // teacher data structure: levels -> classes -> students
+  const [teacherData, setTeacherData] = useState([]); // full payload: data[]
+  const [levels, setLevels] = useState([]); // ["JSS1","JSS3"...]
+  const [arms, setArms] = useState([]); // arms for selected level (array of arm strings)
+
+  // selects
+  const [selectedLevel, setSelectedLevel] = useState(null);
+  const [selectedArm, setSelectedArm] = useState(null);
+
+  // students shown in the table
+  const [students, setStudents] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+
+  // loading & messages
+  const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  const [printLoading, setPrintLoading] = useState(false);
-  
 
-  //Get Student Result
-  const getStudentsResult = async () => {
+  const [isEditRecordModalOpen, setIsEditRecordModalOpen] = useState(false);
+  const [editStudentRecord, setEditStudentRecord] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [errors, setErrors] = useState({});
+
+  const isJSS = editStudentRecord?.class?.name?.toLowerCase().includes("jss");
+
+  const maxScores = isJSS
+    ? {
+        firstAssignment: 10,
+        secondAssignment: 10,
+        firstCA: 20,
+        secondCA: 20,
+        exam: 40,
+      }
+    : {
+        firstAssignment: 5,
+        secondAssignment: 5,
+        firstCA: 10,
+        secondCA: 10,
+        exam: 70,
+      };
+
+  // LIVE VALIDATION
+  const validateScore = (changedValues, allValues) => {
+    const newErrors = {};
+    Object.keys(maxScores).forEach((key) => {
+      if (Number(allValues[key]) > maxScores[key]) {
+        newErrors[key] = true;
+      }
+    });
+    setErrors(newErrors);
+  };
+
+  // pagination for students table
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
+
+  // useEffect(() => {
+  //   if (!selectedLevel || !selectedArm) {
+  //     setFilteredSubjects([]);
+  //     setSelectedSubject(null);
+  //     return;
+  //   }
+
+  //   // Find the level object
+  //   const levelObj = teacherData.find((l) => l.level === selectedLevel);
+  //   if (!levelObj) return;
+
+  //   // Find the selected arm class
+  //   const classObj = levelObj.classes?.find(
+  //     (c) => c.class?.arm === selectedArm || c.class?.name === selectedArm
+  //   );
+
+  //   if (!classObj) return;
+
+  //   // Get subject(s) for that class
+  //   const classSubject = classObj.subject || levelObj.subject || null;
+
+  //   if (classSubject) {
+  //     setFilteredSubjects([classSubject]);
+  //     // setSelectedSubject(classSubject._id);
+  //   } else {
+  //     setFilteredSubjects([]);
+  //     setSelectedSubject(null);
+  //   }
+
+  //   // Fetch students for that class
+  //   fetchStudentsForClass(1, limit);
+
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [selectedLevel, selectedArm]);
+
+  useEffect(() => {
+    if (selectedLevel && selectedArm) {
+      fetchStudentsForClass(1, limit); // fetch page 1 of students
+    } else {
+      setStudents([]);
+      setTotal(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLevel, selectedArm]);
+
+  // ---------------------------
+  // Fetch teacher-levels/classes (structure)
+  // ---------------------------
+  const getTeacherClassDetails = async () => {
+    if (!token) return;
+
     try {
       setLoading(true);
 
-      const res = await axios.get(
-        `${API_BASE_URL}/api/parent/results?term=${term}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      console.log("RESULT:", res);
+      // 1️⃣ Fetch teacher classes + students
+      const res = await axios.get(`${API_BASE_URL}/api/teacher/students`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      setResult(res?.data || []);
-      // messageApi.success(res.data.message);
+      // console.log(res)
+
+      messageApi.success(res.data.message);
+
+      const allLevels = res?.data?.data || [];
+      setTeacherData(allLevels);
+
+      // Extract subject (same behavior you had before)
+      const responseSubject =
+        res?.data?.data?.[0]?.subject || res?.data?.subject;
+      if (responseSubject) setSubject(responseSubject);
+
+      // Extract levels and remove duplicates
+      const levelList = [...new Set(allLevels.map((item) => item.level))];
+      setLevels(levelList);
+
+      // Auto-select first level if none selected
+      if (!selectedLevel && levelList.length > 0) {
+        setSelectedLevel(levelList[0]);
+      }
+
+      // 2️⃣ Get classId + subjectId for STATUS fetch
+      const classId = allLevels?.[0]?.classes?.[0]?.class?._id;
+      const subjectId = responseSubject?._id;
+
+      if (classId && subjectId) {
+        // 3️⃣ Fetch score status
+        const resultRes = await axios.get(
+          `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subjectId}&session=2025/2026&term=1`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        // console.log("the result", resultRes);
+
+        // 4️⃣ Merge status into students
+        const studentsWithStatus = allLevels.map((item) => {
+          const studentList = item.students || [];
+
+          const updatedStudents = studentList.map((student) => {
+            const found = resultRes.data.students.find(
+              (s) => s.studentId === student._id
+            );
+
+            console.log(found);
+
+            return {
+              ...student,
+              hasRecord: found?.status === "recorded",
+            };
+          });
+
+          return {
+            ...item,
+            students: updatedStudents,
+          };
+        });
+
+        setTeacherData(studentsWithStatus);
+      }
     } catch (error) {
-      console.log("Error get result", error);
-      messageApi.error(error?.response?.data?.message || "No result yet");
+      console.error("getTeacherClassDetails error:", error);
+      messageApi.error(
+        error?.response?.data?.message ||
+          "Unable to fetch teacher class details."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // const getClass = async () => {
-  //   if (!token) return;
-  //   setLoading(true);
+  // ---------------------------
+  // When selectedLevel changes, update arms list and reset arm/students
+  // ---------------------------
+  useEffect(() => {
+    if (!selectedLevel) {
+      setArms([]);
+      setSelectedArm(null);
+      setStudents([]);
+      setTotal(0);
+      return;
+    }
+
+    // find the matching level object in teacherData
+    const found = teacherData.find((item) => item.level === selectedLevel);
+    const classArms = (found?.classes || []).map(
+      (c) => c.class?.arm || c.class?.name
+    );
+    setArms(classArms);
+    setSelectedArm(null); // reset arm when level changes
+    setStudents([]);
+    setTotal(0);
+    setPage(1);
+  }, [selectedLevel, teacherData]);
+
+  // ---------------------------
+  // Fetch students for selected level+arm with pagination
+  // ---------------------------
+  const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
+    if (!token || !selectedLevel || !selectedArm) return;
+
+    try {
+      setLoading(true);
+
+      // Fetch students
+      const url = new URL(`${API_BASE_URL}/api/teacher/students`);
+      url.searchParams.append("level", selectedLevel);
+      url.searchParams.append("arm", selectedArm);
+      url.searchParams.append("subject", selectedSubject);
+      url.searchParams.append("page", pageParam);
+      url.searchParams.append("limit", limitParam);
+
+      const res = await axios.get(url.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("fetchStudentsForClass", res);
+
+      // Get all subjects (teacherSubject)
+      const sub = (
+        await axios.get(
+          `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        )
+      ).data;
+
+      const subjects =
+        sub?.data?.map((e) => ({
+          _id: e._id,
+          name: e.name,
+        })) || [];
+
+      setSubjects(subjects);
+
+      const data = res?.data;
+      let classStudents = [];
+
+      if (data?.data?.length) {
+        const levelObj = data.data[0];
+
+        const matchedClass = levelObj.classes.find((c) => {
+          const name = c.class?.name?.toLowerCase();
+          const arm = c.class?.arm?.toLowerCase();
+          return (
+            name === selectedLevel?.toLowerCase() &&
+            arm === selectedArm?.toLowerCase()
+          );
+        });
+
+        // Set subject coming from API
+        setSelectedSubject(levelObj?.subject?._id || levelObj?.subject);
+
+        classStudents = matchedClass?.students || [];
+      } else if (data?.students) {
+        classStudents = data.students;
+      }
+
+      // Extract classId
+      const classId = data?.data?.[0]?.classes.find(
+        (c) => (c.class?.arm || c.class?.name) === selectedArm
+      )?.class?._id;
+
+      // Extract subjectId
+      const subjectId =
+        data?.data?.[0]?.subject?._id ||
+        data?.data?.[0]?.subject ||
+        selectedSubject;
+
+      if (!classId || !subjectId) {
+        console.warn("Missing classId or subjectId. Cannot fetch status.");
+        setStudents(classStudents);
+        return;
+      }
+
+      // Fetch result statuses
+      const dashboardURL = `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subject?._id}&session=2025/2026&term=1`;
+      // console.log("class id", classId);
+      // console.log("subject", subject?._id);
+
+      const scoreRes = await axios.get(dashboardURL, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // console.log(scoreRes);
+      const statusList = scoreRes.data.students || [];
+
+      // console.log("Status list:", statusList);
+
+      // Merge status into fetched students
+      const mergedStudents = classStudents.map((stu) => {
+        const found = statusList.find((s) => s.studentId === stu._id);
+        return {
+          ...stu,
+          hasRecord: found?.status === "recorded",
+        };
+      });
+
+      setStudents(mergedStudents);
+
+      // pagination
+      const pagination = data?.pagination;
+      if (pagination) {
+        setPage(pagination.page);
+        setLimit(pagination.limit);
+        setTotal(pagination.total);
+      } else {
+        setTotal(mergedStudents.length);
+      }
+    } catch (error) {
+      console.error("fetchStudentsForClass ERROR:", error);
+      messageApi.error(
+        error?.response?.data?.message ||
+          "No students in this class offer this subject"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Assuming your component has a state setter: const [students, setStudents] = useState([]);
+
+  // const getRecord = async (subjectIdParam) => {
+  //   const subjectId = subjectIdParam || selectedSubject;
+  //   if (!subjectId) return;
 
   //   try {
+  //     setLoading(true);
+
   //     const res = await axios.get(
-  //       `${API_BASE_URL}/api/class-management/classes?limit=100`,
+  //       `${API_BASE_URL}/api/teacher/records?subjectId=${selectedSubject}&session=2025/2026&term=1`,
   //       { headers: { Authorization: `Bearer ${token}` } }
   //     );
 
-  //     const data = res?.data?.data || [];
+  //     const results = res.data?.data?.results;
 
-  //     console.log("all class", data);
+  //     if (!Array.isArray(results) || results.length === 0) {
+  //       console.warn("No results found!", results);
+  //       setStudents([]);
+  //       return;
+  //     }
 
-  //     setClasses(mapped);
-  //     setPagination((prev) => ({
-  //       ...prev,
-  //       total: mapped.length,
+  //     console.log(results)
+
+  //     const mappedStudents = results.map((item) => ({
+  //       key: item._id, // row key
+  //       recordId: item._id, // <-- ADD THIS (this is your record ID)
+  //       studentId: item.student.id,
+  //       fullName: `${item.student.firstName} ${item.student.lastName}`,
+  //       admissionNumber: item.student.admissionNumber || "-",
+  //       gender: item.gender || "-",
+  //       class: item.student.class,
+  //       record: {
+  //         firstAssignment: item.firstAssignment,
+  //         secondAssignment: item.secondAssignment,
+  //         firstCA: item.firstCA,
+  //         secondCA: item.secondCA,
+  //         exam: item.exam,
+  //         total: item.total,
+  //         grade: item.grade,
+  //         teacherRemark: item.teacherRemark,
+  //       },
+  //       status: item.status || "-",
   //     }));
 
-  //     // messageApi.success(res?.data?.message || "Classes fetched successfully");
+  //     // console.log("Mapped students:", mappedStudents);
+  //     setStudentsRecord(mappedStudents);
   //   } catch (error) {
-  //     console.log(error);
-  //     // messageApi.error(
-  //     // error?.response?.data?.message || "Failed to fetch classes"
-  //     //);
+  //     console.error(error);
+  //     message.error("Failed to fetch records");
   //   } finally {
   //     setLoading(false);
   //   }
   // };
 
-  useEffect(() => {
-    if (!initialized || !token) return;
-
-    getStudentsResult();
-    // getClass();
-  }, [initialized, token]);
-
-  const affectiveDomainData = [
-    {
-      key: "1",
-      domain: "ATTENTIVENESS",
-      rating: result?.domains?.attentiveness || "",
-    },
-    { key: "2", domain: "HONESTY", rating: result?.domains?.honesty || "" },
-    { key: "3", domain: "NEATNESS", rating: result?.domains?.neatness || "" },
-    {
-      key: "4",
-      domain: "PUNCTUALITY",
-      rating: result?.domains?.punctuality || "",
-    },
-    {
-      key: "5",
-      domain: "RELATIONSHIP WITH OTHERS",
-      rating: result?.domains?.relationshipWithOthers || "",
-    },
-    {
-      key: "6",
-      domain: "LEADERSHIP TRAITS",
-      rating: result?.domains?.leadershipTraits || "",
-    },
-  ];
-
-  const psychomotorDomainData = [
-    {
-      key: "1",
-      domain: "CLUB INTEREST/GAMES AND SPORTS",
-      rating: result?.domains?.clubInterestsAndSports || "",
-    },
-    {
-      key: "2",
-      domain: "HAND WRITING",
-      rating: result?.domains?.handWriting || "",
-    },
-    { key: "3", domain: "AGILITY", rating: result?.domains?.agility || "" },
-    {
-      key: "4",
-      domain: "ORATORY SKILLS",
-      rating: result?.domains?.organisationalSkills || "",
-    },
-    { key: "5", domain: "SELF CARE", rating: result?.domains?.selfCare || "" },
-    {
-      key: "6",
-      domain: "ORGANISATIONAL SKILLS",
-      rating: result?.domains?.organisationalSkills || "",
-    },
-  ];
-
-  const gradeLegendData = [
-    { key: "1", grade: "A1", rate: '80-100 "EXCELLENT"' },
-    { key: "2", grade: "B2", rate: '70-79 "BRILLIANT"' },
-    { key: "3", grade: "B3", rate: '65-69 "MERIT"' },
-    { key: "4", grade: "C4", rate: '60-64 "VERY GOOD"' },
-    { key: "5", grade: "C5", rate: '50-59 "CREDIT"' },
-    { key: "6", grade: "C6", rate: '45-49 "PASS"' },
-    { key: "7", grade: "D7", rate: '40-44 "FAIR"' },
-    { key: "8", grade: "F9", rate: '0-39 "FAIL"' },
-  ];
-
-  const ratingKeyData = [
-    { key: "1", rating: "5=A+", remark: "EXCELLENT" },
-    { key: "2", rating: "4=A", remark: "BRILLIANT" },
-    { key: "3", rating: "3=B", remark: "V. GOOD" },
-    { key: "4", rating: "2=C", remark: "GOOD" },
-    { key: "5", rating: "1=D", remark: "FAIR" },
-    { key: "6", rating: "0=E", remark: "POOR" },
-  ];
-
-  const isJunior = result?.student?.className?.toUpperCase().includes("JSS");
-
-  const columns = [
-    {
-      title: "SUBJECTS",
-      dataIndex: "subjectName",
-      key: "subjectName",
-      align: "left",
-      width: 200,
-      render: (subjectName) => (
-        <span className="font-medium">{subjectName}</span>
-      ),
-    },
-    {
-      title: `1st Ass. ${isJunior ? 10 : 5}%`,
-      dataIndex: "firstCA",
-      key: "firstCA",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: `2nd Ass. ${isJunior ? 10 : 5}%`,
-      dataIndex: "secondCA",
-      key: "secondCA",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: `1st Test ${isJunior ? 20 : 10}%`,
-      dataIndex: "firstAssignment",
-      key: "firstAssignment",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: `2nd Test ${isJunior ? 20 : 10}%`,
-      dataIndex: "secondAssignment",
-      key: "secondAssignment",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: `EXAM ${isJunior ? 40 : 70}%`,
-      dataIndex: "exam",
-      key: "exam",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: "TOTAL 100%",
-      dataIndex: "total",
-      key: "total",
-      align: "center",
-      width: 70,
-      render: (v) => <span className="font-semibold">{v}</span>,
-    },
-    {
-      title: "GRADE",
-      dataIndex: "grade",
-      key: "grade",
-      align: "center",
-      width: 40,
-    },
-    {
-      title: "REMARKS",
-      dataIndex: "remark",
-      key: "remark",
-      align: "center",
-      width: 80,
-    },
-  ];
-
-  const domainColumns = [
-    {
-      title: "DOMAIN",
-      dataIndex: "domain",
-      key: "domain",
-      align: "left",
-      width: 200,
-    },
-    {
-      title: "RATING",
-      dataIndex: "rating",
-      key: "rating",
-      align: "center",
-      width: 100,
-    },
-  ];
-
-  // const totalScore = scores.reduce((acc, r) => acc + (Number(r.total) || 0), 0);
-  // const totalScoreObtainable = scores.length * 100;
-  // const finalAverage = scores.length
-  //   ? (totalScore / scores.length).toFixed(2)
-  //   : "0.00";
-  // const totalGrade = scores.filter((r) => r.grade).length;
-
-  const studentInfo = {
-    termStarted: "15TH JANUARY, 2025",
-    termEnded: "5TH JANUARY, 2025",
-    nextTermBegins: "12TH JANUARY, 2026",
-    schoolOpened: "60",
-    present: "58",
-    absent: "2",
-    // noOfSubjects: pdfSubjects.length,
-    totalNoInClass: result?.summary?.noInClass,
-    noOfArm: "A",
-    classAverage: "55.50",
-    formTeacher: "Mrs. Ngozi Okoro",
-  };
-
-  const handlePDF = async () => {
-    if (!printRef.current) return;
+  const getSubjects = async () => {
     try {
-      setPrintLoading(true);
-
-      const element = printRef.current;
-
-      // Save original style
-      const originalWidth = element.style.width;
-      const originalMinWidth = element.style.minWidth;
-
-      // Force fixed A4 width in pixels (approx 794px at 96 DPI)
-      element.style.width = "794px";
-      element.style.minWidth = "794px";
-
-      const dataUrl = await toPng(printRef.current, {
-        cacheBust: true,
-        backgroundColor: "#FFFFFF",
-        pixelRatio: 3,
-        quality: 1,
-      });
-
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      const img = new Image();
-      
-      img.src = dataUrl;
-       img.onload = () => {
-        const imgAspect = img.height / img.width;
-        const pdfAspect = pdfHeight / pdfWidth;
-
-        let renderWidth, renderHeight;
-        if (imgAspect > pdfAspect) {
-          renderHeight = pdfHeight;
-          renderWidth = pdfHeight / imgAspect;
-        } else {
-          renderWidth = pdfWidth;
-          renderHeight = pdfWidth * imgAspect;
+      const res = await axios.get(
+        `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-        // pdf.addImage(dataUrl, "PNG", x, y, renderWidth, renderHeight);
-        pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+      );
+      console.log("all subjects", res);
+      const cleaned = res.data?.data?.map((s) => ({
+        _id: s._id,
+        name: s.name,
+      }));
 
-        pdf.save("Paris Africana.pdf");
-        setPrintLoading(false);
-      };
-    } catch (err) {
-      console.error("PDF generation failed:", err);
-      alert("Failed to generate PDF. Check console for details.");
-      setPrintLoading(false);
+      setSubjects(cleaned);
+    } catch (error) {
+      console.log(error);
     }
   };
 
-  // small Tailwind/Ant classes for Ant Table adjustments (if you use Tailwind)
-  const customTableStyle =
-    "[&_.ant-table-cell]:text-[15px] [&_.ant-table-cell]:p-1 [&_.ant-table-thead>tr>th]:font-bold [&_.ant-table-thead>tr>th]:text-[13px] [&_.ant-table]:border-black [&_.ant-table-tbody>tr>td]:border-black [&_.ant-table-thead>tr>th]:border-black [&_.ant-table-cell]:text-[13px]";
+  useEffect(() => {
+    getSubjects();
+  }, []);
+
+  console.log(token)
+
+  const getRecord = async (subjectIdParam) => {
+    const subjectId = subjectIdParam || selectedSubject;
+    if (!subjectId) return;
+
+    try {
+      setLoading(true);
+
+      const res = await axios.get(
+        `${API_BASE_URL}/api/teacher/records?subjectId=${subjectId}&session=2025/2026&term=1&limit=500`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const results = res.data?.data?.results;
+      // console.log(results)
+
+      if (!Array.isArray(results) || results.length === 0) {
+        console.warn("No results found!", results);
+        setStudents([]);
+        return;
+      }
+
+      const mappedStudents = results.map((item) => ({
+        key: item._id,
+        recordId: item._id,
+        studentId: item.student.id,
+        fullName: `${item.student.firstName} ${item.student.lastName}`,
+        admissionNumber: item.student.admissionNumber || "-",
+        gender: item.gender || "-",
+        class: item.student.class,
+        record: {
+          firstAssignment: item.firstAssignment,
+          secondAssignment: item.secondAssignment,
+          firstCA: item.firstCA,
+          secondCA: item.secondCA,
+          exam: item.exam,
+          total: item.total,
+          grade: item.grade,
+          teacherRemark: item.teacherRemark,
+        },
+        subject: item.subject.name,
+        status: item.status || "-",
+      }));
+
+      // console.log("mapped", mappedStudents)
+
+      setStudentsRecord(mappedStudents);
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to fetch records");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // console.log(token, API_BASE_URL)
+
+  useEffect(() => {
+    if (selectedLevel && selectedArm && selectedSubject) {
+      getRecord();
+    }
+  }, [selectedLevel, selectedArm, selectedSubject]);
+
+  // You must remove the previous manual HTML row generation and setStudentsRows(rows) call!
+  // call fetchStudents when selectedArm or page changes
+useEffect(() => {
+  if (selectedLevel && selectedArm && selectedSubject) {
+    fetchStudentsForClass(1, limit);
+  } else {
+    setStudents([]);
+    setTotal(0);
+  }
+}, [selectedLevel, selectedArm, selectedSubject]);
+
+  // handling pagination change triggered by table
+  const handlePageChange = (newPage, newPageSize) => {
+    setPage(newPage);
+    if (newPageSize && newPageSize !== limit) setLimit(newPageSize);
+    fetchStudentsForClass(newPage, newPageSize || limit);
+  };
+
+  // ---------------------------
+  // Initialize on mount
+  // ---------------------------
+  useEffect(() => {
+    getTeacherClassDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---------------------------
+  // Form submit callback (from EnterResult)
+  // ---------------------------
+  const handleSubmit = (response) => {
+    if (response?.success) {
+      // update specific student row to show Entered
+      setStudents((prev) =>
+        prev.map((student) =>
+          student._id === activeStudent?._id
+            ? { ...student, hasRecord: true }
+            : student
+        )
+      );
+    }
+  };
+
+  // ---------------------------
+  // Columns
+  // ---------------------------
+  const studentColumns = [
+    { title: "Reg No", dataIndex: "admissionNumber", key: "admissionNumber" },
+    { title: "Name", dataIndex: "fullName", key: "fullName" },
+    {
+      title: "Class",
+      key: "class",
+      render: (_, record) => {
+        // the API student.class might be id string or object; try to show selectedLevel and arm
+        const className = selectedLevel || record.class?.name || "Not Assigned";
+        const armName = selectedArm || record.class?.arm || "";
+        return `${className}${armName ? ` - ${armName}` : ""}`;
+      },
+    },
+  ];
+
+  const resultsColumns = [
+    { title: "Reg No", dataIndex: "admissionNumber", key: "admissionNumber" },
+    { title: "Name", dataIndex: "fullName", key: "fullName" },
+    {
+      title: "Status",
+      width: 120,
+      render: (_, record) =>
+        record.hasRecord ? (
+          <span style={{ color: "green", fontWeight: 600 }}>
+            <CheckCircleOutlined /> Entered
+          </span>
+        ) : (
+          <span style={{ color: "red", fontWeight: 600 }}>Not Entered</span>
+        ),
+    },
+    {
+      title: "Actions",
+      width: 50,
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="primary"
+            size="small"
+            icon={<PlusOutlined />}
+            style={{ backgroundColor: "#52c41a" }}
+            onClick={() => {
+              setActiveStudent(record);
+              setActiveSubjects(record.subjects || []);
+              setIsResultModalOpen(true);
+            }}
+          >
+            Enter
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  const progressColumns = [
+    { title: "Reg No", dataIndex: "admissionNumber", key: "admissionNumber" },
+    { title: "Name", dataIndex: "fullName", key: "fullName" },
+    {
+      title: "Actions",
+      width: 200,
+      render: (_, record) => (
+        <Button
+          type="default"
+          size="small"
+          icon={<BarChartOutlined />}
+          onClick={() => {
+            setActiveStudent(record);
+            setIsProgressModalOpen(true);
+          }}
+        >
+          View Progress
+        </Button>
+      ),
+    },
+  ];
+
+  const columns = [
+    {
+      title: "S/N",
+      render: (_, __, index) => index + 1,
+      // width: 70, // Added width for better layout
+    },
+    {
+      title: "Full Name",
+      dataIndex: "fullName",
+      // width: 180,
+    },
+    // {
+    //   title: "Admission No",
+    //   dataIndex: "admissionNumber",
+    //   width: 150,
+    // },
+    {
+      title: "Class",
+      // width: 150,
+      render: (record) => {
+        // More robust rendering: get name and arm, use '-' if class is missing.
+        const name = record.class?.name;
+        const arm = record.class?.arm;
+
+        if (name && arm) return `${name} - ${arm}`;
+        if (name) return name;
+        if (arm) return arm;
+        return "-";
+      },
+    },
+    {
+      title: "Subject",
+      dataIndex: "subject",
+    },
+    {
+      title: "1st ASS",
+      // Safely access nested record.exam, default to 0
+      render: (record) => record.record?.firstAssignment ?? 0,
+      // width: 80,
+    },
+    {
+      title: "2nd ASS",
+      // Safely access nested record.exam, default to 0
+      render: (record) => record.record?.secondAssignment ?? 0,
+      // width: 80,
+    },
+    {
+      title: "1st CA",
+      // Safely access nested record.exam, default to 0
+      render: (record) => record.record?.firstCA ?? 0,
+      // width: 80,
+    },
+    {
+      title: "2nd CA",
+      // Safely access nested record.exam, default to 0
+      render: (record) => record.record?.secondCA ?? 0,
+      // width: 80,
+    },
+    {
+      title: "Exam",
+      // Safely access nested record.exam, default to 0
+      render: (record) => record.record?.exam ?? 0,
+      // width: 80,
+    },
+    {
+      title: "Total",
+      // Safely access nested record.total, default to 0
+      render: (record) => record.record?.total ?? 0,
+      // width: 80,
+    },
+    {
+      title: "Grade",
+      // Safely access nested record.grade, default to '-'
+      render: (record) => record.record?.grade ?? "-",
+      // width: 80,
+    },
+    {
+      title: "Actions",
+      width: 50,
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="primary"
+            size="small"
+            icon={<FormOutlined />}
+            onClick={() => {
+              setEditStudentRecord(record); // set selected record
+              setIsEditRecordModalOpen(true); // open modal
+              // console.log(record);
+            }}
+          >
+            Edit
+          </Button>
+        </Space>
+      ),
+    },
+
+    // Add an Action column here if needed, or remove this comment
+
+    ,
+  ];
 
   return (
-    <div className="p-6 relative">
+    <div className="flex gap-6">
       {contextHolder}
-      {loading ? (
-        <SmartScholaLoader />
-      ) : (
-        <Card
-          title={
-            <div className="flex items-center justify-between w-full">
-              <h2 className="text-2xl font-bold uppercase">
-                Student Result Sheet
-              </h2>
-              <div className="flex gap-2">
-                <Space>
-                  <Button
-                    danger
-                    icon={<CloseOutlined />}
-                    onClick={() => navigate("/home")}
-                  >
-                    Close
-                  </Button>
-                  {/* <Button icon={<PrinterOutlined />} onClick={handlePrint}>
-                  Print
-                </Button> */}
-                  <Button
-                    type="primary"
-                    icon={<FilePdfOutlined />}
-                    onClick={handlePDF}
-                    loading={printLoading}
-                  >
-                    Save PDF
-                  </Button>
-                </Space>
-              </div>
-            </div>
-          }
-          className="rounded-2xl shadow-md"
-        >
-          <div
-            ref={printRef}
-            className="bg-white p-4 mx-auto relative overflow-hidden"
-            // style={{ width: "210mm", minHeight: "297mm" }}
-          >
-            {/* Watermark Behind Content */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: 0.1,
-                zIndex: 20,
-                pointerEvents: "none",
-                userSelect: "none",
+      <div className="flex-1">
+        <Card className="shadow-md rounded-xl">
+          <div className="flex items-center gap-2 mb-4">
+            <Select
+              placeholder="Select Level"
+              style={{ width: 220 }}
+              value={selectedLevel}
+              onChange={(value) => setSelectedLevel(value)}
+              loading={loading && !levels.length}
+              allowClear
+            >
+              {levels.map((lvl) => (
+                <Option key={lvl} value={lvl}>
+                  {lvl}
+                </Option>
+              ))}
+            </Select>
+            <Select
+              placeholder="Select Subject"
+              style={{ width: 260 }}
+              value={selectedSubject}
+              onChange={(value) => setSelectedSubject(value)}
+            >
+              {subjects?.map((sub) => (
+                <Select.Option key={sub._id} value={sub._id}>
+                  {sub.name}
+                </Select.Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Select Arm"
+              style={{ width: 260 }}
+              value={selectedArm}
+              onChange={(value) => setSelectedArm(value)}
+              loading={loading && !!selectedLevel}
+              disabled={!arms.length}
+              allowClear
+            >
+              {arms.map((arm) => (
+                <Option key={arm} value={arm}>
+                  {arm}
+                </Option>
+              ))}
+            </Select>
+            <Button
+              onClick={() => {
+                if (!selectedLevel || !selectedArm || !selectedSubject) {
+                  message.error("Select Level, Subject and Arm first");
+                  return;
+                }
+                getRecord();
               }}
             >
-              <img
-                src={logo}
-                alt="Watermark"
-                style={{
-                  width: "60%",
-                  maxWidth: 500,
-                  filter: "grayscale(100%)",
-                }}
-              />
-            </div>
-
-            {/* Header */}
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-[150px] h-[150px] flex-shrink-0">
-                <img
-                  src={logo}
-                  alt="School logo"
-                  className="w-full h-full object-contain header-logo"
-                  crossOrigin="anonymous"
-                />
-              </div>
-
-              <div className="flex-1 text-center">
-                <h1 className="text-3xl font-extrabold uppercase leading-tight">
-                  {result?.school?.name}
-                </h1>
-                <p className="font-bold mt-1 text-[14px] leading-tight uppercase">
-                  {result?.school?.address}
-                </p>
-                <p className="text-xl font-extrabold text-[#990099] uppercase leading-tight">
-                  MOTTO: KNOWLEDGE AND DISCIPLINE
-                </p>
-                <p className="font-extrabold mt-1 text-xl leading-tight">
-                  {result?.student?.className?.startsWith("JSS")
-                    ? "JUNIOR SECONDARY SCHOOL"
-                    : "SENIOR SECONDARY SCHOOL"}
-                </p>
-
-                <p className="font-bold mt-1 text-xl leading-tight">
-                  END OF FIRST TERM RESULT FOR {result?.session} ACADEMIC
-                  SESSION
-                </p>
-              </div>
-
-              {/* image */}
-              {result?.student?.avatar && (
-                <div className="w-[150px] h-[150px] flex-shrink-0 overflow-hidden rounded-lg">
-                  <img
-                    src={result.student.avatar}
-                    alt=""
-                    className="w-full object-containe"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Student Info and Attendance */}
-            <div className="grid grid-cols-12 gap-y-1 mb-3 text-xs font-semibold border border-black p-1">
-              <div className="col-span-8 grid grid-cols-2 gap-y-1">
-                <div className="text-xl">
-                  NAME:{" "}
-                  <span className="font-bold">{result?.student?.fullName}</span>
-                </div>
-                <div className="text-xl">
-                  ADMISSION NO:{" "}
-                  <span className="font-bold">
-                    {result?.student?.admissionNumber}
-                  </span>
-                </div>
-                <div className="text-xl">
-                  GENDER:{" "}
-                  <span className="font-bold capitalize">
-                    {result?.student?.gender}
-                  </span>
-                </div>
-                <div className="text-xl">
-                  CLASS:{" "}
-                  <span className="font-bold uppercase">
-                    {result?.student?.className} {result?.student?.classArm}
-                  </span>
-                </div>
-              </div>
-
-              <div className="col-span-4 grid grid-cols-1 gap-y-1 text-[10px] border-l border-black pl-2">
-                <div className="font-bold text-xl">ATTENDANCE</div>
-                <div className="text-[12px]">
-                  NO. OF TIMES SCHOOL OPENED:{" "}
-                  <span className="font-extrabold">
-                    {studentInfo.schoolOpened}
-                  </span>
-                </div>
-                <div className="text-[12px]">
-                  NO. OF TIMES PRESENT:{" "}
-                  <span className="font-extrabold">{studentInfo.present}</span>
-                </div>
-                <div className="text-[12px]">
-                  NO. OF TIMES ABSENT:{" "}
-                  <span className="font-extrabold">{studentInfo.absent}</span>
-                </div>
-              </div>
-
-              <div className="col-span-12 grid grid-cols-3 gap-x-2 border-t border-black pt-1 text-[12px]">
-                <div>
-                  TERM STARTED:{" "}
-                  <span className="font-extrabold">
-                    {studentInfo.termStarted}
-                  </span>
-                </div>
-                <div>
-                  TERM ENDED:{" "}
-                  <span className="font-extrabold">
-                    {studentInfo.termEnded}
-                  </span>
-                </div>
-                <div>
-                  NEXT TERM BEGINS:{" "}
-                  <span className="font-extrabold">
-                    {studentInfo.nextTermBegins}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Subject Table */}
-            <Table
-              columns={columns}
-              dataSource={result.subjects}
-              pagination={false}
-              bordered
-              size="small"
-              rowKey={(record) => record._id}
-              className="custom-result-table !text-[12px]"
-            />
-
-            {/* Summary and Grading/Rating */}
-            <div className="grid grid-cols-12 gap-x-4 mt-2 text-xs">
-              <div className="col-span-5 grid grid-cols-2 gap-y-1">
-                <div className="col-span-2 font-bold underline">SUMMARY</div>
-                <div>NO. OF SUBJECTS OFFERED:</div>
-                <div className="font-bold">
-                  {result?.summary?.totalSubjects}
-                </div>
-
-                <div>TOTAL SCORE OBTAINED:</div>
-                <div className="font-bold">
-                  {result?.summary?.totalScoreObtained}
-                </div>
-
-                <div>TOTAL SCORE OBTAINABLE:</div>
-                <div className="font-bold">
-                  {result?.summary?.totalScoreObtainable}
-                </div>
-
-                <div>FINAL AVERAGE:</div>
-                <div className="font-bold">{result?.summary?.finalAverage}</div>
-
-                <div>CLASS AVERAGE:</div>
-                <div className="font-bold">{result?.summary?.classAverage}</div>
-
-                <div>TOTAL GRADE:</div>
-                <div className="font-bold">{result?.summary?.overallGrade}</div>
-
-                <div>NO. OF ARM:</div>
-                <div className="font-bold">{studentInfo.noOfArm}</div>
-
-                <div>TOTAL NO. IN CLASS:</div>
-                <div className="font-bold">{studentInfo.totalNoInClass}</div>
-
-                <div className="col-span-2 mt-2">
-                  <Table
-                    columns={[
-                      {
-                        title: "GRADE",
-                        dataIndex: "grade",
-                        key: "grade",
-                        align: "center",
-                        width: 60,
-                        render: (g) => <b>{g}</b>,
-                      },
-                      {
-                        title: "RATE",
-                        dataIndex: "rate",
-                        key: "rate",
-                        align: "center",
-                      },
-                    ]}
-                    dataSource={gradeLegendData}
-                    pagination={false}
-                    bordered
-                    size="small"
-                    rowKey="key"
-                  />
-                </div>
-              </div>
-
-              <div className="col-span-7 grid grid-cols-2 gap-x-2">
-                <div>
-                  <Table
-                    columns={domainColumns}
-                    dataSource={affectiveDomainData}
-                    pagination={false}
-                    bordered
-                    size="small"
-                    rowKey="key"
-                  />
-                </div>
-                <div>
-                  <Table
-                    columns={domainColumns}
-                    dataSource={psychomotorDomainData}
-                    pagination={false}
-                    bordered
-                    size="small"
-                    rowKey="key"
-                  />
-                </div>
-
-                <div className="col-span-2 mt-2">
-                  <Table
-                    columns={[
-                      {
-                        title: "RATING",
-                        dataIndex: "rating",
-                        key: "rating",
-                        align: "center",
-                        width: 80,
-                        render: (t) => <b>{t}</b>,
-                      },
-                      {
-                        title: "REMARK",
-                        dataIndex: "remark",
-                        key: "remark",
-                        align: "center",
-                      },
-                    ]}
-                    dataSource={ratingKeyData.map((r) => ({
-                      key: r.key,
-                      rating: r.rating,
-                      remark: r.remark,
-                    }))}
-                    pagination={false}
-                    bordered
-                    size="small"
-                    rowKey="key"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Signatures */}
-            <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8">
-              <div>
-                <p className="uppercase">FORM TEACHER'S COMMENT: {result?.teacherRemark}.</p>
-                <p className="my-2">
-                  FORM TEACHER'S NAME:{" "}
-                  <span className="underline">{studentInfo.formTeacher}</span>
-                </p>
-                <p>
-                  DATE: <span className="font-bold">12th December, 2025</span>
-                </p>
-              </div>
-              <div>
-                <p className="uppercase">
-                  PRINCIPAL'S COMMENT: {result?.principalRemark}
-                </p>
-                <p className="my-2 flex items-center gap-2">
-                  PRINCIPAL'S SIGNATURE:  <img src={principalSignature} alt="" className="w-25 -mt-2"/>
-                </p>
-                <p>
-                  DATE: <span className="font-bold">12th December, 2025</span>
-                </p>
-              </div>
-            </div>
+              Get Record
+            </Button>
           </div>
+
+          <Tabs defaultActiveKey="1">
+            {/* STUDENT TAB */}
+            <TabPane
+              tab={
+                <span>
+                  <UserOutlined /> My Students
+                </span>
+              }
+              key="1"
+            >
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 7 }} />
+              ) : (
+                <Table
+                  dataSource={students}
+                  columns={studentColumns}
+                  rowKey="_id"
+                  bordered
+                  size="small"
+                  pagination={{
+                    current: page,
+                    total: total,
+                    pageSize: limit,
+                    onChange: handlePageChange,
+                    showSizeChanger: true,
+                    pageSizeOptions: ["10", "20", "50"],
+                    position: ["bottomCenter"],
+                    className: "custom-pagination",
+                  }}
+                  scroll={{ x: "max-content" }}
+                />
+              )}
+            </TabPane>
+
+            {/* RESULTS TAB */}
+            <TabPane
+              tab={
+                <span>
+                  <EditOutlined /> Results
+                </span>
+              }
+              key="2"
+            >
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 7 }} />
+              ) : (
+                <Table
+                  dataSource={students}
+                  rowKey="_id"
+                  bordered
+                  size="small"
+                  pagination={{
+                    current: page,
+                    total: total,
+                    pageSize: limit,
+                    onChange: handlePageChange,
+                    showSizeChanger: true,
+                    pageSizeOptions: ["10", "20", "50"],
+                    position: ["bottomCenter"],
+                    className: "custom-pagination",
+                  }}
+                  scroll={{ x: "max-content" }}
+                  columns={resultsColumns}
+                />
+              )}
+
+              <EnterResult
+                open={isResultModalOpen}
+                onClose={() => setIsResultModalOpen(false)}
+                student={activeStudent}
+                teacherSubject={subjects?.name}
+                onClick={handleSubmit}
+                selectedLevel={selectedLevel}
+                selectedSubject={selectedSubject} // ✅ pass it here
+              />
+
+              <Modal
+                title={`Result Sheet - ${activeStudent?.fullName}`}
+                open={isViewResultModalOpen}
+                onCancel={() => setIsViewResultModalOpen(false)}
+                footer={null}
+                width={800}
+              >
+                <ResultSheet student={activeStudent} />
+              </Modal>
+            </TabPane>
+
+            {/* VIEW RESULT */}
+            <TabPane
+              tab={
+                <span>
+                  <BarChartOutlined /> View and Edit Record
+                </span>
+              }
+              key="3"
+            >
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 7 }} />
+              ) : (
+                <Table
+                  columns={columns}
+                  size="small"
+                  bordered
+                  // This points to the state variable, which getRecord must set correctly
+                  dataSource={studentsRecord}
+                  // This ensures a unique key for each row based on the fetched data
+                  rowKey={(item) => item.studentId || item._id}
+                  loading={loading}
+                  pagination={{
+                    position: ["bottomCenter"],
+                    className: "custom-pagination",
+                  }}
+                  scroll={{ x: "max-content" }}
+                />
+              )}
+            </TabPane>
+            {/* PROGRESS TAB */}
+            <TabPane
+              tab={
+                <span>
+                  <BarChartOutlined /> Progress
+                </span>
+              }
+              key="4"
+            >
+              {loading ? (
+                <Skeleton active paragraph={{ rows: 7 }} />
+              ) : (
+                <Table
+                  dataSource={students}
+                  columns={progressColumns}
+                  rowKey="_id"
+                  bordered
+                  size="small"
+                  pagination={{
+                    current: page,
+                    total: total,
+                    pageSize: limit,
+                    onChange: handlePageChange,
+                    showSizeChanger: true,
+                    pageSizeOptions: ["10", "20", "50"],
+                    position: ["bottomCenter"],
+                    className: "custom-pagination",
+                  }}
+                  scroll={{ x: "max-content" }}
+                />
+              )}
+
+              <Modal
+                title={`Progress - ${activeStudent?.fullName}`}
+                open={isProgressModalOpen}
+                onCancel={() => setIsProgressModalOpen(false)}
+                footer={null}
+                width={600}
+              >
+                <ProgressChart studentName={activeStudent?.fullName} />
+              </Modal>
+            </TabPane>
+          </Tabs>
         </Card>
-      )}
+      </div>
+
+      <Modal
+        title={`Edit Record - ${editStudentRecord?.fullName}`}
+        open={isEditRecordModalOpen}
+        onCancel={() => setIsEditRecordModalOpen(false)}
+        footer={null} // remove default footer
+        width={550}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{
+            firstAssignment: editStudentRecord?.record?.firstAssignment,
+            secondAssignment: editStudentRecord?.record?.secondAssignment,
+            firstCA: editStudentRecord?.record?.firstCA,
+            secondCA: editStudentRecord?.record?.secondCA,
+            exam: editStudentRecord?.record?.exam,
+            grade: editStudentRecord?.record?.grade,
+            teacherRemark: editStudentRecord?.record?.teacherRemark,
+          }}
+          onValuesChange={validateScore}
+          onFinish={async (values) => {
+            const id = editStudentRecord.recordId;
+            try {
+              setIsSubmitting(true);
+
+              const payload = {
+                recordId: id,
+                firstAssignment: values.firstAssignment,
+                secondAssignment: values.secondAssignment,
+                firstCA: values.firstCA,
+                secondCA: values.secondCA,
+                exam: values.exam,
+              };
+
+              await axios.patch(
+                `${API_BASE_URL}/api/records/update-score`,
+                payload,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+
+              // UPDATE LOCAL UI
+              setStudentsRecord((prev) =>
+                prev.map((stu) =>
+                  stu.recordId === editStudentRecord.recordId
+                    ? { ...stu, record: { ...stu.record, ...values } }
+                    : stu
+                )
+              );
+
+              messageApi.success("Record updated successfully!");
+              setIsEditRecordModalOpen(false);
+            } catch (error) {
+              console.log("❌ API Error:", error);
+              messageApi.error("Failed to update record");
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
+        >
+          <Row gutter={8}>
+            <Col>
+              <Form.Item label="1st ASS" name="firstAssignment">
+                <Input
+                  type="number"
+                  style={{
+                    width: 70,
+                    borderColor: errors.firstAssignment ? "red" : undefined,
+                    background: errors.firstAssignment ? "#ffe5e5" : undefined,
+                  }}
+                  max={maxScores.firstAssignment}
+                />
+              </Form.Item>
+            </Col>
+            <Col>
+              <Form.Item label="2nd ASS" name="secondAssignment">
+                <Input
+                  type="number"
+                  style={{
+                    width: 70,
+                    borderColor: errors.secondAssignment ? "red" : undefined,
+                    background: errors.secondAssignment ? "#ffe5e5" : undefined,
+                  }}
+                  max={maxScores.secondAssignment}
+                />
+              </Form.Item>
+            </Col>
+            <Col>
+              <Form.Item label="1st CA" name="firstCA">
+                <Input
+                  type="number"
+                  style={{
+                    width: 70,
+                    borderColor: errors.firstCA ? "red" : undefined,
+                    background: errors.firstCA ? "#ffe5e5" : undefined,
+                  }}
+                  max={maxScores.firstCA}
+                />
+              </Form.Item>
+            </Col>
+            <Col>
+              <Form.Item label="2nd CA" name="secondCA">
+                <Input
+                  type="number"
+                  style={{
+                    width: 70,
+                    borderColor: errors.secondCA ? "red" : undefined,
+                    background: errors.secondCA ? "#ffe5e5" : undefined,
+                  }}
+                  max={maxScores.secondCA}
+                />
+              </Form.Item>
+            </Col>
+            <Col>
+              <Form.Item label="Exam" name="exam">
+                <Input
+                  type="number"
+                  style={{
+                    width: 70,
+                    borderColor: errors.exam ? "red" : undefined,
+                    background: errors.exam ? "#ffe5e5" : undefined,
+                  }}
+                  max={maxScores.exam}
+                />
+              </Form.Item>
+            </Col>
+            <Col>
+              <Form.Item label="Grade" name="grade">
+                <Input
+                  style={{
+                    width: 70,
+                    borderColor: errors.grade ? "red" : undefined,
+                    background: errors.grade ? "#ffe5e5" : undefined,
+                  }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Centered submit button */}
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <Button
+              type="primary"
+              onClick={() => form.submit()}
+              loading={isSubmitting}
+              disabled={Object.keys(errors).length > 0}
+            >
+              Update Record
+            </Button>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 };
 
-export default ParentResult;
-
-
-
-
-// ParentResult.jsx
-import React, { useEffect, useRef, useState } from "react";
-import { Card, Table, Button, Space, message } from "antd";
-import {
-  FilePdfOutlined,
-  PrinterOutlined,
-  CloseOutlined,
-} from "@ant-design/icons";
-import { toPng } from "html-to-image";
-import jsPDF from "jspdf";
-import { useNavigate } from "react-router";
-import logo from "../../assets/logo.jpeg";
-import axios from "axios";
-import { useApp } from "../../context/AppContext";
-import SmartScholaLoader from "../../components/loader/SmartScholaLoader";
-import { useLocation } from "react-router";
-import principalSignature from "../../assets/SIGNATURE.png";
-import "./result.css";
-
-const ParentResult = () => {
-  const navigate = useNavigate();
-  const printRef = useRef(null);
-  const [result, setResult] = useState([]);
-  const { API_BASE_URL, token, loading, setLoading, initialized } = useApp();
-  const [classes, setClasses] = useState([]);
-  const location = useLocation();
-  const { term } = location.state || {};
-  const [messageApi, contextHolder] = message.useMessage();
-  const [printLoading, setPrintLoading] = useState(false);
-
-  //Get Student Result
-  const getStudentsResult = async () => {
-    try {
-      setLoading(true);
-
-      const res = await axios.get(
-        `${API_BASE_URL}/api/parent/results?term=${term}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      console.log("RESULT:", res);
-
-      setResult(res?.data || []);
-      // messageApi.success(res.data.message);
-    } catch (error) {
-      console.log("Error get result", error);
-      messageApi.error(error?.response?.data?.message || "No result yet");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // const getClass = async () => {
-  //   if (!token) return;
-  //   setLoading(true);
-
-  //   try {
-  //     const res = await axios.get(
-  //       `${API_BASE_URL}/api/class-management/classes?limit=100`,
-  //       { headers: { Authorization: `Bearer ${token}` } }
-  //     );
-
-  //     const data = res?.data?.data || [];
-
-  //     console.log("all class", data);
-
-  //     setClasses(mapped);
-  //     setPagination((prev) => ({
-  //       ...prev,
-  //       total: mapped.length,
-  //     }));
-
-  //     // messageApi.success(res?.data?.message || "Classes fetched successfully");
-  //   } catch (error) {
-  //     console.log(error);
-  //     // messageApi.error(
-  //     // error?.response?.data?.message || "Failed to fetch classes"
-  //     //);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  useEffect(() => {
-    if (!initialized || !token) return;
-
-    getStudentsResult();
-    // getClass();
-  }, [initialized, token]);
-
- 
-
-  const gradeLegendData = [
-    { key: "1", grade: "A1", rate: '80-100 "EXCELLENT"' },
-    { key: "2", grade: "B2", rate: '70-79 "BRILLIANT"' },
-    { key: "3", grade: "B3", rate: '65-69 "MERIT"' },
-    { key: "4", grade: "C4", rate: '60-64 "VERY GOOD"' },
-    { key: "5", grade: "C5", rate: '50-59 "CREDIT"' },
-    { key: "6", grade: "C6", rate: '45-49 "PASS"' },
-    { key: "7", grade: "D7", rate: '40-44 "FAIR"' },
-    { key: "8", grade: "F9", rate: '0-39 "FAIL"' },
-  ];
-
-  const ratingKeyData = [
-    { key: "1", rating: "5=A+", remark: "EXCELLENT" },
-    { key: "2", rating: "4=A", remark: "BRILLIANT" },
-    { key: "3", rating: "3=B", remark: "V. GOOD" },
-    { key: "4", rating: "2=C", remark: "GOOD" },
-    { key: "5", rating: "1=D", remark: "FAIR" },
-    { key: "6", rating: "0=E", remark: "POOR" },
-  ];
-
-  const isJunior = result?.student?.className?.toUpperCase().includes("JSS");
-
-  const columns = [
-    {
-      title: "SUBJECTS",
-      dataIndex: "subjectName",
-      key: "subjectName",
-      align: "left",
-      width: 200,
-      render: (subjectName) => (
-        <span className="font-medium">{subjectName}</span>
-      ),
-    },
-    {
-      title: `1st Ass. ${isJunior ? 10 : 5}%`,
-      dataIndex: "firstCA",
-      key: "firstCA",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: `2nd Ass. ${isJunior ? 10 : 5}%`,
-      dataIndex: "secondCA",
-      key: "secondCA",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: `1st Test ${isJunior ? 20 : 10}%`,
-      dataIndex: "firstAssignment",
-      key: "firstAssignment",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: `2nd Test ${isJunior ? 20 : 10}%`,
-      dataIndex: "secondAssignment",
-      key: "secondAssignment",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: `EXAM ${isJunior ? 40 : 70}%`,
-      dataIndex: "exam",
-      key: "exam",
-      align: "center",
-      width: 70,
-    },
-    {
-      title: "TOTAL 100%",
-      dataIndex: "total",
-      key: "total",
-      align: "center",
-      width: 70,
-      render: (v) => <span className="font-semibold">{v}</span>,
-    },
-    {
-      title: "GRADE",
-      dataIndex: "grade",
-      key: "grade",
-      align: "center",
-      width: 40,
-    },
-    {
-      title: "REMARKS",
-      dataIndex: "remark",
-      key: "remark",
-      align: "center",
-      width: 80,
-    },
-  ];
-
-  const domainColumns = [
-    {
-      title: "DOMAIN",
-      dataIndex: "domain",
-      key: "domain",
-      align: "left",
-      width: 180,
-    },
-    {
-      title: "RATING",
-      dataIndex: "rating",
-      key: "rating",
-      align: "center",
-      // width: 100,
-    },
-  ];
-
-  // const totalScore = scores.reduce((acc, r) => acc + (Number(r.total) || 0), 0);
-  // const totalScoreObtainable = scores.length * 100;
-  // const finalAverage = scores.length
-  //   ? (totalScore / scores.length).toFixed(2)
-  //   : "0.00";
-  // const totalGrade = scores.filter((r) => r.grade).length;
-
-  const studentInfo = {
-    termStarted: "15TH JANUARY, 2025",
-    termEnded: "5TH JANUARY, 2025",
-    nextTermBegins: "12TH JANUARY, 2026",
-    schoolOpened: result?.student?.opened,
-    present: result?.student?.present,
-    absent: result?.student?.absent,
-    // noOfSubjects: pdfSubjects.length,
-    totalNoInClass: result?.summary?.noInClass,
-    noOfArm: result?.student?.totalArmsInLevel,
-    classAverage: "55.50",
-    formTeacher: "Mrs. Ngozi Okoro",
-  };
-
-   const affectiveDomainData = [
-    {
-      key: "1",
-      domain: "ATTENTIVENESS",
-      rating: result?.domains?.attentiveness || "",
-    },
-    { key: "2", domain: "HONESTY", rating: result?.domains?.honesty || "" },
-    { key: "3", domain: "NEATNESS", rating: result?.domains?.neatness || "" },
-    {
-      key: "4",
-      domain: "PUNCTUALITY",
-      rating: result?.domains?.punctuality || "",
-    },
-    {
-      key: "5",
-      domain: "RELATIONSHIP WITH OTHERS",
-      rating: result?.domains?.relationshipWithOthers || "",
-    },
-    {
-      key: "6",
-      domain: "LEADERSHIP TRAITS",
-      rating: result?.domains?.leadershipTraits || "",
-    },
-  ];
-
-  const psychomotorDomainData = [
-    {
-      key: "1",
-      domain: "CLUB INTEREST/GAMES AND SPORTS",
-      rating: result?.domains?.clubInterestsAndSports || "",
-    },
-    {
-      key: "2",
-      domain: "HAND WRITING",
-      rating: result?.domains?.handWriting || "",
-    },
-    { key: "3", domain: "AGILITY", rating: result?.domains?.agility || "" },
-    {
-      key: "4",
-      domain: "ORATORY SKILLS",
-      rating: result?.domains?.organisationalSkills || "",
-    },
-    { key: "5", domain: "SELF CARE", rating: result?.domains?.selfCare || "" },
-    {
-      key: "6",
-      domain: "ORGANISATIONAL SKILLS",
-      rating: result?.domains?.organisationalSkills || "",
-    },
-  ];
-
-  const handlePDF = async () => {
-    if (!printRef.current) return;
-    try {
-      setPrintLoading(true);
-
-      const element = printRef.current;
-
-      // Save original style
-      const originalWidth = element.style.width;
-      const originalMinWidth = element.style.minWidth;
-
-      // Force fixed A4 width in pixels (approx 794px at 96 DPI)
-      element.style.width = "794px";
-      element.style.minWidth = "794px";
-
-      const dataUrl = await toPng(printRef.current, {
-        cacheBust: true,
-        backgroundColor: "#FFFFFF",
-        pixelRatio: 3,
-        quality: 1,
-      });
-
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      const img = new Image();
-
-      img.src = dataUrl;
-      img.onload = () => {
-        const imgAspect = img.height / img.width;
-        const pdfAspect = pdfHeight / pdfWidth;
-
-        let renderWidth, renderHeight;
-        if (imgAspect > pdfAspect) {
-          renderHeight = pdfHeight;
-          renderWidth = pdfHeight / imgAspect;
-        } else {
-          renderWidth = pdfWidth;
-          renderHeight = pdfWidth * imgAspect;
-        }
-        // pdf.addImage(dataUrl, "PNG", x, y, renderWidth, renderHeight);
-        pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
-
-        pdf.save("Paris Africana.pdf");
-        setPrintLoading(false);
-      };
-    } catch (err) {
-      console.error("PDF generation failed:", err);
-      alert("Failed to generate PDF. Check console for details.");
-      setPrintLoading(false);
-    }
-  };
-
-  // small Tailwind/Ant classes for Ant Table adjustments (if you use Tailwind)
-  const customTableStyle =
-    "[&_.ant-table-cell]:text-[15px] [&_.ant-table-cell]:p-1 [&_.ant-table-thead>tr>th]:font-bold [&_.ant-table-thead>tr>th]:text-[13px] [&_.ant-table]:border-black [&_.ant-table-tbody>tr>td]:border-black [&_.ant-table-thead>tr>th]:border-black [&_.ant-table-cell]:text-[13px]";
-
-  return (
-    <>
-      <style>{`
-        .custom-result-table * {
-          font-size: 10px !important;
-          padding: 2px !important;
-        }
-
-        .result-container * {
-          font-size: 11px;
-        }
-
-        .ant-table-cell {
-          padding: 2px !important;
-          line-height: 1 !important;
-        }
-
-        .ant-table-thead > tr > th {
-          padding: 2px !important;
-          font-size: 11px !important;
-        }
-
-        .ant-table-tbody > tr > td {
-          padding: 2px !important;
-          font-size: 10px !important;
-        }
-
-        .ant-table {
-          font-size: 10px !important;
-        }
-
-        .ant-table table {
-          table-layout: fixed !important;
-        }
-
-        @media print {
-          .result-container {
-            transform: scale(0.92);
-            transform-origin: top left;
-          }
-        }
-      `}</style>
-
-      <div ref={printRef} className="result-container">
-        <div className="p-6 relative">
-          {contextHolder}
-          {loading ? (
-            <SmartScholaLoader />
-          ) : (
-            <Card
-              title={
-                <div className="flex items-center justify-between w-full">
-                  <h2 className="text-1lg font-bold uppercase">
-                    Student Result Sheet
-                  </h2>
-                  <div className="flex gap-2">
-                    <Space>
-                      <Button
-                        danger
-                        icon={<CloseOutlined />}
-                        onClick={() => navigate("/home")}
-                      >
-                        Close
-                      </Button>
-                      {/* <Button icon={<PrinterOutlined />} onClick={handlePrint}>
-                  Print
-                </Button> */}
-                      <Button
-                        type="primary"
-                        icon={<FilePdfOutlined />}
-                        onClick={handlePDF}
-                        loading={printLoading}
-                      >
-                        Save PDF
-                      </Button>
-                    </Space>
-                  </div>
-                </div>
-              }
-              className="rounded-1lg shadow-md"
-            >
-              <div
-                ref={printRef}
-                className="bg-white mx-auto relative overflow-hidden"
-                style={{
-                  width: "794px", // exact A4 width at 96 DPI
-                  padding: "8px", // reduce padding
-                }}
-              >
-                {/* Watermark Behind Content */}
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    opacity: 0.1,
-                    zIndex: 20,
-                    pointerEvents: "none",
-                    userSelect: "none",
-                  }}
-                >
-                  <img
-                    src={logo}
-                    alt="Watermark"
-                    style={{
-                      width: "60%",
-                      maxWidth: 500,
-                      filter: "grayscale(100%)",
-                    }}
-                  />
-                </div>
-
-                {/* Header */}
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-[100px] h-[100px]">
-                    <img
-                      src={logo}
-                      alt="School logo"
-                      className="w-full h-full object-contain header-logo"
-                      crossOrigin="anonymous"
-                    />
-                  </div>
-
-                  <div className="flex-1 text-center">
-                    <h1 className="text-lg font-extrabold uppercase leading-tight">
-                      {result?.school}
-                    </h1>
-                    <p className="font-bold mt-1 text-[14px] leading-tight uppercase">
-                      {result?.address}
-                    </p>
-                    <p className="text-lg font-extrabold text-[#990099] uppercase leading-tight">
-                      MOTTO: KNOWLEDGE AND DISCIPLINE
-                    </p>
-                    <p className="font-extrabold mt-1 text-lg leading-tight">
-                      {result?.student?.className?.startsWith("JSS")
-                        ? "JUNIOR SECONDARY SCHOOL"
-                        : "SENIOR SECONDARY SCHOOL"}
-                    </p>
-
-                    <p className="font-bold mt-1 text-lg leading-tight">
-                      END OF FIRST TERM RESULT FOR {result?.session} ACADEMIC
-                      SESSION
-                    </p>
-                  </div>
-
-                  {/* image */}
-                  {result?.student?.avatar && (
-                    <div className="w-[100px] h-[100px] overflow-hidden">
-                      <img
-                        src={result.student.avatar}
-                        alt=""
-                        className="w-full object-containe"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Student Info and Attendance */}
-                <div className="grid grid-cols-12 gap-y-1 mb-3 text-xs font-semibold border border-black p-1">
-                  <div className="col-span-8 grid grid-cols-2 gap-y-1">
-                    <div className="">
-                      NAME:{" "}
-                      <span className="font-bold">
-                        {result?.student?.fullName}
-                      </span>
-                    </div>
-                    <div className="">
-                      ADMISSION NO:{" "}
-                      <span className="font-bold">
-                        {result?.student?.admissionNumber}
-                      </span>
-                    </div>
-                    <div className="">
-                      GENDER:{" "}
-                      <span className="font-bold capitalize">
-                        {result?.student?.gender}
-                      </span>
-                    </div>
-                    <div className="">
-                      CLASS:{" "}
-                      <span className="font-bold uppercase">
-                        {result?.student?.className} {result?.student?.classArm}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="col-span-4 grid grid-cols-1 gap-y-1 text-[10px] border-l border-black pl-2">
-                    <div className="font-bold text-lg">ATTENDANCE</div>
-                    <div className="text-[12px]">
-                      NO. OF TIMES SCHOOL OPENED:{" "}
-                      <span className="font-extrabold">
-                        {studentInfo.schoolOpened}
-                      </span>
-                    </div>
-                    <div className="text-[12px]">
-                      NO. OF TIMES PRESENT:{" "}
-                      <span className="font-extrabold">
-                        {studentInfo.present}
-                      </span>
-                    </div>
-                    <div className="text-[12px]">
-                      NO. OF TIMES ABSENT:{" "}
-                      <span className="font-extrabold">
-                        {studentInfo.absent}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="col-span-12 grid grid-cols-3 gap-x-2 border-t border-black pt-1 text-[12px]">
-                    <div>
-                      TERM STARTED:{" "}
-                      <span className="font-extrabold">
-                        {studentInfo.termStarted}
-                      </span>
-                    </div>
-                    <div>
-                      TERM ENDED:{" "}
-                      <span className="font-extrabold">
-                        {studentInfo.termEnded}
-                      </span>
-                    </div>
-                    <div>
-                      NEXT TERM BEGINS:{" "}
-                      <span className="font-extrabold">
-                        {studentInfo.nextTermBegins}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Subject Table */}
-                <Table
-                  columns={columns}
-                  dataSource={result.subjects}
-                  pagination={false}
-                  bordered
-                  size="small"
-                  rowKey={(record) => record._id}
-                  className="custom-result-table !text-[12px]"
-                />
-
-                {/* Summary and Grading/Rating */}
-                <div className="grid grid-cols-12 gap-x-4 mt-2 text-xs">
-                  <div className="col-span-5 grid grid-cols-2 gap-y-1">
-                    <div className="col-span-2 font-bold underline">
-                      SUMMARY
-                    </div>
-                    <div>NO. OF SUBJECTS OFFERED:</div>
-                    <div className="font-bold">
-                      {result?.summary?.totalSubjects}
-                    </div>
-
-                    <div>TOTAL SCORE OBTAINED:</div>
-                    <div className="font-bold">
-                      {result?.summary?.totalScoreObtained}
-                    </div>
-
-                    <div>TOTAL SCORE OBTAINABLE:</div>
-                    <div className="font-bold">
-                      {result?.summary?.totalScoreObtainable}
-                    </div>
-
-                    <div>FINAL AVERAGE:</div>
-                    <div className="font-bold">
-                      {result?.summary?.finalAverage}
-                    </div>
-
-                    <div>CLASS AVERAGE:</div>
-                    <div className="font-bold">
-                      {result?.summary?.classAverage}
-                    </div>
-
-                    <div>TOTAL GRADE:</div>
-                    <div className="font-bold">
-                      {result?.summary?.overallGrade}
-                    </div>
-
-                    <div>NO. OF ARM:</div>
-                    <div className="font-bold">{studentInfo.noOfArm}</div>
-
-                    <div>TOTAL NO. IN CLASS:</div>
-                    <div className="font-bold">
-                      {studentInfo.totalNoInClass}
-                    </div>
-
-                    <div className="col-span-2 mt-2">
-                      <Table
-                        columns={[
-                          {
-                            title: "GRADE",
-                            dataIndex: "grade",
-                            key: "grade",
-                            align: "center",
-                            width: 60,
-                            render: (g) => <b>{g}</b>,
-                          },
-                          {
-                            title: "RATE",
-                            dataIndex: "rate",
-                            key: "rate",
-                            align: "center",
-                          },
-                        ]}
-                        dataSource={gradeLegendData}
-                        pagination={false}
-                        bordered
-                        size="small"
-                        rowKey="key"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="col-span-7 grid grid-cols-2 gap-x-2">
-                    <div>
-                      <Table
-                        columns={domainColumns}
-                        dataSource={affectiveDomainData}
-                        pagination={false}
-                        bordered
-                        size="small"
-                        rowKey="key"
-                      />
-                    </div>
-                    <div>
-                      <Table
-                        columns={domainColumns}
-                        dataSource={psychomotorDomainData}
-                        pagination={false}
-                        bordered
-                        size="small"
-                        rowKey="key"
-                      />
-                    </div>
-
-                    <div className="col-span-2 mt-2">
-                      <Table
-                        columns={[
-                          {
-                            title: "RATING",
-                            dataIndex: "rating",
-                            key: "rating",
-                            align: "center",
-                            width: 80,
-                            render: (t) => <b>{t}</b>,
-                          },
-                          {
-                            title: "REMARK",
-                            dataIndex: "remark",
-                            key: "remark",
-                            align: "center",
-                          },
-                        ]}
-                        dataSource={ratingKeyData.map((r) => ({
-                          key: r.key,
-                          rating: r.rating,
-                          remark: r.remark,
-                        }))}
-                        pagination={false}
-                        bordered
-                        size="small"
-                        rowKey="key"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Signatures */}
-                <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8">
-                  <div>
-                    <p className="uppercase font-semibold">
-                      FORM TEACHER'S COMMENT: {result?.teacherRemark}.
-                    </p>
-                    <p className="my-2">
-                      FORM TEACHER'S NAME:{" "}
-                      <span className="font-semibold uppercase">
-                        {result?.student?.FormTeacher}
-                      </span>
-                    </p>
-                    <p>
-                      DATE:{" "}
-                      <span className="font-bold">12th December, 2025</span>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="uppercase font-semibold">
-                      PRINCIPAL'S COMMENT: {result?.principalRemark}
-                    </p>
-                    <p className="my-2 flex items-center gap-2">
-                      PRINCIPAL'S SIGNATURE:{" "}
-                      <img
-                        src={principalSignature}
-                        alt=""
-                        className="w-25 -mt-2"
-                      />
-                    </p>
-                    <p>
-                      DATE:{" "}
-                      <span className="font-bold">12th December, 2025</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
-        </div>
-      </div>
-    </>
-  );
-};
-
-export default ParentResult;
-
- // .custom-result-table * {
-        //   font-size: 10px !important;
-        //   padding: 2px !important;
-        // }
-
-        // .result-container * {
-        //   font-size: 11px;
-        // }
-
-        // .ant-table-cell {
-        //   padding: 2px !important;
-        //   line-height: 1 !important;
-        // }
-
-        // .ant-table-thead > tr > th {
-        //   padding: 2px !important;
-        //   font-size: 11px !important;
-        // }
-
-        // .ant-table-tbody > tr > td {
-        //   padding: 2px !important;
-        //   font-size: 10px !important;
-        // }
-
-        // .ant-table {
-        //   font-size: 10px !important;
-        // }
-
-        // .ant-table table {
-        //   table-layout: fixed !important;
-        // }
-
-        // @media print {
-        //   .result-container {
-        //     transform: scale(0.92);
-        //     transform-origin: top left;
-        //   }
-        // }
-
+export default MyClasses;

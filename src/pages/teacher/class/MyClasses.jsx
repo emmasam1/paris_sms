@@ -316,7 +316,10 @@ const MyClasses = () => {
         });
 
         // Set subject coming from API
+        // setSelectedSubject(levelObj?.subject?._id || levelObj?.subject);
+
         setSelectedSubject(levelObj?.subject?._id || levelObj?.subject);
+
 
         classStudents = matchedClass?.students || [];
       } else if (data?.students) {
@@ -341,7 +344,8 @@ const MyClasses = () => {
       }
 
       // Fetch result statuses
-      const dashboardURL = `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subject?._id}&session=2025/2026&term=1`;
+      const dashboardURL = `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subjectId}&session=2025/2026&term=1`;
+
       // console.log("class id", classId);
       // console.log("subject", subject?._id);
 
@@ -354,13 +358,15 @@ const MyClasses = () => {
       // console.log("Status list:", statusList);
 
       // Merge status into fetched students
-      const mergedStudents = classStudents.map((stu) => {
-        const found = statusList.find((s) => s.studentId === stu._id);
-        return {
-          ...stu,
-          hasRecord: found?.status === "recorded",
-        };
-      });
+    const mergedStudents = classStudents.map((stu) => {
+  const studentId = stu._id || stu.id;
+  const found = statusList.find((s) => s.studentId === studentId);
+  return {
+    ...stu,
+    hasRecord: found?.status === "recorded",
+  };
+});
+
 
       setStudents(mergedStudents);
 
@@ -487,26 +493,27 @@ const MyClasses = () => {
       }
 
       const mappedStudents = results.map((item) => ({
-        key: item._id,
-        recordId: item._id,
-        studentId: item.student.id,
-        fullName: `${item.student.firstName} ${item.student.lastName}`,
-        admissionNumber: item.student.admissionNumber || "-",
-        gender: item.gender || "-",
-        class: item.student.class,
-        record: {
-          firstAssignment: item.firstAssignment,
-          secondAssignment: item.secondAssignment,
-          firstCA: item.firstCA,
-          secondCA: item.secondCA,
-          exam: item.exam,
-          total: item.total,
-          grade: item.grade,
-          teacherRemark: item.teacherRemark,
-        },
-        subject: item.subject.name,
-        status: item.status || "-",
-      }));
+  key: item._id,
+  recordId: item._id,
+  studentId: item.student.id,
+  fullName: `${item.student.firstName} ${item.student.lastName}`,
+  admissionNumber: item.student.admissionNumber || "-",
+  gender: item.gender || "-",
+  class: item.student.class,
+  record: {
+    firstAssignment: item.firstAssignment,
+    secondAssignment: item.secondAssignment,
+    firstCA: item.firstCA,
+    secondCA: item.secondCA,
+    exam: item.exam,
+    total: item.total,
+    grade: item.grade,
+    teacherRemark: item.teacherRemark,
+  },
+  subject: item.subject?.name || selectedSubject, // ✅ fallback
+  status: item.status || "-",
+}));
+
 
       // console.log("mapped", mappedStudents)
 

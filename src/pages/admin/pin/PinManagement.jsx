@@ -175,14 +175,14 @@ const PinManagement = () => {
         payload = {
           classId: values.classId,
           session: values.session,
-          effectiveTerms: Number(values.effectiveTerms),
+          term: Number(values.term),
         };
         url = `${API_BASE_URL}/api/pin/generate-bulk`;
       } else {
         payload = {
           studentId: values.student,
           session: values.session,
-          effectiveTerms: Number(values.effectiveTerms),
+          term: Number(values.term),
         };
         url = `${API_BASE_URL}/api/pin/generate-single`;
       }
@@ -294,7 +294,7 @@ const PinManagement = () => {
 
           <Form.Item
             label="Term"
-            name="effectiveTerms"
+            name="term"
             rules={[{ required: true, message: "Select term" }]}
           >
             <Select>

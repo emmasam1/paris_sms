@@ -30,7 +30,7 @@ import {
   MoreOutlined,
   PlusOutlined,
   MinusOutlined,
-  SwapOutlined,
+  KeyOutlined ,
 } from "@ant-design/icons";
 import teacher_img from "../../../assets/teacher.jpg";
 import { useApp } from "../../../context/AppContext";
@@ -549,6 +549,15 @@ const Teacher = () => {
                 onClick={() => openRoleModal(record)}
               >
                 Change Staff Role
+              </Menu.Item>
+            )}
+            {user?.role === "principal" && (
+              <Menu.Item
+                key="resetPassword"
+                icon={<KeyOutlined  />}
+                // onClick={() => openRoleModal(record)}
+              >
+                Reset Password
               </Menu.Item>
             )}
             <Menu.Item

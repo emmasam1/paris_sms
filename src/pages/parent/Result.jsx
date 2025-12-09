@@ -217,8 +217,7 @@ const ParentResult = () => {
     // noOfSubjects: pdfSubjects.length,
     totalNoInClass: result?.summary?.noInClass,
     noOfArm: result?.student?.totalArmsInLevel,
-    classAverage: "55.50",
-    formTeacher: "Mrs. Ngozi Okoro",
+
   };
 
   const affectiveDomainData = [
@@ -801,12 +800,12 @@ const ParentResult = () => {
                     <p className="uppercase font-semibold">
                       PRINCIPAL'S COMMENT: {result?.principalRemark}
                     </p>
-                    <p className="my-2 flex items-center gap-2">
+                    <p className="my-2 flex items-center gap-2 relative">
                       PRINCIPAL'S SIGNATURE:{" "}
                       <img
                         src={principalSignature}
                         alt=""
-                        className="w-25 -mt-2"
+                        className="w-25 -mt-3 left-30 absolute"
                       />
                     </p>
                     <p>

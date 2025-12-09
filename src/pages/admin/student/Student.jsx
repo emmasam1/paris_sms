@@ -386,25 +386,24 @@ const Student = () => {
 
   //Get student subjects
   const getStdentSubjects = async (student) => {
-    if (!student?._id) return;
+  if (!student?._id) return;
 
-    try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/student-management/students/${student._id}/subjects`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  try {
+    const res = await axios.get(
+      `${API_BASE_URL}/api/student-management/students/${student._id}/subjects`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      const subjectsArr = res?.data?.data || [];
-      setStdSunject(subjectsArr);
+    const subjectsArr = res?.data?.data || [];
+    setStdSunject(subjectsArr); // ✅ sets the student's subjects
+    setSelectedSubjects(subjectsArr.map((sub) => sub._id)); // ✅ sets selectedSubjects by _id
+  } catch (error) {
+    console.log("Error getting subjects:", error);
+    setStdSunject([]);
+    setSelectedSubjects([]);
+  }
+};
 
-      // ✅ Only set selectedSubjects here after full API response
-      setSelectedSubjects(subjectsArr.map((sub) => sub._id));
-    } catch (error) {
-      console.log("Error getting subjects:", error);
-      setStdSunject([]);
-      setSelectedSubjects([]);
-    }
-  };
 
   //Get Class
   const getClass = async () => {
@@ -557,7 +556,7 @@ const Student = () => {
     );
   };
 
-  console.log(token, API_BASE_URL);
+  // console.log(token, API_BASE_URL);
 
   const handleDelete = async (record) => {
     console.log(record);

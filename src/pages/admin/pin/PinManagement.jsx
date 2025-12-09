@@ -12,51 +12,93 @@ import {
 } from "antd";
 import { useApp } from "../../../context/AppContext";
 import axios from "axios";
-import { useReactToPrint } from "react-to-print";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const { Option } = Select;
 
 const PinManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [pins, setPins] = useState([]); // holds generated pins
+  const [pins, setPins] = useState([]);
   const [mode, setMode] = useState("individual");
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
   const [loader, setLoader] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
+
+  const printRef = useRef(null);
 
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
 
-  // Printing
-  const [isPrinting, setIsPrinting] = useState(false);
-  const contentRef = useRef(null); // ref for table container
-  const promiseResolveRef = useRef(null);
+  // 📌 DOWNLOAD PDF FUNCTION (18 per page)
+  const downloadPDF = async () => {
+    if (!pins.length) return message.info("Nothing to print");
 
-  // Resolve printing promise after DOM updates
-  useEffect(() => {
-    if (isPrinting && promiseResolveRef.current) {
-      promiseResolveRef.current();
+    setDownloadLoading(true);
+
+    const input = printRef.current;
+
+    input.style.display = "block";
+
+    // Slice into pages of 18 items
+    const pages = [];
+    for (let i = 0; i < pins.length; i += 18) {
+      pages.push(pins.slice(i, i + 18));
     }
-  }, [isPrinting]);
 
-  const handlePrint = useReactToPrint({
-    content: () => contentRef.current,
-    onBeforePrint: () =>
-      new Promise((resolve) => {
-        promiseResolveRef.current = resolve;
-        setIsPrinting(true);
-      }),
-    onAfterPrint: () => {
-      promiseResolveRef.current = null;
-      setIsPrinting(false);
-    },
-    pageStyle: `
-      @page { size: A4; margin: 20mm; }
-      @media print { body { -webkit-print-color-adjust: exact; } }
-    `,
-  });
+    const pdf = new jsPDF("p", "mm", "a4");
 
-  // Table columns
+    let firstPage = true;
+
+    for (const pagePins of pages) {
+      // render only current page pins
+      input.innerHTML = `
+        <h2 style="text-align:center; margin-bottom:15px;">PIN LIST</h2>
+        <div style="
+          display:grid;
+          grid-template-columns:repeat(2,1fr);
+          gap:10px;
+        ">
+          ${pagePins
+            .map(
+              (p) => `
+            <div style="
+              border:1px solid #000;
+              padding:10px;
+              border-radius:4px;
+              background:white;
+              font-size:14px;
+            ">
+              <h3 style="margin:0; font-size:16px;">PIN: ${p.code}</h3>
+              <p><b>Name:</b> <span style="text-transform:uppercase; font-weight:600;">${p.assignedTo}</span></p>
+              <p><b>Class:</b> ${p.class} - ${p.arm}</p>
+              <p><b>Session:</b> ${p.session}</p>
+              <p><b>Website:</b> https://paris-sms.vercel.app</p>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      `;
+
+      const canvas = await html2canvas(input, { scale: 2 });
+      const imgData = canvas.toDataURL("image/png");
+
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      if (!firstPage) pdf.addPage();
+      firstPage = false;
+
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+    }
+
+    pdf.save("pins.pdf");
+    input.style.display = "none";
+    setDownloadLoading(false);
+  };
+
   const columns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     { title: "PIN Code", dataIndex: "code", key: "code" },
@@ -64,29 +106,23 @@ const PinManagement = () => {
     { title: "Assigned To", dataIndex: "assignedTo", key: "assignedTo" },
     { title: "Class", dataIndex: "class", key: "class" },
     { title: "Arm", dataIndex: "arm", key: "arm" },
-    { title: "Generated Date", dataIndex: "generatedDate", key: "generatedDate" },
     {
-      title: "Action",
-      key: "action",
-      render: (_, record) => (
-        <Space>
-          <Button size="small" onClick={() => message.info(`Viewing ${record.code}`)}>
-            View
-          </Button>
-        </Space>
-      ),
+      title: "Generated Date",
+      dataIndex: "generatedDate",
+      key: "generatedDate",
     },
   ];
 
-  // Fetch all PINs
   const getAllPins = async () => {
     if (!token) return;
+
     try {
       setLoading(true);
+
       const res = await axios.get(`${API_BASE_URL}/api/pin/all`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // console.log(res)
+
       const pinsData = res.data.data || [];
       const mappedPins = pinsData.map((p, idx) => ({
         key: p._id || idx,
@@ -105,7 +141,6 @@ const PinManagement = () => {
     }
   };
 
-  // Fetch students
   const getStudents = async () => {
     try {
       const res = await axios.get(
@@ -114,30 +149,22 @@ const PinManagement = () => {
       );
       setStudents(res.data.data);
     } catch (error) {
-      messageApi.error(error?.response?.data?.message || "Failed to fetch students");
-    } finally {
-      setLoading(false);
+      messageApi.error("Failed to fetch students");
     }
   };
 
-  // Fetch classes
   const getClass = async () => {
-    if (!token) return;
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/class-management/classes?limit=100`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const mapped = res?.data?.data?.map((cls) => ({ ...cls, key: cls._id }));
-      setClasses(mapped);
+      setClasses(res.data.data);
     } catch (error) {
       messageApi.error("Failed to fetch classes");
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Generate PIN
   const generation = async (values) => {
     try {
       setLoader(true);
@@ -166,10 +193,10 @@ const PinManagement = () => {
 
       messageApi.success(res.data.message || "PIN generated successfully");
       await getAllPins();
-    } catch (error) {
-      messageApi.error(error?.response?.data?.message || "Failed to generate PIN");
-    } finally {
       setIsModalOpen(false);
+    } catch (error) {
+      messageApi.error("Failed to generate PIN");
+    } finally {
       setLoader(false);
     }
   };
@@ -185,45 +212,43 @@ const PinManagement = () => {
     <div className="space-y-6">
       {contextHolder}
 
-      {/* Header Buttons */}
+      {/* HEADER BUTTONS */}
       <div className="flex justify-end items-center gap-2">
         <Button type="primary" onClick={() => setIsModalOpen(true)}>
           Generate PIN
         </Button>
-        <Button
-          type="default"
-          onClick={() => {
-            if (!pins.length) {
-              message.info("There is nothing to print yet.");
-              return;
-            }
-            handlePrint();
-          }}
-        >
-          Print All PINs
+
+        <Button type="default" onClick={downloadPDF} loading={downloadLoading}>
+          Download PDF
         </Button>
       </div>
 
-      {/* Printable Table */}
-      <div ref={contentRef}>
-        {loading ? (
-          <Skeleton active paragraph={{ rows: 7 }} />
-        ) : pins.length > 0 ? (
-          <Table
-            rowKey="key"
-            columns={columns}
-            dataSource={pins}
-            bordered
-            size="small"
-            pagination={false}
-            scroll={{ x: "max-content" }}
-          />
-        ) : (
-          <p>No PINs to display</p>
-        )}
-      </div>
+      {/* TABLE */}
+      {loading ? (
+        <Skeleton active paragraph={{ rows: 7 }} />
+      ) : (
+        <Table
+          rowKey="key"
+          columns={columns}
+          dataSource={pins}
+          bordered
+          size="small"
+          pagination={false}
+        />
+      )}
 
-      {/* Modal for generating PIN */}
+      {/* HIDDEN PRINT AREA */}
+      <div
+        ref={printRef}
+        style={{
+          padding: "20px",
+          background: "white",
+          display: "none",
+          width: "1000px",
+        }}
+      ></div>
+
+      {/* MODAL */}
       <Modal
         title="Generate PIN"
         open={isModalOpen}
@@ -232,7 +257,6 @@ const PinManagement = () => {
         destroyOnClose
       >
         <Form layout="vertical" onFinish={generation}>
-          {/* Mode Switch */}
           <Form.Item label="">
             <Radio.Group value={mode} onChange={(e) => setMode(e.target.value)}>
               <Radio value="individual">Individual Student</Radio>
@@ -240,87 +264,60 @@ const PinManagement = () => {
             </Radio.Group>
           </Form.Item>
 
-          {/* Class Select */}
           {mode === "whole class" && (
             <Form.Item
               label="Class"
               name="classId"
               rules={[{ required: true, message: "Select a class" }]}
             >
-              <Select
-                showSearch
-                placeholder="Search class"
-                optionFilterProp="label"
-                filterOption={(input, option) =>
-                  option.label.toLowerCase().includes(input.toLowerCase())
-                }
-              >
-                {classes.map((cls) => {
-                  const label = `${cls.name} ${cls.arm || ""}`.trim();
-                  return (
-                    <Option key={cls._id} value={cls._id} label={label}>
-                      {label}
-                    </Option>
-                  );
-                })}
+              <Select placeholder="Select class">
+                {classes.map((cls) => (
+                  <Option key={cls._id} value={cls._id}>
+                    {cls.name} {cls.arm}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           )}
 
-          {/* Session */}
           <Form.Item
             label="Session"
             name="session"
             rules={[{ required: true, message: "Select session" }]}
           >
-            <Select placeholder="Select Session">
+            <Select>
               <Option value="2024/2025">2024/2025</Option>
               <Option value="2025/2026">2025/2026</Option>
               <Option value="2026/2027">2026/2027</Option>
             </Select>
           </Form.Item>
 
-          {/* Term */}
           <Form.Item
             label="Term"
             name="effectiveTerms"
             rules={[{ required: true, message: "Select term" }]}
           >
-            <Select placeholder="Select Term">
+            <Select>
               <Option value="1">1</Option>
             </Select>
           </Form.Item>
 
-          {/* Student Select */}
           {mode === "individual" && (
             <Form.Item
               label="Student"
               name="student"
               rules={[{ required: true, message: "Select a student" }]}
             >
-              <Select
-                showSearch
-                placeholder="Search student by name, class, or arm"
-                optionFilterProp="label"
-                filterOption={(input, option) =>
-                  option.label.toLowerCase().includes(input.toLowerCase())
-                }
-              >
-                {students.map((std) => {
-                  const label = `${std.fullName} - ${std.class?.name || ""} ${
-                    std.class?.arm || ""
-                  }`.trim();
-                  return (
-                    <Option key={std._id} value={std._id} label={label}>
-                      {label}
-                    </Option>
-                  );
-                })}
+              <Select placeholder="Select student">
+                {students.map((std) => (
+                  <Option key={std._id} value={std._id}>
+                    {std.fullName} - {std.class?.name} {std.class?.arm}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
           )}
 
-          {/* Buttons */}
           <div className="flex justify-end gap-3">
             <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button type="primary" htmlType="submit" loading={loader}>

@@ -37,7 +37,7 @@ const ParentDashboard = () => {
   const child = {
     term: "1st Term, 2025",
     avatar: null,
-    performance: 82,
+    // performance: 82,
     attendance: 90,
     conduct: "Excellent",
     unreadMessages: 3,

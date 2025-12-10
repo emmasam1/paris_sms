@@ -92,15 +92,26 @@ const ParentResult = () => {
   }, [initialized, token]);
 
   const gradeLegendData = [
-    { key: "1", grade: "A1", rate: '80-100 "EXCELLENT"' },
-    { key: "2", grade: "B2", rate: '70-79 "BRILLIANT"' },
-    { key: "3", grade: "B3", rate: '65-69 "MERIT"' },
-    { key: "4", grade: "C4", rate: '60-64 "VERY GOOD"' },
-    { key: "5", grade: "C5", rate: '50-59 "CREDIT"' },
-    { key: "6", grade: "C6", rate: '45-49 "PASS"' },
-    { key: "7", grade: "D7", rate: '40-44 "FAIR"' },
+    { key: "1", grade: "A", rate: '80-100 "EXCELLENT"' },
+    { key: "2", grade: "B2", rate: '75-79 "BRILLIANT"' },
+    { key: "3", grade: "B3", rate: '70- 74 "MERIT"' },
+    { key: "4", grade: "C4", rate: '65-69 "VERY GOOD"' },
+    { key: "5", grade: "C5", rate: '60-64 "CREDIT"' },
+    { key: "5", grade: "C6", rate: '50-59 "CREDIT"' },
+    { key: "6", grade: "D7", rate: '45-49 "PASS"' },
+    { key: "7", grade: "E8", rate: '40-44 "FAIR"' },
     { key: "8", grade: "F9", rate: '0-39 "FAIL"' },
   ];
+
+  80 plus_ A(Excellent)
+75-79- B2( Brilliant)
+70- 74- B3 (Merit)
+65-69- C4 ( Very Good)
+60-64- C5 ( Good)
+50-59- C6 ( Credit)
+45-49- D7 (Pass)
+40-44- E8 ( Fair)
+0-39 - F9 ( Fail)
 
   const ratingKeyData = [
     { key: "1", rating: "5=A+", remark: "EXCELLENT" },

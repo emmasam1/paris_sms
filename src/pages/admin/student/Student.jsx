@@ -170,6 +170,48 @@ const Student = () => {
     }
   }, [editingStudent, form]);
 
+  // const getStudents = async (
+  //   page = 1,
+  //   search = "",
+  //   classId = "",
+  //   pageSize = pagination.pageSize
+  // ) => {
+  //   setLoading(true);
+  //   try {
+  //     const params = new URLSearchParams();
+  //     params.append("page", page);
+  //     params.append("limit", pageSize);
+
+  //     if (search) params.append("search", search);
+  //     if (classId) params.append("classId", classId);
+
+  //     const res = await axios.get(
+  //       `${API_BASE_URL}/api/student-management/student?${params.toString()}`,
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
+
+  //     const studentsWithFullName = (res?.data?.data || []).map((s) => ({
+  //       ...s,
+  //       key: s._id,
+  //       name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
+  //     }));
+
+  //     setStudents(studentsWithFullName);
+
+  //     setPagination({
+  //       current: res?.data?.pagination?.page || page,
+  //       total: res?.data?.pagination?.total || 0,
+  //       pageSize: res?.data?.pagination?.limit || pageSize,
+  //     });
+  //   } catch (error) {
+  //     messageApi.error(
+  //       error?.response?.data?.message || "Failed to fetch students"
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const getStudents = async (
     page = 1,
     search = "",
@@ -180,7 +222,7 @@ const Student = () => {
     try {
       const params = new URLSearchParams();
       params.append("page", page);
-      params.append("limit", pageSize);
+      params.append("limit", pageSize); // <- this is critical
 
       if (search) params.append("search", search);
       if (classId) params.append("classId", classId);
@@ -386,24 +428,23 @@ const Student = () => {
 
   //Get student subjects
   const getStdentSubjects = async (student) => {
-  if (!student?._id) return;
+    if (!student?._id) return;
 
-  try {
-    const res = await axios.get(
-      `${API_BASE_URL}/api/student-management/students/${student._id}/subjects`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/student-management/students/${student._id}/subjects?limit=20`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    const subjectsArr = res?.data?.data || [];
-    setStdSunject(subjectsArr); // ✅ sets the student's subjects
-    setSelectedSubjects(subjectsArr.map((sub) => sub._id)); // ✅ sets selectedSubjects by _id
-  } catch (error) {
-    console.log("Error getting subjects:", error);
-    setStdSunject([]);
-    setSelectedSubjects([]);
-  }
-};
-
+      const subjectsArr = res?.data?.data || [];
+      setStdSunject(subjectsArr); // ✅ sets the student's subjects
+      setSelectedSubjects(subjectsArr.map((sub) => sub._id)); // ✅ sets selectedSubjects by _id
+    } catch (error) {
+      console.log("Error getting subjects:", error);
+      setStdSunject([]);
+      setSelectedSubjects([]);
+    }
+  };
 
   //Get Class
   const getClass = async () => {
@@ -661,61 +702,60 @@ const Student = () => {
       key: "parentPhone",
       // render: (_, record) => record.parent?.phone || "-",
     },
-   {
-  title: "Actions",
-  key: "action",
-  render: (_, record) => {
-    const items = [
-      {
-        key: "1",
-        icon: <EyeOutlined />,
-        label: "View Details",
-        onClick: () => openDetails(record),
-      },
-      {
-        key: "2",
-        icon: <EditOutlined />,
-        label: "Edit Student",
-        onClick: () => openEditModal(record),
-      },
-      {
-        key: "3",
-        icon: <BookOutlined />,
-        label: "Assign Subjects",
-        onClick: () => openAssignSubjectsModal(record),
-      },
-      { type: "divider" },
-    ];
+    {
+      title: "Actions",
+      key: "action",
+      render: (_, record) => {
+        const items = [
+          {
+            key: "1",
+            icon: <EyeOutlined />,
+            label: "View Details",
+            onClick: () => openDetails(record),
+          },
+          {
+            key: "2",
+            icon: <EditOutlined />,
+            label: "Edit Student",
+            onClick: () => openEditModal(record),
+          },
+          {
+            key: "3",
+            icon: <BookOutlined />,
+            label: "Assign Subjects",
+            onClick: () => openAssignSubjectsModal(record),
+          },
+          { type: "divider" },
+        ];
 
-    // ✅ Add delete button only for principal
-    if (user.role === "principal") {
-      items.push({
-        key: "5",
-        icon: <DeleteOutlined style={{ color: "#ff4d4f" }} />,
-        label: (
-          <Popconfirm
-            title="Delete student?"
-            onConfirm={() => handleDelete(record)}
-            okText="Yes"
-            cancelText="No"
+        // ✅ Add delete button only for principal
+        if (user.role === "principal") {
+          items.push({
+            key: "5",
+            icon: <DeleteOutlined style={{ color: "#ff4d4f" }} />,
+            label: (
+              <Popconfirm
+                title="Delete student?"
+                onConfirm={() => handleDelete(record)}
+                okText="Yes"
+                cancelText="No"
+              >
+                <span className="text-red-500">Delete</span>
+              </Popconfirm>
+            ),
+          });
+        }
+
+        return (
+          <Dropdown
+            overlay={<Menu className="p-2" items={items} />}
+            trigger={["click"]}
           >
-            <span className="text-red-500">Delete</span>
-          </Popconfirm>
-        ),
-      });
-    }
-
-    return (
-      <Dropdown
-        overlay={<Menu className="p-2" items={items} />}
-        trigger={["click"]}
-      >
-        <Button icon={<MoreOutlined />} />
-      </Dropdown>
-    );
-  },
-},
-
+            <Button icon={<MoreOutlined />} />
+          </Dropdown>
+        );
+      },
+    },
   ];
 
   // -----------------------------------------
@@ -1117,7 +1157,7 @@ const Student = () => {
             pagination={{
               ...pagination,
               showSizeChanger: true,
-              pageSizeOptions: ["5", "10", "20", "50"],
+              pageSizeOptions: ["5", "10", "20", "50", "100"], // add 50/100
               position: ["bottomCenter"],
               className: "custom-pagination",
               // showSizeChanger: false,
@@ -1521,6 +1561,7 @@ const Student = () => {
               value={selectedSubjects}
               onChange={(val) => setSelectedSubjects(val)}
               style={{ width: "100%" }}
+              dropdownStyle={{ minWidth: 300 }}
             >
               {subjects.map((sub) => (
                 <Option key={sub._id} value={sub._id}>

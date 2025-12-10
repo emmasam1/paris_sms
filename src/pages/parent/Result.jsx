@@ -15,7 +15,7 @@ import { useApp } from "../../context/AppContext";
 import SmartScholaLoader from "../../components/loader/SmartScholaLoader";
 import { useLocation } from "react-router";
 import principalSignature from "../../assets/SIGNATURE.png";
-import "./result.css";
+// import "./result.css";
 // import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 

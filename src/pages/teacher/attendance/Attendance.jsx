@@ -141,7 +141,7 @@ const Attendance = ({ className }) => {
   };
 
   const openEditAttendanceModal = (record) => {
-    
+
   setSelectedAttendance(record);
   form.setFieldsValue({
     opened: record.attendance.no_of_times_opened,

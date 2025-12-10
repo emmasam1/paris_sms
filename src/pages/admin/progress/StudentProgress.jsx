@@ -59,7 +59,7 @@ const StudentProgress = () => {
   const showModal = (record) => {
     const subjectsWithKey = record.subjects.map((sub, index) => ({
       key: index,
-      recordId: sub._id,
+      recordId: record.recordId,
       ...sub,
     }));
     setSelectedStudent(record);
@@ -99,6 +99,7 @@ const StudentProgress = () => {
   const isRowValid = (record) => {
     const max = getMaxValues(selectedStudent?.className || "");
     return (
+      // record.recordId
       record.firstCA <= max.firstCA &&
       record.secondCA <= max.secondCA &&
       record.firstAssignment <= max.firstAssignment &&
@@ -106,15 +107,16 @@ const StudentProgress = () => {
       record.exam <= max.exam
     );
   };
-// console.log(token)
+  // console.log(token)
   const handleRowUpdate = async (record) => {
     if (!isRowValid(record)) return;
+    console.log(record);
 
     try {
-      await axios.patch(
-        `${API_BASE_URL}/api/records/update-score`,
+      await axios.put(
+        `${API_BASE_URL}/api/records/admin/update-score`,
         {
-          recordId: record.recordId,
+          recordId: record?.recordId,
           firstAssignment: record.firstAssignment,
           secondAssignment: record.secondAssignment,
           firstCA: record.firstCA,
@@ -158,6 +160,17 @@ const StudentProgress = () => {
 
   // console.log(token, API_BASE_URL)
 
+  const getRecord = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/records/admin/records?limit=1000`,{
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      console.log("new api", res)
+    } catch (error) {
+      console.log(erroe)
+    }
+  }
+
   const fetchProgress = async () => {
     if (!selectedClassArm)
       return messageApi.warning("Please select a class and arm.");
@@ -193,6 +206,7 @@ const StudentProgress = () => {
       }));
 
       setProgressData(cleanedData);
+      console.log(cleanedData);
     } catch (error) {
       console.error(error);
       messageApi.error(
@@ -205,6 +219,7 @@ const StudentProgress = () => {
 
   useEffect(() => {
     fetchClasses();
+    getRecord()
   }, []);
 
   const columns = [
@@ -267,6 +282,7 @@ const StudentProgress = () => {
       render: (text, record) => {
         const max = getMaxValues(selectedStudent?.className || "");
         const value = record[field] ?? 0;
+        // console.log(record)
         return editingKeys.includes(record.key) ? (
           <Input
             type="number"

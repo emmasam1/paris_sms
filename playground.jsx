@@ -1130,3 +1130,78 @@ useEffect(() => {
 };
 
 export default MyClasses;
+
+
+
+ALL POSSIBLE ENDPOINT VARIATIONS FOR adminGetStudentRecords
+===============================================================
+
+BASE ENDPOINT:
+GET /api/admin/students/records
+
+
+---------------------------------------------------------------
+1. STUDENTS ONLY MODE (no session, no term)
+---------------------------------------------------------------
+
+# List all students (paginated)
+GET /api/admin/students/records
+
+# Search students
+GET /api/admin/students/records?search=ade
+
+# Filter by class
+GET /api/admin/students/records?classId={classId}
+
+# Filter by level
+GET /api/admin/students/records?level=JSS1
+
+# Pagination
+GET /api/admin/students/records?page=2&limit=20
+
+# Get one student → auto-load all their records (single_student_with_all_records)
+GET /api/admin/students/records?studentId={studentId}
+
+# Search + Level + Class combined
+GET /api/admin/students/records?search=john&level=SSS2&classId={classId}
+
+
+
+
+---------------------------------------------------------------
+2. STUDENTS_WITH_RECORDS MODE (session + term provided)
+---------------------------------------------------------------
+
+# Fetch all students + their records for session + term
+GET /api/admin/students/records?session=2025/2026&term=1
+
+# Fetch records only for a class for session + term
+GET /api/admin/students/records?classId={classId}&session=2025/2026&term=1
+
+# Fetch records for a specific student for session + term
+GET /api/admin/students/records?studentId={studentId}&session=2025/2026&term=1
+
+# Search students + include session + term
+GET /api/admin/students/records?search=ade&session=2025/2026&term=1
+
+# Level + class + session + term
+GET /api/admin/students/records?level=JSS2&classId={classId}&session=2025/2026&term=1
+
+
+
+
+---------------------------------------------------------------
+3. FULL COMBINED EXAMPLE (all params)
+---------------------------------------------------------------
+GET /api/admin/students/records?studentId={studentId}&classId={classId}&level=SSS2&search=john&session=2025/2026&term=1&page=1&limit=20
+
+
+
+
+---------------------------------------------------------------
+NOTES FOR FRONTEND DEV
+---------------------------------------------------------------
+- If *session* AND *term* are missing → API returns STUDENTS ONLY MODE.
+- If exactly 1 student matches → returns SINGLE STUDENT WITH ALL RECORDS.
+- If *session* AND *term* ARE provided → API returns STUDENTS_WITH_RECORDS MODE.
+- Pagination only applies to the students list, not records.

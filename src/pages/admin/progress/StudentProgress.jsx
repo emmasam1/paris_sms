@@ -34,6 +34,7 @@ const StudentProgress = () => {
   const [progressData, setProgressData] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(false);
+  const [loadingRows, setLoadingRows] = useState([]);
 
   // 🔹 Dynamic max values based on class
   const getMaxValues = (className) => {
@@ -58,8 +59,8 @@ const StudentProgress = () => {
 
   const showModal = (record) => {
     const subjectsWithKey = record.subjects.map((sub, index) => ({
-      key: index,
-      recordId: record.recordId,
+      key: index, // Table key
+      recordId: sub.recordId, // ✅ Each subject's own recordId
       ...sub,
     }));
     setSelectedStudent(record);
@@ -67,7 +68,7 @@ const StudentProgress = () => {
     setOriginalSubjects(subjectsWithKey); // store original values
     setEditingKeys([]);
     setIsModalOpen(true);
-    console.log(record);
+    console.log("Selected student:", record);
   };
 
   const handleCancel = () => setIsModalOpen(false);
@@ -108,39 +109,83 @@ const StudentProgress = () => {
     );
   };
   // console.log(token)
+  // const handleRowUpdate = async (record) => {
+  //   if (!isRowValid(record)) return;
+  //   console.log(record);
+
+  //   try {
+  //     await axios.put(
+  //       `${API_BASE_URL}/api/records/admin/update-score`,
+  //       {
+  //         recordId: record?.recordId,
+  //         firstAssignment: record.firstAssignment,
+  //         secondAssignment: record.secondAssignment,
+  //         firstCA: record.firstCA,
+  //         secondCA: record.secondCA,
+  //         exam: record.exam,
+  //       },
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
+
+  //     messageApi.success(`${record.subjectName} updated successfully!`);
+  //     setEditingKeys((prev) => prev.filter((k) => k !== record.key));
+  //     setEditingSubjects((prev) =>
+  //       prev.map((sub) => (sub.key === record.key ? { ...record } : sub))
+  //     );
+
+  //     // Update originalSubjects so future cancels don't overwrite updated values
+  //     setOriginalSubjects((prev) =>
+  //       prev.map((sub) => (sub.key === record.key ? { ...record } : sub))
+  //     );
+  //   } catch (err) {
+  //     console.error(err);
+  //     messageApi.error("Failed to update subject");
+  //   }
+  // };
+
   const handleRowUpdate = async (record) => {
-    if (!isRowValid(record)) return;
-    console.log(record);
+  if (!isRowValid(record)) return;
+  setLoadingRows((prev) => [...prev, record.key]);
 
-    try {
-      await axios.put(
-        `${API_BASE_URL}/api/records/admin/update-score`,
-        {
-          recordId: record?.recordId,
-          firstAssignment: record.firstAssignment,
-          secondAssignment: record.secondAssignment,
-          firstCA: record.firstCA,
-          secondCA: record.secondCA,
-          exam: record.exam,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  try {
+    const res = await axios.put(
+      `${API_BASE_URL}/api/records/admin/update-score`,
+      {
+        recordId: record.recordId,
+        firstAssignment: record.firstAssignment,
+        secondAssignment: record.secondAssignment,
+        firstCA: record.firstCA,
+        secondCA: record.secondCA,
+        exam: record.exam,
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-      messageApi.success(`${record.subjectName} updated successfully!`);
-      setEditingKeys((prev) => prev.filter((k) => k !== record.key));
-      setEditingSubjects((prev) =>
-        prev.map((sub) => (sub.key === record.key ? { ...record } : sub))
-      );
+    // ✅ Use the updated row from DB response
+    const updatedRecord = res.data.data; 
+    // Ensure backend returns { total, grade, remark, ... }
 
-      // Update originalSubjects so future cancels don't overwrite updated values
-      setOriginalSubjects((prev) =>
-        prev.map((sub) => (sub.key === record.key ? { ...record } : sub))
-      );
-    } catch (err) {
-      console.error(err);
-      messageApi.error("Failed to update subject");
-    }
-  };
+    setEditingSubjects((prev) =>
+      prev.map((sub) =>
+        sub.key === record.key ? { ...sub, ...updatedRecord } : sub
+      )
+    );
+    setOriginalSubjects((prev) =>
+      prev.map((sub) =>
+        sub.key === record.key ? { ...sub, ...updatedRecord } : sub
+      )
+    );
+
+    messageApi.success(`${record.subjectName} updated successfully!`);
+    setEditingKeys((prev) => prev.filter((k) => k !== record.key));
+  } catch (err) {
+    console.error(err);
+    messageApi.error("Failed to update subject");
+  } finally {
+    setLoadingRows((prev) => prev.filter((k) => k !== record.key));
+  }
+};
+
 
   const fetchClasses = async () => {
     setLoadingClasses(true);
@@ -160,53 +205,90 @@ const StudentProgress = () => {
 
   // console.log(token, API_BASE_URL)
 
-  const getRecord = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/records/admin/records?limit=1000`,{
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      console.log("new api", res)
-    } catch (error) {
-      console.log(erroe)
-    }
-  }
+  // const getRecord = async () => {
+  //   try {
+  //     const res = await axios.get(
+  //       `${API_BASE_URL}/api/records/admin/records?limit=1000&session=2025/2026&term=1`,
+  //       {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       }
+  //     );
+  //     // console.log("new api", res);
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // };
 
   const fetchProgress = async () => {
-    if (!selectedClassArm)
-      return messageApi.warning("Please select a class and arm.");
     if (!selectedSession) return messageApi.warning("Please select a session.");
     if (!selectedTerm) return messageApi.warning("Please select a term.");
 
     setLoadingProgress(true);
     try {
-      const url = `${API_BASE_URL}/api/results/admin?classId=${selectedClassArm}&term=${selectedTerm}&session=${selectedSession}&limit=50`;
-
+      const url = `${API_BASE_URL}/api/records/admin/records?session=${selectedSession}&term=${selectedTerm}&limit=1000`;
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log(res);
-
-      messageApi.success("Results loaded successfully.");
-
+      // console.log("the full res", res);
       const cleanedData = (res.data.data || []).map((item) => ({
-        recordId: item?._id,
-        admissionNumber: item.studentSnapshot?.admissionNumber || "-",
-        studentName: item.studentSnapshot?.fullName || "-",
-        className: item.studentSnapshot?.className || "-",
-        classArm: item.studentSnapshot?.classArm || "-",
-        classAverage: item.summary?.classAverage || "-",
-        finalAverage: item.summary?.finalAverage || "-",
-        noInClass: item.summary?.noInClass || "-",
-        overallGrade: item.summary?.overallGrade || "-",
-        totalScoreObtainable: item.summary?.totalScoreObtainable || "-",
-        totalScoreObtained: item.summary?.totalScoreObtained || "-",
-        totalSubjects: item.summary?.totalSubjects || "-",
-        subjects: item.subjects || [],
+        studentId: item.student?.id, // student ID
+        admissionNumber: item.student?.admissionNumber || "-",
+        studentName: item.student?.fullName || "-",
+        className: item.student?.class || "-",
+        level: item.student?.level || "-",
+        subjects: (item.records || []).map((rec) => ({
+          recordId: rec._id, // ✅ use record _id here
+          subjectName: rec.subject?.name || "-",
+          subjectCode: rec.subject?.code || "-",
+          firstAssignment: rec.firstAssignment ?? 0,
+          secondAssignment: rec.secondAssignment ?? 0,
+          firstCA: rec.firstCA ?? 0,
+          secondCA: rec.secondCA ?? 0,
+          exam: rec.exam ?? 0,
+          total: rec.total ?? 0,
+          grade: rec.grade || "-",
+          remark: rec.teacherRemark || "-",
+        })),
+        classAverage: "-", // optional, can calculate from subjects if needed
+        finalAverage: "-",
+        noInClass: "-",
+        overallGrade: "-",
+        totalScoreObtainable: "-",
+        totalScoreObtained: "-",
+        totalSubjects: item.records?.length || 0,
       }));
 
+      // const cleanedData = (res.data.data || []).map((item) => ({
+      //   recordId: item.records?._id,
+      //   admissionNumber: item.student?.admissionNumber || "-",
+      //   studentName: item.student?.fullName || "-",
+      //   className: item.student?.class || "-",
+      //   level: item.student?.level || "-",
+      //   subjects: (item.records || []).map((rec) => ({
+      //     recordId: rec._id,
+      //     subjectName: rec.subject?.name || "-",
+      //     subjectCode: rec.subject?.code || "-",
+      //     firstAssignment: rec.firstAssignment ?? 0,
+      //     secondAssignment: rec.secondAssignment ?? 0,
+      //     firstCA: rec.firstCA ?? 0,
+      //     secondCA: rec.secondCA ?? 0,
+      //     exam: rec.exam ?? 0,
+      //     total: rec.total ?? 0,
+      //     grade: rec.grade || "-",
+      //     remark: rec.teacherRemark || "-",
+      //   })),
+      //   classAverage: "-",
+      //   finalAverage: "-",
+      //   noInClass: "-",
+      //   overallGrade: "-",
+      //   totalScoreObtainable: "-",
+      //   totalScoreObtained: "-",
+      //   totalSubjects: item.records?.length || 0,
+      // }));
+
       setProgressData(cleanedData);
-      console.log(cleanedData);
+      // console.log(cleanedData);
     } catch (error) {
       console.error(error);
       messageApi.error(
@@ -217,9 +299,57 @@ const StudentProgress = () => {
     }
   };
 
+  //   const fetchProgress = async () => {
+  //   if (!selectedClassArm)
+  //     return messageApi.warning("Please select a class and arm.");
+  //   if (!selectedSession) return messageApi.warning("Please select a session.");
+  //   if (!selectedTerm) return messageApi.warning("Please select a term."); // include term
+
+  //   setLoadingProgress(true);
+  //   try {
+  //     // Correct URL with session AND term
+  //     const url = `${API_BASE_URL}/api/admin/students/records?session=${selectedSession}&term=${selectedTerm}&limit=50`;
+  //     console.log(url)
+
+  //     const res = await axios.get(url, {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+
+  //     console.log("API response:", res);
+
+  //     messageApi.success("Results loaded successfully.");
+
+  //     const cleanedData = (res.data.data || []).map((item) => ({
+  //       recordId: item?._id,
+  //       admissionNumber: item.studentSnapshot?.admissionNumber || "-",
+  //       studentName: item.studentSnapshot?.fullName || "-",
+  //       className: item.studentSnapshot?.className || "-",
+  //       classArm: item.studentSnapshot?.classArm || "-",
+  //       classAverage: item.summary?.classAverage || "-",
+  //       finalAverage: item.summary?.finalAverage || "-",
+  //       noInClass: item.summary?.noInClass || "-",
+  //       overallGrade: item.summary?.overallGrade || "-",
+  //       totalScoreObtainable: item.summary?.totalScoreObtainable || "-",
+  //       totalScoreObtained: item.summary?.totalScoreObtained || "-",
+  //       totalSubjects: item.summary?.totalSubjects || "-",
+  //       subjects: item.subjects || [],
+  //     }));
+
+  //     setProgressData(cleanedData);
+  //     console.log(cleanedData);
+  //   } catch (error) {
+  //     console.error(error);
+  //     messageApi.error(
+  //       error?.response?.data?.message || "Failed to load results"
+  //     );
+  //   } finally {
+  //     setLoadingProgress(false);
+  //   }
+  // };
+
   useEffect(() => {
     fetchClasses();
-    getRecord()
+    // getRecord();
   }, []);
 
   const columns = [
@@ -306,6 +436,7 @@ const StudentProgress = () => {
               size="small"
               onClick={() => handleRowUpdate(record)}
               disabled={!isRowValid(record)}
+              loading={loadingRows.includes(record.key)} // ✅ show loading
             >
               Update
             </Button>
@@ -329,7 +460,7 @@ const StudentProgress = () => {
       {contextHolder}
       <Card title="Student Progress" className="w-full">
         <div className="flex gap-4 mb-4 flex-wrap">
-          {loadingClasses ? (
+          {/* {loadingClasses ? (
             <Skeleton.Input style={{ width: 300, height: 40 }} active />
           ) : (
             <Select
@@ -344,7 +475,7 @@ const StudentProgress = () => {
                 </Option>
               ))}
             </Select>
-          )}
+          )} */}
           {loadingClasses ? (
             <Skeleton.Input style={{ width: 200, height: 40 }} active />
           ) : (

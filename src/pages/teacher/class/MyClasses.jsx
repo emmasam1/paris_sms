@@ -76,7 +76,9 @@ const MyClasses = () => {
   const [errors, setErrors] = useState({});
 
   // safe guard: editStudentRecord may be null
-  const isJSS = !!editStudentRecord?.class?.name?.toLowerCase?.().includes?.("jss");
+  const isJSS = !!editStudentRecord?.class?.name
+    ?.toLowerCase?.()
+    .includes?.("jss");
 
   const maxScores = isJSS
     ? {
@@ -128,7 +130,8 @@ const MyClasses = () => {
       setTeacherData(allLevels);
 
       // Save top-level subject if present (legacy)
-      const responseSubject = res?.data?.data?.[0]?.subject || res?.data?.subject;
+      const responseSubject =
+        res?.data?.data?.[0]?.subject || res?.data?.subject;
       if (responseSubject) setSubject(responseSubject);
 
       // build unique level list:
@@ -145,13 +148,19 @@ const MyClasses = () => {
       const subjMap = new Map();
       allLevels.forEach((entry) => {
         if (entry.subject && entry.subject._id) {
-          subjMap.set(entry.subject._id, { _id: entry.subject._id, name: entry.subject.name });
+          subjMap.set(entry.subject._id, {
+            _id: entry.subject._id,
+            name: entry.subject.name,
+          });
         }
       });
       setSubjects(Array.from(subjMap.values()));
     } catch (error) {
       console.error("getTeacherClassDetails error:", error);
-      messageApi.error(error?.response?.data?.message || "Unable to fetch teacher class details.");
+      messageApi.error(
+        error?.response?.data?.message ||
+          "Unable to fetch teacher class details."
+      );
     } finally {
       setLoading(false);
     }
@@ -176,7 +185,9 @@ const MyClasses = () => {
     }
 
     // find entries matching this level (teacherData may contain multiple entries per level if teacher teaches multiple subjects)
-    const entriesForLevel = teacherData.filter((e) => e.level === selectedLevel);
+    const entriesForLevel = teacherData.filter(
+      (e) => e.level === selectedLevel
+    );
 
     // gather unique arms present across classes for this level (merge across subjects)
     const armsSet = new Set();
@@ -223,14 +234,17 @@ const MyClasses = () => {
 
     // First try to find an entry where level matches and subject._id matches
     const bySubject = teacherData.find(
-      (e) => e.level === level && (e.subject?._id === subjectId || e.subject === subjectId)
+      (e) =>
+        e.level === level &&
+        (e.subject?._id === subjectId || e.subject === subjectId)
     );
     if (bySubject) return bySubject;
 
     // Fallback: find any entry with same level and class arm (useful if backend structure differs)
-    return teacherData.find((e) =>
-      e.level === level &&
-      (e.classes || []).some((c) => (c.class?.arm || c.class?.name) === arm)
+    return teacherData.find(
+      (e) =>
+        e.level === level &&
+        (e.classes || []).some((c) => (c.class?.arm || c.class?.name) === arm)
     );
   };
 
@@ -256,10 +270,14 @@ const MyClasses = () => {
       });
 
       // fetch all subjects for subjects dropdown (keep it small)
-      const subRes = await axios.get(`${API_BASE_URL}/api/subject-management/subjects?limit=50`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const allSubjectsList = subRes?.data?.data?.map((s) => ({ _id: s._id, name: s.name })) || [];
+      const subRes = await axios.get(
+        `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const allSubjectsList =
+        subRes?.data?.data?.map((s) => ({ _id: s._id, name: s.name })) || [];
       setSubjects(allSubjectsList);
 
       const data = res?.data;
@@ -268,19 +286,25 @@ const MyClasses = () => {
       // Backend returns different shapes: data.data (levels array) OR data.students (direct)
       if (data?.data?.length) {
         // Find the specific entry matching level + subject
-        const entry = findEntryForSelection(selectedLevel, selectedArm, selectedSubject);
+        const entry = findEntryForSelection(
+          selectedLevel,
+          selectedArm,
+          selectedSubject
+        );
 
         if (entry) {
           // find matched class inside the entry
-          const matchedClass = (entry.classes || []).find((c) =>
-            ((c.class?.arm || c.class?.name) || "").toLowerCase() === selectedArm.toLowerCase()
+          const matchedClass = (entry.classes || []).find(
+            (c) =>
+              (c.class?.arm || c.class?.name || "").toLowerCase() ===
+              selectedArm.toLowerCase()
           );
           classStudents = matchedClass?.students || [];
         } else {
           // As fallback, use first-level object's classes that match arm
           const fallback = data.data[0];
-          const matchedClass = (fallback.classes || []).find((c) =>
-            (c.class?.arm || c.class?.name) === selectedArm
+          const matchedClass = (fallback.classes || []).find(
+            (c) => (c.class?.arm || c.class?.name) === selectedArm
           );
           classStudents = matchedClass?.students || [];
         }
@@ -297,12 +321,19 @@ const MyClasses = () => {
 
       // Extract classId robustly
       const classId =
-        data?.data?.[0]?.classes?.find((c) => (c.class?.arm || c.class?.name) === selectedArm)
-          ?.class?._id || // from response
+        data?.data?.[0]?.classes?.find(
+          (c) => (c.class?.arm || c.class?.name) === selectedArm
+        )?.class?._id || // from response
         // fallback: find entry and class there
         (() => {
-          const entry = findEntryForSelection(selectedLevel, selectedArm, selectedSubject);
-          const matched = entry?.classes?.find((c) => (c.class?.arm || c.class?.name) === selectedArm);
+          const entry = findEntryForSelection(
+            selectedLevel,
+            selectedArm,
+            selectedSubject
+          );
+          const matched = entry?.classes?.find(
+            (c) => (c.class?.arm || c.class?.name) === selectedArm
+          );
           return matched?.class?._id;
         })();
 
@@ -326,10 +357,7 @@ const MyClasses = () => {
       const mergedStudents = (classStudents || []).map((stu) => {
         const studentId = stu._id || stu.id;
         const found = statusList.find((s) => s.studentId === studentId);
-        return {
-          ...stu,
-          hasRecord: found?.status === "recorded",
-        };
+        return { ...stu, hasRecord: found?.status === "recorded" };
       });
 
       setStudents(mergedStudents);
@@ -345,7 +373,10 @@ const MyClasses = () => {
       }
     } catch (error) {
       console.error("fetchStudentsForClass ERROR:", error);
-      messageApi.error(error?.response?.data?.message || "No students in this class offer this subject");
+      messageApi.error(
+        error?.response?.data?.message ||
+          "No students in this class offer this subject"
+      );
     } finally {
       setLoading(false);
     }
@@ -356,10 +387,14 @@ const MyClasses = () => {
   // ---------------------------
   const getSubjects = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/subject-management/subjects?limit=50`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const cleaned = res.data?.data?.map((s) => ({ _id: s._id, name: s.name })) || [];
+      const res = await axios.get(
+        `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const cleaned =
+        res.data?.data?.map((s) => ({ _id: s._id, name: s.name })) || [];
       setSubjects(cleaned);
     } catch (error) {
       console.log(error);
@@ -380,7 +415,7 @@ const MyClasses = () => {
     try {
       setLoading(true);
       const res = await axios.get(
-        `${API_BASE_URL}/api/teacher/records?subjectId=${subjectId}&session=2025/2026&term=1&limit=500`,
+        `${API_BASE_URL}/api/teacher/records?subjectId=${subjectId}&session=2025/2026&term=1&limit=1000`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -394,7 +429,7 @@ const MyClasses = () => {
       const mappedStudents = results.map((item) => ({
         key: item._id,
         recordId: item._id,
-        studentId: item.student.id,
+        studentId: item.student._id, // <-- FIXED
         fullName: `${item.student.firstName} ${item.student.lastName}`,
         admissionNumber: item.student.admissionNumber || "-",
         gender: item.gender || "-",
@@ -438,7 +473,9 @@ const MyClasses = () => {
     if (response?.success) {
       setStudents((prev) =>
         prev.map((student) =>
-          student._id === activeStudent?._id ? { ...student, hasRecord: true } : student
+          student._id === activeStudent?._id
+            ? { ...student, hasRecord: true }
+            : student
         )
       );
     }
@@ -743,7 +780,9 @@ const MyClasses = () => {
                 open={isResultModalOpen}
                 onClose={() => setIsResultModalOpen(false)}
                 student={activeStudent}
-                teacherSubject={subjects?.find((s) => s._id === selectedSubject)?.name}
+                teacherSubject={
+                  subjects?.find((s) => s._id === selectedSubject)?.name
+                }
                 onClick={handleSubmit}
                 selectedLevel={selectedLevel}
                 selectedSubject={selectedSubject}
@@ -869,14 +908,20 @@ const MyClasses = () => {
                 exam: values.exam,
               };
 
-              await axios.patch(`${API_BASE_URL}/api/records/update-score`, payload, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
+              await axios.patch(
+                `${API_BASE_URL}/api/records/update-score`,
+                payload,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
 
               // UPDATE LOCAL UI
               setStudentsRecord((prev) =>
                 prev.map((stu) =>
-                  stu.recordId === editStudentRecord.recordId ? { ...stu, record: { ...stu.record, ...values } } : stu
+                  stu.recordId === editStudentRecord.recordId
+                    ? { ...stu, record: { ...stu.record, ...values } }
+                    : stu
                 )
               );
 
@@ -970,7 +1015,12 @@ const MyClasses = () => {
           </Row>
 
           <div style={{ textAlign: "center", marginTop: 16 }}>
-            <Button type="primary" onClick={() => form.submit()} loading={isSubmitting} disabled={Object.keys(errors).length > 0}>
+            <Button
+              type="primary"
+              onClick={() => form.submit()}
+              loading={isSubmitting}
+              disabled={Object.keys(errors).length > 0}
+            >
               Update Record
             </Button>
           </div>

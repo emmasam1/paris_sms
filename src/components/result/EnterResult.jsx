@@ -175,7 +175,7 @@ const EnterResult = ({
       onClose();
     } catch (error) {
       console.error(error);
-      message.error("Failed to save");
+      messageApi.error("Score already recorded for this student, subject, session and term");
     } finally {
       setLoading(false);
     }

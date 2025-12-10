@@ -132,7 +132,7 @@ const ClassManagement = () => {
         key: cls._id,
       }));
 
-      // console.log(res)
+      console.log(res)
 
       setClasses(mapped);
       setPagination((prev) => ({

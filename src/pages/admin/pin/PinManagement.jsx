@@ -36,66 +36,200 @@ const PinManagement = () => {
   const [messageApi, contextHolder] = message.useMessage();
 
   // ------------------ PDF DOWNLOAD ------------------
-  const downloadPDF = async () => {
+//   const downloadPDF = async () => {
+//   if (!pins.length) return message.info("Nothing to print");
+
+//   setDownloadLoading(true);
+//   const input = printRef.current;
+//   input.style.display = "block";
+
+//   const pages = [];
+//   for (let i = 0; i < pins.length; i += 18) {
+//     pages.push(pins.slice(i, i + 18));
+//   }
+
+//   const pdf = new jsPDF("p", "mm", "a4");
+//   let firstPage = true;
+
+//   for (const pagePins of pages) {
+//     // Inject HTML into hidden element
+//     input.innerHTML = `
+//       <h2 style="text-align:center; margin-bottom:15px;">PIN LIST</h2>
+//       <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px;">
+//         ${pagePins
+//           .map(
+//             (p) => `
+//               <div style="
+//                 border:1px solid #000;
+//                 padding:10px;
+//                 border-radius:4px;
+//                 background:white;
+//                 font-size:14px;
+//               ">
+//                 <h3 style="margin:0; font-size:16px;">PIN: ${p.pin}</h3>
+//                 <p><b>Name:</b> ${p.studentName}</p>
+//                 <p><b>Class:</b> ${p.class} - ${p.arm}</p>
+//                 <p><b>Session:</b> ${p.session}</p>
+//                 <p><b>Website:</b> https://paris-sms.vercel.app</p>
+//               </div>
+//             `
+//           )
+//           .join("")}
+//       </div>
+//     `;
+
+//     const canvas = await html2canvas(input, { scale: 2 });
+//     const imgData = canvas.toDataURL("image/png");
+
+//     // ⭐ FIX: Prevent stretching
+//     const imgProps = pdf.getImageProperties(imgData);
+//     const pdfWidth = pdf.internal.pageSize.getWidth();
+//     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+//     if (!firstPage) pdf.addPage();
+//     firstPage = false;
+
+//     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+//   }
+
+//   pdf.save("pins.pdf");
+//   input.style.display = "none";
+//   setDownloadLoading(false);
+// };
+
+// ------------------ PDF DOWNLOAD (ALWAYS 17 PINS PER PAGE) ------------------
+// const downloadPDF = async () => {
+//   if (!pins.length) return message.info("Nothing to print");
+
+//   setDownloadLoading(true);
+
+//   const input = printRef.current;
+//   input.style.display = "block";
+
+//   // ALWAYS take 17 records per page
+//   const fixedSize = 17;
+//   const startIndex = (page - 1) * fixedSize;
+//   const endIndex = startIndex + fixedSize;
+
+//   const currentPins = pins.slice(startIndex, endIndex);
+
+//   // Inject current page (17 pins)
+//   input.innerHTML = `
+//     <h2 style="text-align:center; margin-bottom:15px;">PIN LIST (Page ${page})</h2>
+//     <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px;">
+//       ${currentPins
+//         .map(
+//           (p) => `
+//             <div style="
+//               border:1px solid #000;
+//               padding:10px;
+//               border-radius:4px;
+//               background:white;
+//               font-size:14px;
+//             ">
+//               <h3 style="margin:0; font-size:16px;">PIN: ${p.pin}</h3>
+//               <p><b>Name:</b> ${p.studentName}</p>
+//               <p><b>Class:</b> ${p.class} - ${p.arm}</p>
+//               <p><b>Session:</b> ${p.session}</p>
+//               <p><b>Website:</b> https://paris-sms.vercel.app</p>
+//             </div>
+//           `
+//         )
+//         .join("")}
+//     </div>
+//   `;
+
+//   const canvas = await html2canvas(input, { scale: 2 });
+//   const imgData = canvas.toDataURL("image/png");
+
+//   const pdf = new jsPDF("p", "mm", "a4");
+//   const imgProps = pdf.getImageProperties(imgData);
+//   const pdfWidth = pdf.internal.pageSize.getWidth();
+//   const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+//   pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+//   pdf.save(`pins-page-${page}.pdf`);
+
+//   input.style.display = "none";
+//   setDownloadLoading(false);
+// };
+
+// ------------------ DOWNLOAD FULL TABLE (ALL PINS) ------------------
+const downloadPDF = async () => {
   if (!pins.length) return message.info("Nothing to print");
 
   setDownloadLoading(true);
+
   const input = printRef.current;
   input.style.display = "block";
 
+  const pageSize = 18; // 9 rows × 2 columns per A4 page
   const pages = [];
-  for (let i = 0; i < pins.length; i += 18) {
-    pages.push(pins.slice(i, i + 18));
+
+  for (let i = 0; i < pins.length; i += pageSize) {
+    pages.push(pins.slice(i, i + pageSize));
   }
 
   const pdf = new jsPDF("p", "mm", "a4");
-  let firstPage = true;
+  let first = true;
 
-  for (const pagePins of pages) {
-    // Inject HTML into hidden element
+  for (let i = 0; i < pages.length; i++) {
+    const pagePins = pages[i];
+
+    // Insert HTML for this page
     input.innerHTML = `
-      <h2 style="text-align:center; margin-bottom:15px;">PIN LIST</h2>
-      <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px;">
+      <h2 style="text-align:center; margin-bottom:15px;">PIN LIST (Page ${i + 1})</h2>
+
+      <div style="
+        display:grid;
+        grid-template-columns:repeat(2, 1fr);
+        gap:10px;
+      ">
         ${pagePins
           .map(
             (p) => `
-              <div style="
-                border:1px solid #000;
-                padding:10px;
-                border-radius:4px;
-                background:white;
-                font-size:14px;
-              ">
-                <h3 style="margin:0; font-size:16px;">PIN: ${p.pin}</h3>
-                <p><b>Name:</b> ${p.studentName}</p>
-                <p><b>Class:</b> ${p.class} - ${p.arm}</p>
-                <p><b>Session:</b> ${p.session}</p>
-                <p><b>Website:</b> https://paris-sms.vercel.app</p>
-              </div>
-            `
+            <div style="
+              border:1px solid #000;
+              padding:12px;
+              border-radius:6px;
+              background:white;
+              font-size:14px;
+              min-height:120px;
+            ">
+              <h3 style="margin:0 0 5px 0; font-size:16px;">PIN: ${p.pin}</h3>
+              <p><b>Name:</b> ${p.studentName}</p>
+              <p><b>Class:</b> ${p.class} - ${p.arm}</p>
+              <p><b>Session:</b> ${p.session}</p>
+              <p><b>Website:</b> https://paris-sms.vercel.app</p>
+            </div>
+          `
           )
           .join("")}
       </div>
     `;
 
+    // Convert to canvas
     const canvas = await html2canvas(input, { scale: 2 });
     const imgData = canvas.toDataURL("image/png");
 
-    // ⭐ FIX: Prevent stretching
+    // Fit inside A4
     const imgProps = pdf.getImageProperties(imgData);
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-    if (!firstPage) pdf.addPage();
-    firstPage = false;
+    if (!first) pdf.addPage();
+    first = false;
 
     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
   }
 
-  pdf.save("pins.pdf");
+  pdf.save("all-pins.pdf");
+
   input.style.display = "none";
   setDownloadLoading(false);
 };
+
+
 
 
   // ------------------ TABLE COLUMNS ------------------
@@ -257,7 +391,7 @@ const PinManagement = () => {
           bordered
           size="small"
           pagination={{
-            pageSizeOptions: ["10", "18", "20", "50"],
+            pageSizeOptions: ["10", "20", "50", "100"],
             showSizeChanger: true,
             current: page,
             pageSize: limit,

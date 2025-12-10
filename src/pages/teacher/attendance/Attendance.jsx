@@ -141,7 +141,7 @@ const Attendance = ({ className }) => {
   };
 
   const openEditAttendanceModal = (record) => {
-
+console.log(record)
   setSelectedAttendance(record);
   form.setFieldsValue({
     opened: record.attendance.no_of_times_opened,
@@ -155,11 +155,14 @@ const Attendance = ({ className }) => {
 
 
 const handleEditAttendanceSubmit = async (values) => {
-  if (!selectedAttendance) return;
+  const attendanceId = selectedAttendance?.attendance._id
+  if (!selectedAttendance?.attendance._id) return;
+
+  // console.log(selectedAttendance?.attendance._id)
   try {
     setLoading(true);
-    const res = await axios.patch(
-      `${API_BASE_URL}/api/attendance/${selectedAttendance._id}`,
+    const res = await axios.put(
+      `${API_BASE_URL}/api/attendance/${attendanceId}`,
       {
         session: values.session,
         term: values.term,
@@ -214,7 +217,7 @@ const handleEditAttendanceSubmit = async (values) => {
       records,
     };
 
-    console.log(payload);
+    // console.log(payload);
 
     try {
       setLoading(true);

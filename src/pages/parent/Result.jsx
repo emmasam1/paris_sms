@@ -103,16 +103,6 @@ const ParentResult = () => {
     { key: "8", grade: "F9", rate: '0-39 "FAIL"' },
   ];
 
-  80 plus_ A(Excellent)
-75-79- B2( Brilliant)
-70- 74- B3 (Merit)
-65-69- C4 ( Very Good)
-60-64- C5 ( Good)
-50-59- C6 ( Credit)
-45-49- D7 (Pass)
-40-44- E8 ( Fair)
-0-39 - F9 ( Fail)
-
   const ratingKeyData = [
     { key: "1", rating: "5=A+", remark: "EXCELLENT" },
     { key: "2", rating: "4=A", remark: "BRILLIANT" },

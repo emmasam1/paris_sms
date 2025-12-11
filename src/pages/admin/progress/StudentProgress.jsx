@@ -380,7 +380,7 @@ const StudentProgress = () => {
             <Select
               placeholder="Select arm" // Shows initially
               style={{ width: 200 }}
-              value={selectedClassArm}
+              // value={selectedClassArm}
               onChange={setSelectedClassArm}
             >
               {classes?.map((cls) => (

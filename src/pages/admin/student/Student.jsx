@@ -331,6 +331,8 @@ const Student = () => {
     }
   };
 
+  console.log(token, API_BASE_URL)
+
   const handleTableChange = (paginationConfig) => {
     setPagination((prev) => ({
       ...prev,

@@ -28,7 +28,6 @@ const StudentProgress = () => {
   const [editingKeys, setEditingKeys] = useState([]);
   const [messageApi, contextHolder] = message.useMessage();
 
-  const [classes, setClasses] = useState([]);
   const [selectedClassArm, setSelectedClassArm] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
   const [selectedTerm, setSelectedTerm] = useState(null);
@@ -38,13 +37,56 @@ const StudentProgress = () => {
   const [loadingProgress, setLoadingProgress] = useState(false);
   const [loadingRows, setLoadingRows] = useState([]);
   const [searchText, setSearchText] = useState("");
+  const [classes, setClasses] = useState([]);
 
   // 🔹 Dynamic max values based on class
   const getMaxValues = (className) => {
     if (className?.toLowerCase().includes("jss")) {
-      return { firstCA: 20, secondCA: 20, firstAssignment: 10, secondAssignment: 10, exam: 40 };
+      return {
+        firstCA: 20,
+        secondCA: 20,
+        firstAssignment: 10,
+        secondAssignment: 10,
+        exam: 40,
+      };
     } else {
-      return { firstCA: 10, secondCA: 10, firstAssignment: 5, secondAssignment: 5, exam: 70 };
+      return {
+        firstCA: 10,
+        secondCA: 10,
+        firstAssignment: 5,
+        secondAssignment: 5,
+        exam: 70,
+      };
+    }
+  };
+
+  const getClass = async () => {
+    if (!token) return;
+
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/class-management/classes?limit=100`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const data = res?.data?.data || [];
+
+      const mapped = data.map((cls) => ({
+        id: cls._id,
+        name: cls.name,
+        arm: cls.arm,
+      }));
+      // console.log(res);
+
+      setClasses(mapped);
+
+      // console.log(mapped);
+
+      messageApi.success(res?.data?.message || "Classes fetched successfully");
+    } catch (error) {
+      messageApi.error(
+        error?.response?.data?.message || "Failed to fetch classes"
+      );
     }
   };
 
@@ -66,7 +108,9 @@ const StudentProgress = () => {
   const handleChange = (value, key, field) => {
     setEditingSubjects((prev) =>
       prev.map((sub) =>
-        sub.key === key ? { ...sub, [field]: value === "" ? "" : Number(value) } : sub
+        sub.key === key
+          ? { ...sub, [field]: value === "" ? "" : Number(value) }
+          : sub
       )
     );
   };
@@ -115,10 +159,14 @@ const StudentProgress = () => {
       const updatedRecord = res.data.data;
 
       setEditingSubjects((prev) =>
-        prev.map((sub) => (sub.key === record.key ? { ...sub, ...updatedRecord } : sub))
+        prev.map((sub) =>
+          sub.key === record.key ? { ...sub, ...updatedRecord } : sub
+        )
       );
       setOriginalSubjects((prev) =>
-        prev.map((sub) => (sub.key === record.key ? { ...sub, ...updatedRecord } : sub))
+        prev.map((sub) =>
+          sub.key === record.key ? { ...sub, ...updatedRecord } : sub
+        )
       );
 
       messageApi.success(`${record.subjectName} updated successfully!`);
@@ -148,15 +196,19 @@ const StudentProgress = () => {
   };
 
   const fetchProgress = async () => {
+    if (!selectedClassArm) return messageApi.warning("Please select arm.");
     if (!selectedSession) return messageApi.warning("Please select a session.");
     if (!selectedTerm) return messageApi.warning("Please select a term.");
 
     setLoadingProgress(true);
+
     try {
-      const url = `${API_BASE_URL}/api/records/admin/records?session=${selectedSession}&term=${selectedTerm}&limit=1000`;
+      const url = `${API_BASE_URL}/api/records/admin/records?classId=${selectedClassArm}&session=${selectedSession}&term=${selectedTerm}&limit=1000`;
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      // console.log(res);
 
       const cleanedData = (res.data.data || []).map((item) => ({
         studentId: item.student?.id,
@@ -190,7 +242,9 @@ const StudentProgress = () => {
       setFilteredData(cleanedData);
     } catch (error) {
       console.error(error);
-      messageApi.error(error?.response?.data?.message || "Failed to load results");
+      messageApi.error(
+        error?.response?.data?.message || "Failed to load results"
+      );
     } finally {
       setLoadingProgress(false);
     }
@@ -206,18 +260,29 @@ const StudentProgress = () => {
 
   useEffect(() => {
     fetchClasses();
+    getClass();
   }, []);
 
   const columns = [
-    { title: "S/N", key: "sn", render: (_, __, index) => index + 1, width: 70 },
-    { title: "Student Name", dataIndex: "studentName", key: "studentName" },
-    { title: "Admission No", dataIndex: "admissionNumber", key: "admissionNumber" },
+    { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
+    {
+      title: "Student Name",
+      dataIndex: "studentName",
+      key: "studentName",
+      // width: 200,
+    },
+    {
+      title: "Admission No",
+      dataIndex: "admissionNumber",
+      key: "admissionNumber",
+      // width: 160,
+    },
     { title: "Class", dataIndex: "className", key: "className" },
-    { title: "Arm", dataIndex: "classArm", key: "classArm" },
+    // { title: "Arm", dataIndex: "classArm", key: "classArm" },
     {
       title: "Action",
       key: "action",
-      width: 100,
+      // width: 100,
       render: (_, record) => {
         const menu = (
           <Menu
@@ -242,7 +307,13 @@ const StudentProgress = () => {
   const modalColumns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     { title: "Subject", dataIndex: "subjectName", key: "subjectName" },
-    ...["firstAssignment", "secondAssignment", "firstCA", "secondCA", "exam"].map((field) => ({
+    ...[
+      "firstAssignment",
+      "secondAssignment",
+      "firstCA",
+      "secondCA",
+      "exam",
+    ].map((field) => ({
       title:
         field === "firstCA"
           ? "1st CA"
@@ -305,35 +376,50 @@ const StudentProgress = () => {
       {contextHolder}
       <Card title="Student Progress" className="w-full">
         <div className="flex justify-between items-center">
+          <div className="flex gap-4 mb-4 flex-wrap">
+            <Select
+              placeholder="Select arm" // Shows initially
+              style={{ width: 200 }}
+              value={selectedClassArm}
+              onChange={setSelectedClassArm}
+            >
+              {classes?.map((cls) => (
+                <Select.Option key={cls.id} value={cls.id}>
+                  {cls.name} - {cls.arm}
+                </Select.Option>
+              ))}
+            </Select>
 
-        <div className="flex gap-4 mb-4 flex-wrap">
-          
-          <Select
-            placeholder="Select Session"
-            style={{ width: 200 }}
-            value={selectedSession}
-            onChange={setSelectedSession}
-          >
-            <Option value="2024/2025">2024/2025</Option>
-            <Option value="2025/2026">2025/2026</Option>
-            <Option value="2026/2027">2026/2027</Option>
-          </Select>
-          <Select
-            placeholder="Select Term"
-            style={{ width: 150 }}
-            value={selectedTerm}
-            onChange={setSelectedTerm}
-          >
-            <Option value="1">1st Term</Option>
-            <Option value="2">2nd Term</Option>
-            <Option value="3">3rd Term</Option>
-          </Select>
-          <Button type="primary" onClick={fetchProgress} loading={loadingProgress}>
-            Fetch Progress
-          </Button>
-        </div>
+            <Select
+              placeholder="Select Session"
+              style={{ width: 200 }}
+              value={selectedSession}
+              onChange={setSelectedSession}
+            >
+              <Option value="2024/2025">2024/2025</Option>
+              <Option value="2025/2026">2025/2026</Option>
+              <Option value="2026/2027">2026/2027</Option>
+            </Select>
+            <Select
+              placeholder="Select Term"
+              style={{ width: 150 }}
+              value={selectedTerm}
+              onChange={setSelectedTerm}
+            >
+              <Option value="1">1st Term</Option>
+              <Option value="2">2nd Term</Option>
+              <Option value="3">3rd Term</Option>
+            </Select>
+            <Button
+              type="primary"
+              onClick={fetchProgress}
+              loading={loadingProgress}
+            >
+              Fetch Progress
+            </Button>
+          </div>
 
-        <Input
+          <Input
             placeholder="Search Student"
             className="!-mt-4"
             value={searchText}
@@ -347,7 +433,10 @@ const StudentProgress = () => {
         ) : (
           <Table
             columns={columns}
-            dataSource={filteredData.map((item, index) => ({ ...item, key: index }))}
+            dataSource={filteredData.map((item, index) => ({
+              ...item,
+              key: index,
+            }))}
             size="small"
             pagination={{
               position: ["bottomCenter"],

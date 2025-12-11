@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   Row,
@@ -24,15 +24,18 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router";
 import { useApp } from "../../context/AppContext";
+import axios from "axios";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const ParentDashboard = () => {
   const navigate = useNavigate();
-  const { logout, user } = useApp();
+  const { logout, user, token, API_BASE_URL, initialized } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTerm, setSelectedTerm] = useState(null);
+  const [result, setResult] = useState(null);
+
 
   const child = {
     term: "1st Term, 2025",
@@ -53,6 +56,33 @@ const ParentDashboard = () => {
     setIsModalOpen(false);
     navigate("/parent/result", { state: { term: selectedTerm } }); // Pass term via state
   };
+
+ const getStudentsResult = async () => {
+  try {
+    const res = await axios.get(
+      `${API_BASE_URL}/api/parent/results?term=1`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    console.log("RESULT:", res.data.data);
+
+    // Store result in state
+    setResult(res.data.data);
+    
+  } catch (error) {
+    console.log("Error get result", error);
+    messageApi.error(error?.response?.data?.message || "No result yet");
+  }
+};
+
+  useEffect(() => {
+    if (!initialized || !token) return;
+
+    getStudentsResult();
+    // getClass();
+  }, [initialized, token]);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen relative">
@@ -252,7 +282,8 @@ const ParentDashboard = () => {
         className="rounded-2xl shadow-sm"
         title={
           <span className="flex items-center gap-2">
-            <CalendarOutlined className="text-orange-500" /> School Announcements
+            <CalendarOutlined className="text-orange-500" /> School
+            Announcements
           </span>
         }
       >

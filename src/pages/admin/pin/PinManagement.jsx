@@ -35,6 +35,7 @@ const PinManagement = () => {
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
 
+console.log(token)
 
 // ------------------ DOWNLOAD FULL TABLE (ALL PINS) ------------------
 const downloadPDF = async () => {

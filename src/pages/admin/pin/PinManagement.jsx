@@ -149,21 +149,20 @@ const downloadPDF = async () => {
 
       const pinsArray = res.data?.data || [];
 
-      const mappedPins = pinsArray.map((item, idx) => ({
-        key: item._id || idx,
+     const mappedPins = pinsArray.map((item, idx) => ({
+  key: item._id || idx,
+  pin: item.pinCode || "--",
+  session: item.session || "--",
+  generatedDate: new Date(item.createdAt).toLocaleDateString(),
 
-        // Root level
-        pin: item.pinCode || "--",
-        session: item.session || "--",
-        generatedDate: new Date(item.createdAt).toLocaleDateString(),
+  // Use the student object directly
+  studentName: item.student?.fullName || "--", // ignore any name stored in PIN
+  class: item.student?.class?.name || "--",
+  arm: item.student?.class?.arm || "--",
+  avatar: item.student?.avatar || "",
+  studentId: item.student?._id,
+}));
 
-        // Student info
-        studentName: item.student?.fullName || "--",
-        class: item.student?.class?.name || "--",
-        arm: item.student?.class?.arm || "--",
-        avatar: item.student?.avatar || "",
-        studentId: item.student?._id,
-      }));
 
       setPins(mappedPins);
     } catch (error) {

@@ -63,6 +63,7 @@ const StudentProgress = () => {
 
 
   const showModal = (record) => {
+    console.log(record)
     const subjectsWithKey = record.subjects.map((sub, index) => ({
       key: index,
       recordId: sub.recordId,

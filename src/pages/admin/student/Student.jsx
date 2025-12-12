@@ -33,6 +33,7 @@ import {
   UploadOutlined,
   MoreOutlined,
   BookOutlined,
+  UserDeleteOutlined,
 } from "@ant-design/icons";
 import std_img from "../../../assets/student.jpg";
 import { useApp } from "../../../context/AppContext";
@@ -68,6 +69,10 @@ const Student = () => {
     useApp();
   const [messageApi, contextHolder] = message.useMessage();
   const [assignLoading, setAssignLoading] = useState(false);
+  const [isUnassignModalOpen, setIsUnassignModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [unassignLoader, setUnassignLoader] = useState(false);
 
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
@@ -331,7 +336,7 @@ const Student = () => {
     }
   };
 
-  console.log(token, API_BASE_URL)
+  // console.log(token, API_BASE_URL);
 
   const handleTableChange = (paginationConfig) => {
     setPagination((prev) => ({
@@ -639,6 +644,32 @@ const Student = () => {
     }
   };
 
+  const unassignSubject = async () => {
+    const id = selectedRecord?._id;
+    console.log(id);
+    try {
+      setUnassignLoader(true);
+      const res = await axios.delete(
+        `${API_BASE_URL}/api/student-management/students/${id}/subjects/${selectedSubject}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      // console.log(res);
+      setIsUnassignModalOpen(false);
+      setSelectedSubject(null);
+      messageApi.success(res.data.message);
+    } catch (error) {
+      messageApi.error(
+        error?.response?.data?.message || "Failed to remove subject"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const columns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     {
@@ -731,6 +762,25 @@ const Student = () => {
         ];
 
         // ✅ Add delete button only for principal
+        if (user.role === "principal") {
+          items.push({
+            key: "4",
+            icon: <UserDeleteOutlined />,
+            label: (
+              <span
+                className=""
+                onClick={() => {
+                  setSelectedRecord(record);
+                  // console.log(record);
+                  setIsUnassignModalOpen(true);
+                }}
+              >
+                Unassign Subject
+              </span>
+            ),
+          });
+        }
+
         if (user.role === "principal") {
           items.push({
             key: "5",
@@ -1575,30 +1625,39 @@ const Student = () => {
         </Form>
       </Modal>
 
-      <Drawer
-        width={800}
-        onClose={closeDrawer}
-        open={drawerOpen}
-        bodyStyle={{ padding: 24 }} // Add enough padding
+      {/* unassign modal */}
+      <Modal
+        title="Unassign Subject"
+        open={isUnassignModalOpen}
+        onCancel={() => {
+          setIsUnassignModalOpen(false);
+          setSelectedSubject(null);
+        }}
+        okText="Proceed"
+        okButtonProps={{
+          disabled: !selectedSubject, // disable if no subject selected
+        }}
+        confirmLoading={loading} // <-- shows loading spinner on OK
+        onOk={() => {
+          unassignSubject(); // your API call
+        }}
       >
-        <Tabs defaultActiveKey="1">
-          <Tabs.TabPane tab="Result" key="1">
-            <div className="px-4 py-2">
-              {" "}
-              {/* extra padding inside tab */}
-              {/* Render student result table here */}
-              {/* <StudentResult studentId={selectedStudent?._id} /> */}
-            </div>
-          </Tabs.TabPane>
+        <p className="mb-2 font-semibold">Select Subject to Unassign</p>
 
-          <Tabs.TabPane tab="Chat" key="2">
-            <div className="px-4 py-2">
-              {/* Render student chat here */}
-              {/* <StudentChat studentId={selectedStudent?._id} /> */}
-            </div>
-          </Tabs.TabPane>
-        </Tabs>
-      </Drawer>
+        <Select
+          style={{ width: "100%" }}
+          placeholder="Choose a subject"
+          value={selectedSubject}
+          loading={unassignLoader} // shows spinner inside select if needed
+          onChange={(value) => setSelectedSubject(value)}
+        >
+          {selectedRecord?.subjects?.map((subj) => (
+            <Select.Option key={subj._id} value={subj._id}>
+              {subj.name} ({subj.code})
+            </Select.Option>
+          ))}
+        </Select>
+      </Modal>
     </div>
   );
 };

@@ -60,35 +60,7 @@ const StudentProgress = () => {
     }
   };
 
-  const getClass = async () => {
-    if (!token) return;
 
-    try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/class-management/classes?limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const data = res?.data?.data || [];
-
-      const mapped = data.map((cls) => ({
-        id: cls._id,
-        name: cls.name,
-        arm: cls.arm,
-      }));
-      // console.log(res);
-
-      setClasses(mapped);
-
-      // console.log(mapped);
-
-      messageApi.success(res?.data?.message || "Classes fetched successfully");
-    } catch (error) {
-      messageApi.error(
-        error?.response?.data?.message || "Failed to fetch classes"
-      );
-    }
-  };
 
   const showModal = (record) => {
     const subjectsWithKey = record.subjects.map((sub, index) => ({
@@ -195,6 +167,39 @@ const StudentProgress = () => {
     }
   };
 
+    const getClass = async () => {
+    if (!token) return;
+
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/class-management/classes?limit=100`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const data = res?.data?.data || [];
+
+      const mapped = data.map((cls) => ({
+        id: cls._id,
+        name: cls.name,
+        arm: cls.arm,
+        label: `${cls.name} - ${cls.arm}`,
+        value: cls._id,
+      }));
+
+      // console.log(res);
+
+      setClasses(mapped);
+
+      // console.log(mapped);
+
+      messageApi.success(res?.data?.message || "Classes fetched successfully");
+    } catch (error) {
+      messageApi.error(
+        error?.response?.data?.message || "Failed to fetch classes"
+      );
+    }
+  };
+
   const fetchProgress = async () => {
     if (!selectedClassArm) return messageApi.warning("Please select arm.");
     if (!selectedSession) return messageApi.warning("Please select a session.");
@@ -259,7 +264,7 @@ const StudentProgress = () => {
   };
 
   useEffect(() => {
-    fetchClasses();
+    // fetchClasses();
     getClass();
   }, []);
 
@@ -378,10 +383,10 @@ const StudentProgress = () => {
         <div className="flex justify-between items-center">
           <div className="flex gap-4 mb-4 flex-wrap">
             <Select
-              placeholder="Select arm" // Shows initially
+              placeholder="Select class arm"
               style={{ width: 200 }}
-              // value={selectedClassArm}
-              onChange={setSelectedClassArm}
+              value={selectedClassArm}
+              onChange={(value) => setSelectedClassArm(value)}
             >
               {classes?.map((cls) => (
                 <Select.Option key={cls.id} value={cls.id}>

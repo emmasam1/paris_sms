@@ -415,7 +415,7 @@ const MyClasses = () => {
     try {
       setLoading(true);
       const res = await axios.get(
-        `${API_BASE_URL}/api/teacher/records?subjectId=${subjectId}&session=2025/2026&term=1&limit=1000`,
+        `${API_BASE_URL}/api/teacher/records?subjectId=${subjectId}&session=2025/2026&term=1&limit=2000`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -449,6 +449,7 @@ const MyClasses = () => {
       }));
 
       setStudentsRecord(mappedStudents);
+      console.log(mappedStudents)
     } catch (error) {
       console.error(error);
       message.error("Failed to fetch records");

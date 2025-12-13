@@ -218,7 +218,6 @@ const ParentResult = () => {
     // noOfSubjects: pdfSubjects.length,
     totalNoInClass: result?.summary?.noInClass,
     noOfArm: result?.student?.totalArmsInLevel,
-
   };
 
   const affectiveDomainData = [
@@ -272,109 +271,108 @@ const ParentResult = () => {
   ];
 
   const handlePDF = async () => {
-  if (!printRef.current) return;
-  setPrintLoading(true);
+    if (!printRef.current) return;
+    setPrintLoading(true);
 
-  try {
-    const element = printRef.current;
+    try {
+      const element = printRef.current;
 
-    // Force fixed width for A4 (approx 794px at 96 DPI)
-    const originalWidth = element.style.width;
-    element.style.width = "794px";
+      // Force fixed width for A4 (approx 794px at 96 DPI)
+      const originalWidth = element.style.width;
+      element.style.width = "794px";
 
-    // Capture the element as canvas
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#FFFFFF",
-    });
+      // Capture the element as canvas
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#FFFFFF",
+      });
 
-    // Restore original width
-    element.style.width = originalWidth;
+      // Restore original width
+      element.style.width = originalWidth;
 
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
-    const imgProps = pdf.getImageProperties(imgData);
-    const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      const imgProps = pdf.getImageProperties(imgData);
+      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-    let heightLeft = imgHeight;
-    let position = 0;
+      let heightLeft = imgHeight;
+      let position = 0;
 
-    // First page
-    pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-    heightLeft -= pdfHeight;
-
-    // Add extra pages if needed
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
+      // First page
       pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
       heightLeft -= pdfHeight;
+
+      // Add extra pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      pdf.save("Paris Africana.pdf");
+      setPrintLoading(false);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("Failed to generate PDF. Check console for details.");
+      setPrintLoading(false);
     }
+  };
 
-    pdf.save("Paris Africana.pdf");
-    setPrintLoading(false);
-  } catch (err) {
-    console.error("PDF generation failed:", err);
-    alert("Failed to generate PDF. Check console for details.");
-    setPrintLoading(false);
-  }
-};
+  //   const handlePDF = async () => {
+  //   if (!printRef.current) return;
+  //   setPrintLoading(true);
 
-//   const handlePDF = async () => {
-//   if (!printRef.current) return;
-//   setPrintLoading(true);
+  //   try {
+  //     const element = printRef.current;
 
-//   try {
-//     const element = printRef.current;
+  //     // Force A4 width in pixels (~794px at 96 DPI)
+  //     const originalWidth = element.style.width;
+  //     element.style.width = "794px";
 
-//     // Force A4 width in pixels (~794px at 96 DPI)
-//     const originalWidth = element.style.width;
-//     element.style.width = "794px";
+  //     // Generate high-quality PNG
+  //     const dataUrl = await toPng(element, { backgroundColor: "#FFFFFF", pixelRatio: 3, cacheBust: true });
 
-//     // Generate high-quality PNG
-//     const dataUrl = await toPng(element, { backgroundColor: "#FFFFFF", pixelRatio: 3, cacheBust: true });
+  //     // Restore original width
+  //     element.style.width = originalWidth;
 
-//     // Restore original width
-//     element.style.width = originalWidth;
+  //     const pdf = new jsPDF("p", "mm", "a4");
+  //     const pdfWidth = pdf.internal.pageSize.getWidth();
+  //     const pdfHeight = pdf.internal.pageSize.getHeight();
 
-//     const pdf = new jsPDF("p", "mm", "a4");
-//     const pdfWidth = pdf.internal.pageSize.getWidth();
-//     const pdfHeight = pdf.internal.pageSize.getHeight();
+  //     const img = new Image();
+  //     img.src = dataUrl;
+  //     img.onload = () => {
+  //       const imgWidth = pdfWidth;
+  //       const imgHeight = (img.height * pdfWidth) / img.width;
 
-//     const img = new Image();
-//     img.src = dataUrl;
-//     img.onload = () => {
-//       const imgWidth = pdfWidth;
-//       const imgHeight = (img.height * pdfWidth) / img.width;
+  //       let heightLeft = imgHeight;
+  //       let position = 0;
 
-//       let heightLeft = imgHeight;
-//       let position = 0;
+  //       pdf.addImage(dataUrl, "PNG", 0, position, imgWidth, imgHeight);
+  //       heightLeft -= pdfHeight;
 
-//       pdf.addImage(dataUrl, "PNG", 0, position, imgWidth, imgHeight);
-//       heightLeft -= pdfHeight;
+  //       while (heightLeft > 0) {
+  //         position = heightLeft - imgHeight;
+  //         pdf.addPage();
+  //         pdf.addImage(dataUrl, "PNG", 0, position, imgWidth, imgHeight);
+  //         heightLeft -= pdfHeight;
+  //       }
 
-//       while (heightLeft > 0) {
-//         position = heightLeft - imgHeight;
-//         pdf.addPage();
-//         pdf.addImage(dataUrl, "PNG", 0, position, imgWidth, imgHeight);
-//         heightLeft -= pdfHeight;
-//       }
-
-//       pdf.save("Paris Africana.pdf");
-//       setPrintLoading(false);
-//     };
-//   } catch (err) {
-//     console.error("PDF generation failed:", err);
-//     alert("Failed to generate PDF. Check console for details.");
-//     setPrintLoading(false);
-//   }
-// };
-
+  //       pdf.save("Paris Africana.pdf");
+  //       setPrintLoading(false);
+  //     };
+  //   } catch (err) {
+  //     console.error("PDF generation failed:", err);
+  //     alert("Failed to generate PDF. Check console for details.");
+  //     setPrintLoading(false);
+  //   }
+  // };
 
   // const handlePDF = async () => {
   //   if (!printRef.current) return;
@@ -436,7 +434,7 @@ const ParentResult = () => {
 
   return (
     <>
-     <style>{`
+      <style>{`
   .domain-table .ant-table-thead > tr > th,
   .domain-table .ant-table-tbody > tr > td {
     font-size: 8px !important; /* Reduce font size */
@@ -449,7 +447,6 @@ const ParentResult = () => {
     padding: 3px !important; 
   }
 `}</style>
-
 
       <div ref={printRef}>
         <div className="p-6 relative">
@@ -573,7 +570,10 @@ const ParentResult = () => {
                     <div className="text-[15px]">
                       NAME:{" "}
                       <span className="font-bold">
-                        {result?.student?.fullName}
+                        {result?.student?.fullName ===
+                        "ODEH EFFIONG ISABELLA DANIEL OKENENI"
+                          ? "ODEH DANIEL OKENENI"
+                          : result?.student?.fullName || "--"}
                       </span>
                     </div>
                     <div className="">
@@ -597,7 +597,9 @@ const ParentResult = () => {
                   </div>
 
                   <div className="col-span-4 grid grid-cols-1 gap-y-1 border-l border-black pl-2">
-                    <div className="font-bold text-[13px] !mb-2">ATTENDANCE</div>
+                    <div className="font-bold text-[13px] !mb-2">
+                      ATTENDANCE
+                    </div>
                     <div className="text-[11px]">
                       NO. OF TIMES SCHOOL OPENED:{" "}
                       <span className="font-extrabold">

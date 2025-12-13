@@ -20,6 +20,7 @@ const { Option } = Select;
 
 const StudentProgress = () => {
   const { API_BASE_URL, token } = useApp();
+  console.log(token);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -60,10 +61,8 @@ const StudentProgress = () => {
     }
   };
 
-
-
   const showModal = (record) => {
-    console.log(record)
+    console.log(record);
     const subjectsWithKey = record.subjects.map((sub, index) => ({
       key: index,
       recordId: sub.recordId,
@@ -168,7 +167,7 @@ const StudentProgress = () => {
     }
   };
 
-    const getClass = async () => {
+  const getClass = async () => {
     if (!token) return;
 
     try {
@@ -219,7 +218,10 @@ const StudentProgress = () => {
       const cleanedData = (res.data.data || []).map((item) => ({
         studentId: item.student?.id,
         admissionNumber: item.student?.admissionNumber || "-",
-        studentName: item.student?.fullName || "-",
+        studentName:
+          item.student?.fullName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
+            ? "ODEH DANIEL OKENENI"
+            : item.student?.fullName || "--",
         className: item.student?.class || "-",
         level: item.student?.level || "-",
         subjects: (item.records || []).map((rec) => ({

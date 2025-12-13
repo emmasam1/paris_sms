@@ -217,7 +217,7 @@ Best wishes from Mobasa.
 2. The Mararaba junction Abacha road, leading to Nyanya is always filled with gridlock. Write a letter of complaints to the Nasarawa State Commissioner of works stating the people's experiences on the road everyday. Plead with the commissioner to build flyover in that distance to avoid urgly experiences of people on the road. In not less than 250 words.
 
 `,
-    }
+    },
   ];
 
   const filteredAssignment = homeWork.filter(
@@ -267,7 +267,12 @@ Best wishes from Mobasa.
         <Col xs={24} md={8}>
           <Card className="rounded-2xl shadow-sm">
             <Text type="secondary">Student Name</Text>
-            <Title level={5}>{user?.fullName}</Title>
+            <Title level={5}>
+              {user?.fullName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
+                ? "ODEH DANIEL OKENENI"
+                : user?.fullName || "--"}
+            </Title>
+
             <Divider className="" />
             <Space direction="vertical" size={0}>
               <Text>
@@ -441,50 +446,48 @@ Best wishes from Mobasa.
       </Card>
 
       {/* Assignment Modal */}
-     <Modal
-  title="Holiday Assignment"
-  open={isAssignmentModalOpen}
-  onOk={handleAssignmentOk}
-  onCancel={handleAssignmentCancel}
-  width={800}
->
-  {filteredAssignment.length > 0 ? (
-    <Tabs
-      defaultActiveKey="0"
-      items={filteredAssignment.map((item, index) => ({
-        key: index.toString(),
-        label: item.subject,
-        children: (
-          <div
-            style={{
-              maxHeight: "65vh",
-              overflowY: "auto",
-              paddingRight: "10px",
-            }}
-          >
-            <h3 style={{ fontWeight: 600, marginBottom: 10 }}>
-              {item.subject}
-            </h3>
+      <Modal
+        title="Holiday Assignment"
+        open={isAssignmentModalOpen}
+        onOk={handleAssignmentOk}
+        onCancel={handleAssignmentCancel}
+        width={800}
+      >
+        {filteredAssignment.length > 0 ? (
+          <Tabs
+            defaultActiveKey="0"
+            items={filteredAssignment.map((item, index) => ({
+              key: index.toString(),
+              label: item.subject,
+              children: (
+                <div
+                  style={{
+                    maxHeight: "65vh",
+                    overflowY: "auto",
+                    paddingRight: "10px",
+                  }}
+                >
+                  <h3 style={{ fontWeight: 600, marginBottom: 10 }}>
+                    {item.subject}
+                  </h3>
 
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                fontSize: "14px",
-                lineHeight: "1.7",
-              }}
-            >
-              {item.content}
-            </pre>
-          </div>
-        ),
-      }))}
-    />
-  ) : (
-    <p>No assignment available for this class.</p>
-  )}
-</Modal>
-
-
+                  <pre
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      fontSize: "14px",
+                      lineHeight: "1.7",
+                    }}
+                  >
+                    {item.content}
+                  </pre>
+                </div>
+              ),
+            }))}
+          />
+        ) : (
+          <p>No assignment available for this class.</p>
+        )}
+      </Modal>
     </div>
   );
 };

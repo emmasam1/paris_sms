@@ -35,33 +35,35 @@ const PinManagement = () => {
   const { API_BASE_URL, token, initialized, loading, setLoading } = useApp();
   const [messageApi, contextHolder] = message.useMessage();
 
-console.log(token)
+  console.log(token);
 
-// ------------------ DOWNLOAD FULL TABLE (ALL PINS) ------------------
-const downloadPDF = async () => {
-  if (!pins.length) return message.info("Nothing to print");
+  // ------------------ DOWNLOAD FULL TABLE (ALL PINS) ------------------
+  const downloadPDF = async () => {
+    if (!pins.length) return message.info("Nothing to print");
 
-  setDownloadLoading(true);
+    setDownloadLoading(true);
 
-  const input = printRef.current;
-  input.style.display = "block";
+    const input = printRef.current;
+    input.style.display = "block";
 
-  const pageSize = 18; // 9 rows × 2 columns per A4 page
-  const pages = [];
+    const pageSize = 18; // 9 rows × 2 columns per A4 page
+    const pages = [];
 
-  for (let i = 0; i < pins.length; i += pageSize) {
-    pages.push(pins.slice(i, i + pageSize));
-  }
+    for (let i = 0; i < pins.length; i += pageSize) {
+      pages.push(pins.slice(i, i + pageSize));
+    }
 
-  const pdf = new jsPDF("p", "mm", "a4");
-  let first = true;
+    const pdf = new jsPDF("p", "mm", "a4");
+    let first = true;
 
-  for (let i = 0; i < pages.length; i++) {
-    const pagePins = pages[i];
+    for (let i = 0; i < pages.length; i++) {
+      const pagePins = pages[i];
 
-    // Insert HTML for this page
-    input.innerHTML = `
-      <h2 style="text-align:center; margin-bottom:15px;">PIN LIST (Page ${i + 1})</h2>
+      // Insert HTML for this page
+      input.innerHTML = `
+      <h2 style="text-align:center; margin-bottom:15px;">PIN LIST (Page ${
+        i + 1
+      })</h2>
 
       <div style="
         display:grid;
@@ -91,29 +93,26 @@ const downloadPDF = async () => {
       </div>
     `;
 
-    // Convert to canvas
-    const canvas = await html2canvas(input, { scale: 2 });
-    const imgData = canvas.toDataURL("image/png");
+      // Convert to canvas
+      const canvas = await html2canvas(input, { scale: 2 });
+      const imgData = canvas.toDataURL("image/png");
 
-    // Fit inside A4
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      // Fit inside A4
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-    if (!first) pdf.addPage();
-    first = false;
+      if (!first) pdf.addPage();
+      first = false;
 
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-  }
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    }
 
-  pdf.save("all-pins.pdf");
+    pdf.save("all-pins.pdf");
 
-  input.style.display = "none";
-  setDownloadLoading(false);
-};
-
-
-
+    input.style.display = "none";
+    setDownloadLoading(false);
+  };
 
   // ------------------ TABLE COLUMNS ------------------
   const columns = [
@@ -145,24 +144,27 @@ const downloadPDF = async () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log("PIN RESPONSE:", res);
+      console.log("PIN RESPONSE:", res);
 
       const pinsArray = res.data?.data || [];
 
-     const mappedPins = pinsArray.map((item, idx) => ({
-  key: item._id || idx,
-  pin: item.pinCode || "--",
-  session: item.session || "--",
-  generatedDate: new Date(item.createdAt).toLocaleDateString(),
+      const mappedPins = pinsArray.map((item, idx) => ({
+        key: item._id || idx,
+        pin: item.pinCode || "--",
+        session: item.session || "--",
+        generatedDate: new Date(item.createdAt).toLocaleDateString(),
 
-  // Use the student object directly
-  studentName: item.student?.fullName || "--", // ignore any name stored in PIN
-  class: item.student?.class?.name || "--",
-  arm: item.student?.class?.arm || "--",
-  avatar: item.student?.avatar || "",
-  studentId: item.student?._id,
-}));
+        // ✅ TARGET ONLY THAT STUDENT
+        studentName:
+          item.student?.fullName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
+            ? "ODEH DANIEL OKENENI"
+            : item.student?.fullName || "--",
 
+        class: item.student?.class?.name || "--",
+        arm: item.student?.class?.arm || "--",
+        avatar: item.student?.avatar || "",
+        studentId: item.student?._id,
+      }));
 
       setPins(mappedPins);
     } catch (error) {
@@ -246,21 +248,16 @@ const downloadPDF = async () => {
       {contextHolder}
 
       {/* HEADER */}
-     
-        <div className="flex justify-end items-center gap-2">
-          <Button type="primary" onClick={() => setIsModalOpen(true)}>
-            Generate PIN
-          </Button>
 
-          <Button
-            type="default"
-            onClick={downloadPDF}
-            loading={downloadLoading}
-          >
-            Download PDF
-          </Button>
-        </div>
-    
+      <div className="flex justify-end items-center gap-2">
+        <Button type="primary" onClick={() => setIsModalOpen(true)}>
+          Generate PIN
+        </Button>
+
+        <Button type="default" onClick={downloadPDF} loading={downloadLoading}>
+          Download PDF
+        </Button>
+      </div>
 
       {/* TABLE */}
       {loading ? (

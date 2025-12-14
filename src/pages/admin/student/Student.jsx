@@ -34,6 +34,7 @@ import {
   MoreOutlined,
   BookOutlined,
   UserDeleteOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import std_img from "../../../assets/student.jpg";
 import { useApp } from "../../../context/AppContext";
@@ -73,6 +74,7 @@ const Student = () => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [unassignLoader, setUnassignLoader] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false)
 
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
@@ -216,6 +218,31 @@ const Student = () => {
   //     setLoading(false);
   //   }
   // };
+
+  const reGenerateResult = async (record) => {
+   
+    const payload = {
+      studentId: record?._id,
+      session: record?.session,
+      term: 1
+    }
+
+    try {
+      setLocalLoading(true)
+      const res = await axios.post(`${API_BASE_URL}/api/results/generate`, payload, {
+      headers: {
+            Authorization: `Bearer ${token}`,
+          },
+    })
+    console.log(res)
+    messageApi.success(res.data.message)
+    } catch (error) {
+      console.log(error)
+      messageApi.error( error?.response?.data?.message)
+    }finally{
+      setLocalLoading(false)
+    }
+  }
 
   const getStudents = async (
     page = 1,
@@ -780,10 +807,25 @@ const Student = () => {
             ),
           });
         }
+        // if (user.role === "principal") {
+        //   items.push({
+        //     key: "5",
+        //     icon: <ReloadOutlined />,
+        //     label: (
+        //       <span
+        //         onClick={() => {
+        //           reGenerateResult(record);
+        //         }}
+        //       >
+        //         Re-generate Result
+        //       </span>
+        //     ),
+        //   });
+        // }
 
         if (user.role === "principal") {
           items.push({
-            key: "5",
+            key: "6",
             icon: <DeleteOutlined style={{ color: "#ff4d4f" }} />,
             label: (
               <Popconfirm

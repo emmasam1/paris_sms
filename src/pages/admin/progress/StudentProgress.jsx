@@ -20,7 +20,7 @@ const { Option } = Select;
 
 const StudentProgress = () => {
   const { API_BASE_URL, token } = useApp();
-  console.log(token);
+  // console.log(token);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -62,7 +62,7 @@ const StudentProgress = () => {
   };
 
   const showModal = (record) => {
-    console.log(record);
+    // console.log(record);
     const subjectsWithKey = record.subjects.map((sub, index) => ({
       key: index,
       recordId: sub.recordId,

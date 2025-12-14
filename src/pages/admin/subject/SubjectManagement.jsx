@@ -66,7 +66,7 @@ const SubjectManagement = () => {
   const [form] = Form.useForm();
 
   const showAssignModal = (record) => {
-    console.log(record);
+    // console.log(record);
     setSelectedSubject(record); // ✅ store the clicked subject
     setIsAssignIsModalOpen(true);
   };

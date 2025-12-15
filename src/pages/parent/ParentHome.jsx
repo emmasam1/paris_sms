@@ -22,7 +22,7 @@ import {
   StarOutlined,
   LogoutOutlined,
   FileSearchOutlined,
-  FilePdfOutlined ,
+  FilePdfOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router";
 import { useApp } from "../../context/AppContext";
@@ -83,79 +83,59 @@ const ParentDashboard = () => {
     // getClass();
   }, [initialized, token]);
 
+ const handleDownloadAssignment = () => {
+  if (!user?.class) {
+    message.error("Student class not found");
+    return;
+  }
 
-  const handleDownloadAssignment = () => {
-    if (!user?.class) {
-      message.error("Student class not found");
-      return;
-    }
+  const assignment = homeWork.find(
+    (hw) => hw.class_name === user.class
+  );
 
-    const assignment = homeWork.find((hw) => hw.class_name === user.class);
+  if (!assignment?.attachment) {
+    message.info("No holiday assignment available for this class");
+    return;
+  }
 
-    if (!assignment || !assignment.attachment) {
-      message.info("No holiday assignment available for this class");
-      return;
-    }
+  // ✅ Open PDF in new tab (preview + download)
+  window.open(assignment.attachment, "_blank");
+};
 
-    // Trigger download
-    const link = document.createElement("a");
-    link.href = assignment.attachment;
-    link.download = assignment.attachment.split("/").pop();
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const homeWork = [
-    {
-      id: 1,
-      class_name: "JSS3",
-      content: `ANSWER ALL QUESTIONS
-  ... (text preview stays here)
-  `,
-      attachment: "/docs/JSS3_Holiday_Assignment.pdf", // ✅ NEW
-    },
-    {
-      id: 2,
-      class_name: "SS2",
-      content: `ANSWER ALL QUESTIONS
-  ... (text preview stays here)
-  `,
-      attachment: "/docs/SS2_Holiday _Assigment.pdf", // ✅ NEW
-    },
-    {
-      id: 3,
-      class_name: "SS1",
-      content: `ANSWER ALL QUESTIONS
-  ... (text preview stays here)
-  `,
-      attachment: "/docs/SS1_Holiday _Assigment.pdf", // ✅ NEW
-    },
-    {
-      id: 4,
-      class_name: "JSS2",
-      content: `ANSWER ALL QUESTIONS
-  ... (text preview stays here)
-  `,
-      attachment: "/docs/JSS2_Holiday _Assigment.pdf", // ✅ NEW
-    },
-    {
-      id: 5,
-      class_name: "JSS2",
-      content: `ANSWER ALL QUESTIONS
-  ... (text preview stays here)
-  `,
-      attachment: "/docs/SS3_Holiday _Assigment.pdf", // ✅ NEW
-    },
-    {
-      id: 5,
-      class_name: "JSS2",
-      content: `ANSWER ALL QUESTIONS
-  ... (text preview stays here)
-  `,
-      attachment: "/docs/JSS1_Holiday _Assigment.pdf", // ✅ NEW
-    },
-  ];
+  {
+    id: 1,
+    class_name: "JSS1",
+    attachment: "/docs/JSS1_Holiday_Assignment.pdf",
+  },
+  {
+    id: 2,
+    class_name: "JSS2",
+    attachment: "/docs/JSS2_Holiday_Assignment.pdf",
+  },
+  {
+    id: 3,
+    class_name: "JSS3",
+    attachment: "/docs/JSS3_Holiday_Assignment.pdf",
+  },
+  {
+    id: 4,
+    class_name: "SS1",
+    attachment: "/docs/SS1_Holiday_Assignment.pdf",
+  },
+  {
+    id: 5,
+    class_name: "SS2",
+    attachment: "/docs/SS2_Holiday_Assignment.pdf",
+  },
+  {
+    id: 6,
+    class_name: "SS3",
+    attachment: "/docs/SS3_Holiday_Assignment.pdf",
+  },
+];
+
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen relative">
@@ -232,7 +212,7 @@ const ParentDashboard = () => {
                 View Result
               </Button>
               <Button
-                icon={<FilePdfOutlined  />}
+                icon={<FilePdfOutlined />}
                 type="primary"
                 className="bg-blue-600 mt-2"
                 onClick={handleDownloadAssignment}

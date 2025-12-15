@@ -61,6 +61,8 @@ const Dashboard = () => {
   const { API_BASE_URL, token, user } = useApp();
   const navigate = useNavigate();
 
+  console.log(token)
+
   // ===== Dummy activity data =====
   const recentActivities = [
     {

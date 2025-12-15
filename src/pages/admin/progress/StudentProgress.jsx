@@ -151,21 +151,6 @@ const StudentProgress = () => {
     }
   };
 
-  const fetchClasses = async () => {
-    setLoadingClasses(true);
-    try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/class-management/classes?limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setClasses(res.data.data || []);
-    } catch (error) {
-      console.error(error);
-      message.error("Failed to fetch classes.");
-    } finally {
-      setLoadingClasses(false);
-    }
-  };
 
   const getClass = async () => {
     if (!token) return;

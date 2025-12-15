@@ -38,7 +38,7 @@ const ParentDashboard = () => {
   const [selectedTerm, setSelectedTerm] = useState(null);
   const [result, setResult] = useState(null);
 
-  console.log(user);
+  // console.log(user);
 
   const child = {
     term: "1st Term, 2025",
@@ -66,7 +66,7 @@ const ParentDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("RESULT:", res.data.data);
+      // console.log("RESULT:", res.data.data);
 
       // Store result in state
       setResult(res.data.data);

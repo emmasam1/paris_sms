@@ -357,13 +357,20 @@ const PinManagement = () => {
               name="student"
               rules={[{ required: true, message: "Select a student" }]}
             >
-              <Select placeholder="Select student">
-                {students.map((std) => (
-                  <Option key={std._id} value={std._id}>
-                    {std.fullName} - {std.class?.name} {std.class?.arm}
-                  </Option>
-                ))}
-              </Select>
+              <Select
+                showSearch
+                placeholder="Search student by name"
+                optionFilterProp="label"
+                filterOption={(input, option) =>
+                  option.label.toLowerCase().includes(input.toLowerCase())
+                }
+                options={students.map((std) => ({
+                  value: std._id,
+                  label: `${std.fullName} - ${std.class?.name || ""} ${
+                    std.class?.arm || ""
+                  }`,
+                }))}
+              />
             </Form.Item>
           )}
 

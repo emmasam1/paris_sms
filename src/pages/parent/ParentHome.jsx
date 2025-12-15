@@ -415,4 +415,3 @@ const ParentDashboard = () => {
 
 export default ParentDashboard;
 
-// Jss1 Eng, Jss2 Math, Ss1 Math, Ss2 Eng and SS3 Eng

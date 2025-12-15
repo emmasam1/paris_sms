@@ -27,6 +27,7 @@ import PrivateRoute from "./privateRoute/PrivateRoute";
 import NotFound from "./components/notfound/NotFound";
 import Attendance from "./pages/teacher/attendance/Attendance";
 import StudentProgress from "./pages/admin/progress/StudentProgress";
+import { BroadSheet } from "./pages/admin/broadsheet/BroadSheet";
 
 const App = () => {
   return (
@@ -69,6 +70,7 @@ const App = () => {
         <Route element={<PrivateRoute allowedRoles={["principal"]} />}>
           <Route path="progress" element={<StudentProgress />} />
           <Route path="pin-management" element={<PinManagement />} />
+          <Route path="result-broadsheet" element={<BroadSheet />} />
         </Route>
       </Route>
 

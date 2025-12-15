@@ -11,6 +11,7 @@ import {
   MessageOutlined,
   ReadOutlined,
   LineChartOutlined,
+  TableOutlined 
 } from "@ant-design/icons";
 import { Layout, Menu, theme, Grid, Dropdown, Avatar, message } from "antd";
 import { Outlet, useLocation, useNavigate } from "react-router";
@@ -57,13 +58,17 @@ const DashboardLayout = () => {
       <ReadOutlined />
     ),
 
-    // ✅ Only principals see this (example: extra menu)
     ...(user?.role === "principal"
       ? [
           getItem(
             "Progress",
             "/admin/dashboard/progress",
             <LineChartOutlined />
+          ),
+          getItem(
+            "Broadsheet",
+            "/admin/dashboard/result-broadsheet",
+            <TableOutlined  />
           ),
           getItem(
             "PIN Management",
@@ -86,6 +91,7 @@ const DashboardLayout = () => {
     "/admin/dashboard/progress": "Student Progress",
     "/admin/dashboard/message": "Message",
     "/admin/dashboard/pin-management": "PIN Management",
+    "/admin/dashboard/result-broadsheet": "Result Broadsheet",
     "/admin/dashboard/settings": "Settings",
   };
   // const [user, setUser] = useState([])

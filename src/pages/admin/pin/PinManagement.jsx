@@ -140,12 +140,12 @@ const PinManagement = () => {
     try {
       setLoading(true);
 
-      const res = await axios.get(`${API_BASE_URL}/api/pin/dashboard`, {
+      const res = await axios.get(`${API_BASE_URL}/api/pin/dashboard?limit=1000`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log("PIN RESPONSE:", res);
-
+      console.log("PIN RESPONSE:", res);
+// 
       const pinsArray = res.data?.data || [];
 
       const mappedPins = pinsArray.map((item, idx) => ({

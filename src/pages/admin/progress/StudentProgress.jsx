@@ -151,7 +151,6 @@ const StudentProgress = () => {
     }
   };
 
-
   const getClass = async () => {
     if (!token) return;
 
@@ -206,6 +205,8 @@ const StudentProgress = () => {
         studentName:
           item.student?.fullName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
             ? "ODEH DANIEL OKENENI"
+            : item.student?.fullName === "NWANKWO ONYINUECHI"
+            ? "NWANKWO ONYINYECHI"
             : item.student?.fullName || "--",
         className: item.student?.class || "-",
         level: item.student?.level || "-",

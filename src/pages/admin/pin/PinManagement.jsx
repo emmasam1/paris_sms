@@ -148,16 +148,18 @@ const PinManagement = () => {
 // 
       const pinsArray = res.data?.data || [];
 
-      const mappedPins = pinsArray.map((item, idx) => ({
+     const mappedPins = pinsArray.map((item, idx) => ({
         key: item._id || idx,
         pin: item.pinCode || "--",
         session: item.session || "--",
         generatedDate: new Date(item.createdAt).toLocaleDateString(),
 
-        // ✅ TARGET ONLY THAT STUDENT
+        // ✅ Handle specific student name corrections
         studentName:
           item.student?.fullName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
             ? "ODEH DANIEL OKENENI"
+            : item.student?.fullName === "NWANKWO ONYINUECHI"
+            ? "NWANKWO ONYINYECHI"
             : item.student?.fullName || "--",
 
         class: item.student?.class?.name || "--",

@@ -66,13 +66,19 @@ const ParentDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log("RESULT:", res.data.data);
-
       // Store result in state
       setResult(res.data.data);
     } catch (error) {
+      const msg = error?.response?.data?.message;
+
+      if (msg === "Invalid or expired parent token") {
+        console.warn("Token invalid or expired. Logging out...");
+        logout(); // Replace with your actual logout function
+        return;
+      }
+
       console.log("Error get result", error);
-      messageApi.error(error?.response?.data?.message || "No result yet");
+      console.error(msg || "No result yet");
     }
   };
 
@@ -83,59 +89,55 @@ const ParentDashboard = () => {
     // getClass();
   }, [initialized, token]);
 
- const handleDownloadAssignment = () => {
-  if (!user?.class) {
-    message.error("Student class not found");
-    return;
-  }
+  const handleDownloadAssignment = () => {
+    if (!user?.class) {
+      message.error("Student class not found");
+      return;
+    }
 
-  const assignment = homeWork.find(
-    (hw) => hw.class_name === user.class
-  );
+    const assignment = homeWork.find((hw) => hw.class_name === user.class);
 
-  if (!assignment?.attachment) {
-    message.info("No holiday assignment available for this class");
-    return;
-  }
+    if (!assignment?.attachment) {
+      message.info("No holiday assignment available for this class");
+      return;
+    }
 
-  // ✅ Open PDF in new tab (preview + download)
-  window.open(assignment.attachment, "_blank");
-};
-
+    // ✅ Open PDF in new tab (preview + download)
+    window.open(assignment.attachment, "_blank");
+  };
 
   const homeWork = [
-  {
-    id: 1,
-    class_name: "JSS1",
-    attachment: "/docs/JSS1_Holiday_Assignment.pdf",
-  },
-  {
-    id: 2,
-    class_name: "JSS2",
-    attachment: "/docs/JSS2_Holiday_Assignment.pdf",
-  },
-  {
-    id: 3,
-    class_name: "JSS3",
-    attachment: "/docs/JSS3_Holiday_Assignment.pdf",
-  },
-  {
-    id: 4,
-    class_name: "SS1",
-    attachment: "/docs/SS1_Holiday_Assignment.pdf",
-  },
-  {
-    id: 5,
-    class_name: "SS2",
-    attachment: "/docs/SS2_Holiday_Assignment.pdf",
-  },
-  {
-    id: 6,
-    class_name: "SS3",
-    attachment: "/docs/SS3_Holiday_Assignment.pdf",
-  },
-];
-
+    {
+      id: 1,
+      class_name: "JSS1",
+      attachment: "/docs/JSS1_Holiday_Assignment.pdf",
+    },
+    {
+      id: 2,
+      class_name: "JSS2",
+      attachment: "/docs/JSS2_Holiday_Assignment.pdf",
+    },
+    {
+      id: 3,
+      class_name: "JSS3",
+      attachment: "/docs/JSS3_Holiday_Assignment.pdf",
+    },
+    {
+      id: 4,
+      class_name: "SS1",
+      attachment: "/docs/SS1_Holiday_Assignment.pdf",
+    },
+    {
+      id: 5,
+      class_name: "SS2",
+      attachment: "/docs/SS2_Holiday_Assignment.pdf",
+    },
+    {
+      id: 6,
+      class_name: "SS3",
+      attachment: "/docs/SS3_Holiday_Assignment.pdf",
+    },
+  ];
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen relative">
@@ -183,6 +185,8 @@ const ParentDashboard = () => {
             <Title level={5}>
               {user?.fullName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
                 ? "ODEH DANIEL OKENENI"
+                : user?.fullName === "NWANKWO ONYINUECHI"
+                ? "NWANKWO ONYINYECHI"
                 : user?.fullName || "--"}
             </Title>
 
@@ -414,4 +418,3 @@ const ParentDashboard = () => {
 };
 
 export default ParentDashboard;
-

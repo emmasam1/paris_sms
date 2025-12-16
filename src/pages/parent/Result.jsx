@@ -573,6 +573,8 @@ const ParentResult = () => {
                         {result?.student?.fullName ===
                         "ODEH EFFIONG ISABELLA DANIEL OKENENI"
                           ? "ODEH DANIEL OKENENI"
+                          : result?.student?.fullName === "NWANKWO ONYINUECHI"
+                          ? "NWANKWO ONYINYECHI"
                           : result?.student?.fullName || "--"}
                       </span>
                     </div>

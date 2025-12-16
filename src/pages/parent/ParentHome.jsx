@@ -138,7 +138,7 @@ const ParentDashboard = () => {
       attachment: "/docs/SS3_Holiday_Assignment.pdf",
     },
   ];
-
+  
   return (
     <div className="p-6 bg-gray-50 min-h-screen relative">
       {/* Welcome / Hero Section */}

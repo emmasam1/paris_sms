@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { UserOutlined, LockOutlined, IdcardOutlined } from "@ant-design/icons";
 import { useApp } from "../../context/AppContext";
 import http from "../../utils/http";
+import logo from "../../assets/logo.png";
 
 const { Text } = Typography;
 
@@ -161,7 +162,7 @@ const Login = () => {
         >
           {/* LOGO */}
           <div className="flex flex-col items-center mb-6">
-            <img src="/src/assets/logo.png" alt="Logo" className="h-12 mb-2" />
+            <img src={logo} alt="Logo" className="h-12 mb-2" />
             <Text type="secondary" className="text-xs tracking-wide">
               {TEXT.title}
             </Text>

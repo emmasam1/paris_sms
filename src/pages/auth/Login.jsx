@@ -1,42 +1,92 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Form, Input, Button, Tabs, message } from "antd";
+import { Form, Input, Button, Tabs, message, Typography } from "antd";
 import { useNavigate } from "react-router";
 import { UserOutlined, LockOutlined, IdcardOutlined } from "@ant-design/icons";
-import axios from "axios";
 import { useApp } from "../../context/AppContext";
+import http from "../../utils/http";
+
+const { Text } = Typography;
+
+/* ================= TEXT (i18n READY) ================= */
+const TEXT = {
+  title: "Education Management Platform",
+  subtitle: "Secure access to your account",
+  staffTab: "Staff & Administrators",
+  parentTab: "Parents / Guardians",
+  email: "Email address",
+  password: "Password",
+  pin: "Student Access Code",
+  signIn: "Sign in",
+  slowNetwork: "A slow network connection was detected. Please wait.",
+  loginSuccess: "Login successful",
+  loginError: "Unable to sign in. Please check your credentials.",
+};
 
 const Login = () => {
   const [activeTab, setActiveTab] = useState("adminTeacher");
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
+  const [form] = Form.useForm();
 
   const { API_BASE_URL, loading, setLoading, setUser, setToken } = useApp();
 
-  // ================= STAFF LOGIN ==================
+  /* ================= NETWORK AWARENESS ================= */
+  const isSlowNetwork =
+    navigator.connection &&
+    ["slow-2g", "2g"].includes(navigator.connection.effectiveType);
+
+  /* ================= PIN FORMATTER ================= */
+  const formatPinInstant = (value = "") => {
+    let raw = value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    const sizes = [3, 4, 4, 4, 4];
+
+    let result = "";
+    let index = 0;
+
+    for (let i = 0; i < sizes.length; i++) {
+      const part = raw.slice(index, index + sizes[i]);
+      if (!part) break;
+
+      result += part;
+      index += sizes[i];
+
+      if (part.length === sizes[i] && index < raw.length) {
+        result += "-";
+      }
+    }
+
+    return result;
+  };
+
+  /* ================= STAFF LOGIN ================= */
   const handleStaffLogin = async (values) => {
     try {
+      if (isSlowNetwork) {
+        messageApi.info(TEXT.slowNetwork);
+      }
+
       setLoading(true);
-      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-        email: values.username,
+
+      const res = await http.post(`${API_BASE_URL}/api/auth/login`, {
+        email: values.email,
         password: values.password,
       });
 
       const { token, user } = res.data;
 
-      // ✅ Save user and token to context (auto-encrypted by AppContext)
       setUser(user);
       setToken(token);
+      sessionStorage.setItem("auth", JSON.stringify({ token, user }));
 
-      // Route based on role
-      const { role, school } = user;
-      switch (role) {
+      switch (user.role) {
         case "super_admin":
           navigate("/super-admin/dashboard");
           break;
         case "principal":
-          if (!school) navigate("/admin/dashboard/settings");
-          else navigate("/admin/dashboard");
+          user.school
+            ? navigate("/admin/dashboard")
+            : navigate("/admin/dashboard/settings");
           break;
         case "school_admin":
           navigate("/admin/dashboard");
@@ -48,194 +98,204 @@ const Login = () => {
           navigate("/teacher/dashboard");
           break;
         default:
-          messageApi.warning("Unknown role. Please contact admin.");
+          messageApi.warning("Unknown user role. Please contact support.");
       }
 
-      messageApi.success(res?.data?.message || "Login successful!");
-      // console.log(res)
+      messageApi.success(res.data.message || TEXT.loginSuccess);
     } catch (err) {
-      console.error("Login error:", err);
-      messageApi.error(
-        err.response?.data?.message || "Login failed. Try again."
-      );
+      messageApi.error(err.response?.data?.message || TEXT.loginError);
     } finally {
       setLoading(false);
     }
   };
 
-  // ================= PARENT LOGIN (DUMMY) ==================
+  /* ================= PARENT LOGIN ================= */
   const handleParentLogin = async (values) => {
-  try {
-    setLoading(true);
+    try {
+      if (isSlowNetwork) {
+        messageApi.info(TEXT.slowNetwork);
+      }
 
-    const res = await axios.post(`${API_BASE_URL}/api/parent/login`, {
-      pinCode: values.pinCode,
-    });
-    console.log(res);
+      setLoading(true);
 
-    // Save the student object as user
-    const user = res.data.student;
-    const token = res.data.token;
+      const res = await http.post(`${API_BASE_URL}/api/parent/login`, {
+        pinCode: values.pinCode,
+      });
 
-    setUser({ ...user, role: "parent" }); // add role for PrivateRoute
-    setToken(token);
+      const user = res.data.student;
+      const token = res.data.token;
 
-    messageApi.success(res.data.message || "Login successful!");
+      setUser({ ...user, role: "parent" });
+      setToken(token);
 
-    navigate("/home");
-  } catch (error) {
-    console.error("Login error:", error);
-    messageApi.error(
-      error.response?.data?.message || "Login failed. Try again."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      sessionStorage.setItem(
+        "auth",
+        JSON.stringify({ token, user: { ...user, role: "parent" } })
+      );
 
-
-  // ================= FORM SUBMIT ==================
-  const onFinish = (values) => {
-    if (activeTab === "adminTeacher") handleStaffLogin(values);
-    else handleParentLogin(values);
+      messageApi.success(res.data.message || TEXT.loginSuccess);
+      navigate("/home");
+    } catch (err) {
+      messageApi.error(err.response?.data?.message || TEXT.loginError);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ================= MOTION VARIANTS ==================
+  /* ================= ANIMATION ================= */
   const formVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-    exit: { opacity: 0, y: -20, transition: { duration: 0.3 } },
+    visible: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 },
   };
 
   return (
     <>
       {contextHolder}
+
       <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
         <motion.div
-          className="bg-white shadow-xl rounded-2xl w-full max-w-sm p-6 border border-gray-100"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
+          className="bg-white shadow-xl rounded-2xl w-full max-w-md p-8 border border-gray-100"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
         >
-          {/* Branding */}
-          <div className="h-15 w-55 flex justify-self-center bg-[url(/src/assets/logo.png)] bg-cover bg-center"></div>
+          {/* LOGO */}
+          <div className="flex flex-col items-center mb-6">
+            <img src="/src/assets/logo.png" alt="Logo" className="h-12 mb-2" />
+            <Text type="secondary" className="text-xs tracking-wide">
+              {TEXT.title}
+            </Text>
+            <p className="text-center text-gray-500 text-sm mt-1">
+              {TEXT.subtitle}
+            </p>
+          </div>
 
-          <p className="text-center text-gray-500 mb-6 text-sm">
-            Welcome back! Please sign in to continue.
-          </p>
-
-          {/* Tabs */}
+          {/* TABS */}
           <Tabs
-            defaultActiveKey="adminTeacher"
-            activeKey={activeTab}
-            onChange={(key) => setActiveTab(key)}
             centered
+            size="small"
+            activeKey={activeTab}
+            onChange={setActiveTab}
             items={[
-              { key: "adminTeacher", label: "Staff Login" },
-              { key: "parent", label: "Parent Login" },
+              { key: "adminTeacher", label: TEXT.staffTab },
+              { key: "parent", label: TEXT.parentTab },
             ]}
           />
 
-          {/* Forms */}
-          <div className="mt-4">
-            <AnimatePresence mode="wait">
-              {activeTab === "adminTeacher" && (
-                <motion.div
-                  key="adminTeacher"
-                  variants={formVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
+          <AnimatePresence mode="wait">
+            {activeTab === "adminTeacher" && (
+              <motion.div
+                key="staff"
+                variants={formVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <Form layout="vertical" onFinish={handleStaffLogin}>
+                  <Form.Item
+                    label={TEXT.email}
+                    name="email"
+                    rules={[
+                      { required: true, message: "Email is required" },
+                      {
+                        type: "email",
+                        message: "Enter a valid email address",
+                      },
+                    ]}
+                  >
+                    <Input
+                      prefix={<UserOutlined />}
+                      placeholder="name@example.com"
+                      autoComplete="email"
+                      aria-label="Email address"
+                      disabled={loading}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    label={TEXT.password}
+                    name="password"
+                    rules={[
+                      { required: true, message: "Password is required" },
+                    ]}
+                  >
+                    <Input.Password
+                      prefix={<LockOutlined />}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      aria-label="Password"
+                      disabled={loading}
+                    />
+                  </Form.Item>
+
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={loading}
+                    block
+                    className="!bg-slate-800 hover:!bg-slate-900 h-10 rounded-md"
+                  >
+                    {TEXT.signIn}
+                  </Button>
+                </Form>
+              </motion.div>
+            )}
+
+            {activeTab === "parent" && (
+              <motion.div
+                key="parent"
+                variants={formVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <Form
+                  layout="vertical"
+                  form={form}
+                  onFinish={handleParentLogin}
                 >
-                  <Form layout="vertical" onFinish={onFinish}>
-                    <Form.Item
-                      label={
-                        <span className="text-sm text-gray-600">Email</span>
+                  <Form.Item
+                    label={TEXT.pin}
+                    name="pinCode"
+                    extra="Enter the access code provided by the school"
+                    rules={[
+                      { required: true, message: "Access code is required" },
+                    ]}
+                  >
+                    <Input
+                      prefix={<IdcardOutlined />}
+                      placeholder="PAR-2025-XXXX-XXXX-XXXX"
+                      maxLength={24}
+                      disabled={loading}
+                      onChange={(e) =>
+                        form.setFieldsValue({
+                          pinCode: formatPinInstant(e.target.value),
+                        })
                       }
-                      name="username"
-                      rules={[
-                        { required: true, message: "Please enter email" },
-                      ]}
-                    >
-                      <Input
-                        prefix={<UserOutlined className="text-gray-400" />}
-                        placeholder="Enter your email"
-                        className="rounded-md bg-gray-50 hover:bg-white focus:bg-white focus:shadow-md transition"
-                      />
-                    </Form.Item>
+                    />
+                  </Form.Item>
 
-                    <Form.Item
-                      label={
-                        <span className="text-sm text-gray-600">Password</span>
-                      }
-                      name="password"
-                      rules={[
-                        { required: true, message: "Please enter password" },
-                      ]}
-                    >
-                      <Input.Password
-                        prefix={<LockOutlined className="text-gray-400" />}
-                        placeholder="Enter your password"
-                        className="rounded-md bg-gray-50 hover:bg-white focus:bg-white focus:shadow-md transition"
-                      />
-                    </Form.Item>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={loading}
+                    disabled={loading}
+                    block
+                    className="!bg-slate-800 hover:!bg-slate-900 h-10 rounded-md"
+                  >
+                    {loading ? "Signing in…" : "Sign in"}
+                  </Button>
+                </Form>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      block
-                      className="!bg-slate-900 !border-none !rounded-md mt-2"
-                    >
-                      Login
-                    </Button>
-                  </Form>
-                </motion.div>
-              )}
-
-              {activeTab === "parent" && (
-                <motion.div
-                  key="parent"
-                  variants={formVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                >
-                  <Form layout="vertical" onFinish={handleParentLogin}>
-                    <Form.Item
-                      label={
-                        <span className="text-sm text-gray-600">Card PIN</span>
-                      }
-                      name="pinCode"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Please enter your Card PIN",
-                        },
-                      ]}
-                    >
-                      <Input.Password
-                        prefix={<IdcardOutlined className="text-gray-400" />}
-                        placeholder="Enter your PIN"
-                        // maxLength={6}
-                        className="rounded-md bg-gray-50 hover:bg-white focus:bg-white focus:shadow-md transition"
-                      />
-                    </Form.Item>
-
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      block
-                      className="!bg-slate-900 !border-none !rounded-md mt-2"
-                    >
-                      Parent Login
-                    </Button>
-                  </Form>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* FOOTER */}
+          <p className="text-xs text-center text-gray-400 mt-6">
+            © {new Date().getFullYear()} Smart Schola. All rights reserved.
+            <br />
+            Secure access • Encrypted sessions • GDPR-ready
+          </p>
         </motion.div>
       </div>
     </>

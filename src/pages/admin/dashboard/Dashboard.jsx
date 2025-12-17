@@ -1,3 +1,4 @@
+// src/pages/admin/dashboard/Dashboard.jsx
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -20,7 +21,6 @@ import {
   DollarOutlined,
   MessageOutlined,
   BarChartOutlined,
-  UploadOutlined,
   IdcardOutlined,
 } from "@ant-design/icons";
 
@@ -30,7 +30,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  // Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
 import { motion } from "framer-motion";
@@ -38,32 +38,32 @@ import { useApp } from "../../../context/AppContext";
 import { useNavigate } from "react-router";
 import axios from "axios";
 
-import UploadResult from "../../../components/uploadresult/UploadResult";
 import GeneratePin from "../../../components/generatepin/GeneratePin";
 import CreateClass from "../../../components/createclass/CreateClass";
 import CreateMessage from "../../../components/message/CreateMessage";
 import ChangePassword from "../../../components/chnagePassword/ChangePassword";
+import CreateTeacher from "../../../components/createTeacher/CreateTeacher";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(false);
-  const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
   const [isPinModalVisible, setIsPinModalVisible] = useState(false);
   const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
+  const [isCreateStaffOpen, setIsStaffClassOpen] = useState(false);
   const [sendMessage, setSendMessage] = useState(false);
   const [analytics, setAnalytics] = useState(null);
-  const [chatDetali, setChatDetail] = useState(null)
+  const [chartData, setChartData] = useState({
+    studentGrowth: [],
+    revenueGrowth: [],
+  });
 
   const [messageApi, contextHolder] = message.useMessage();
-
 
   const { API_BASE_URL, token, user } = useApp();
   const navigate = useNavigate();
 
-  console.log(token)
-
-  // ===== Dummy activity data =====
+  // ===== Recent Activity =====
   const recentActivities = [
     {
       key: "1",
@@ -114,7 +114,7 @@ const Dashboard = () => {
     },
   ];
 
-  // ===== API CALL: Fetch Analytics =====
+  // ===== Fetch Analytics =====
   const getAnalyticsData = async () => {
     if (!token) return;
     setLoading(true);
@@ -123,11 +123,9 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAnalytics(res.data.data.totals);
-      messageApi.success(
-        res?.data?.message || "Dashboard data loaded successfully."
-      );
+      messageApi.success(res?.data?.message || "Dashboard loaded.");
     } catch (error) {
-      console.error("Error fetching analytics:", error);
+      console.error(error);
       messageApi.error("Failed to load dashboard data.");
     } finally {
       setLoading(false);
@@ -138,116 +136,108 @@ const Dashboard = () => {
     getAnalyticsData();
   }, [token]);
 
-  // ===== Cards with navigation =====
+  // ===== Stat Cards =====
   const statCards = [
     {
-      icon: <UserOutlined className="text-3xl !text-blue-500" />,
+      icon: <UserOutlined className="text-3xl text-blue-500" />,
       label: "Students",
       value: analytics?.students ?? 0,
       route: "/admin/dashboard/students",
-      tooltip: "View and manage all students",
+      tooltip: "View students",
     },
     {
-      icon: <IdcardOutlined className="text-3xl !text-orange-500" />,
-      label: "Total Staff",
+      icon: <IdcardOutlined className="text-3xl text-orange-500" />,
+      label: "Staff",
       value: analytics?.staff ?? 0,
       route: "/admin/dashboard/teachers",
-      tooltip: "View and manage staff members",
+      tooltip: "View staff",
     },
     {
-      icon: <BookOutlined className="text-3xl !text-purple-500" />,
+      icon: <BookOutlined className="text-3xl text-purple-500" />,
       label: "Classes",
       value: analytics?.classes ?? 0,
       route: "/admin/dashboard/class-management",
-      tooltip: "View all school classes",
+      tooltip: "View classes",
     },
     ...(user?.role === "principal"
       ? [
           {
-            icon: <KeyOutlined className="text-3xl !text-yellow-500" />,
-            label: "Total PINs",
+            icon: <KeyOutlined className="text-3xl text-yellow-500" />,
+            label: "PINs",
             value: analytics?.pinsGenerated ?? 0,
             route: "/admin/dashboard/pin-management",
-            tooltip: "Manage generated PINs",
+            tooltip: "Manage PINs",
           },
-        ]
-      : []),
-    ...(user?.role === "principal"
-      ? [
           {
-            icon: <DollarOutlined className="text-3xl !text-emerald-500" />,
+            icon: <DollarOutlined className="text-3xl text-green-500" />,
             label: "Revenue",
             value: analytics?.totalRevenue
               ? `₦${analytics.totalRevenue.toLocaleString()}`
               : "₦0",
-            tooltip: "View revenue reports",
+            tooltip: "View revenue",
           },
         ]
-      : []), // if not principal → add nothing
+      : []),
   ];
 
-useEffect(() => {
-  if (user?.role !== "principal") return;
-
-  const dummyStudentGrowth = [
-    { month: "Jan", count: 120 },
-    { month: "Feb", count: 145 },
-    { month: "Mar", count: 160 },
-    { month: "Apr", count: 180 },
-    { month: "May", count: 200 },
-    { month: "Jun", count: 230 },
-  ];
-
-  const dummyRevenueGrowth = [
-    { month: "Jan", amount: 520000 },
-    { month: "Feb", amount: 610000 },
-    { month: "Mar", amount: 700000 },
-    { month: "Apr", amount: 820000 },
-    { month: "May", amount: 960000 },
-    { month: "Jun", amount: 1100000 },
-  ];
-
-  setChatDetail((prev) => ({
-    ...prev,
-    studentGrowth: prev?.studentGrowth?.length ? prev.studentGrowth : dummyStudentGrowth,
-    revenueGrowth: prev?.revenueGrowth?.length ? prev.revenueGrowth : dummyRevenueGrowth,
-  }));
-}, [user]);
-
+  // ===== Dummy Charts =====
+  useEffect(() => {
+    if (user?.role !== "principal") return;
+    setChartData({
+      studentGrowth: [
+        { month: "Jan", count: 120 },
+        { month: "Feb", count: 145 },
+        { month: "Mar", count: 160 },
+        { month: "Apr", count: 180 },
+        { month: "May", count: 200 },
+        { month: "Jun", count: 230 },
+      ],
+      revenueGrowth: [
+        { month: "Jan", amount: 520000 },
+        { month: "Feb", amount: 610000 },
+        { month: "Mar", amount: 700000 },
+        { month: "Apr", amount: 820000 },
+        { month: "May", amount: 960000 },
+        { month: "Jun", amount: 1100000 },
+      ],
+    });
+  }, [user]);
 
   return (
     <div className="space-y-6">
       {contextHolder}
 
-      {user?.needsPasswordChange === true ? (
-        <ChangePassword />
-      ) : (null)}
+      {user?.needsPasswordChange && <ChangePassword />}
 
-      {/* ===== Stats Section ===== */}
+      {/* ===== Stat Cards ===== */}
       <Row gutter={[16, 16]}>
         {statCards.map((item, i) => (
           <Col xs={24} sm={12} md={6} key={i}>
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.15, duration: 0.5 }}
-              whileHover={{ scale: 1.05 }}
-              className="h-full"
+              transition={{ delay: i * 0.1 }}
             >
               <Tooltip title={item.tooltip}>
                 <Card
                   hoverable
                   onClick={() => navigate(item.route)}
-                  className="shadow-md rounded-xl cursor-pointer hover:shadow-lg transition-all duration-200"
+                  className="rounded-xl shadow-md cursor-pointer hover:shadow-lg transition-all duration-200"
                 >
                   {loading ? (
-                    <Skeleton active paragraph={{ rows: 1 }} />
+                    <Skeleton.Input
+                      active
+                      size="small"
+                      style={{ width: "100%" }}
+                    />
                   ) : (
                     <div className="flex items-center space-x-4">
                       {item.icon}
                       <div>
-                        <p className="text-gray-500">{item.label}</p>
-                        <p className="text-xl font-bold">{item.value}</p>
+                        <Text type="secondary">{item.label}</Text>
+                        <Title level={4} className="!m-0">
+                          {item.value}
+                        </Title>
                       </div>
                     </div>
                   )}
@@ -259,40 +249,17 @@ useEffect(() => {
       </Row>
 
       {/* ===== Quick Actions ===== */}
-      <Card className="shadow-sm rounded-xl !mb-3">
-        <Title level={4}>
-          {loading ? (
-            <Skeleton.Input active size="small" style={{ width: 150 }} />
-          ) : (
-            "Quick Actions"
-          )}
-        </Title>
+      {user?.role === "principal" && (
+        <Card className="rounded-xl shadow-sm !mb-3">
+          <Title level={4}>
+            {loading ? (
+              <Skeleton.Input active size="small" style={{ width: 150 }} />
+            ) : (
+              "Quick Actions"
+            )}
+          </Title>
 
-        {loading ? (
           <div className="flex flex-wrap gap-3 mt-3">
-            {Array(5)
-              .fill()
-              .map((_, i) => (
-                <Skeleton.Button
-                  key={i}
-                  active
-                  size="large"
-                  style={{ width: 150 }}
-                />
-              ))}
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-3 mt-3">
-            <Tooltip title="Upload student results">
-              <Button
-                icon={<UploadOutlined />}
-                onClick={() => setIsUploadModalVisible(true)}
-                className="!bg-blue-500 hover:!bg-blue-600 !text-white !border-none"
-              >
-                Upload Result
-              </Button>
-            </Tooltip>
-
             <Tooltip title="Generate parent access PINs">
               <Button
                 icon={<KeyOutlined />}
@@ -326,125 +293,97 @@ useEffect(() => {
             <Tooltip title="Manage teacher accounts">
               <Button
                 icon={<SolutionOutlined />}
-                onClick={() => message.info("Opening message center...")}
+                onClick={() => setIsStaffClassOpen(true)}
                 className="!bg-orange-500 hover:!bg-orange-600 !text-white !border-none"
               >
-                Manage Teachers
-              </Button>
-            </Tooltip>
-
-            <Tooltip title="View school reports">
-              <Button
-                icon={<BarChartOutlined />}
-                onClick={() => message.info("Generating reports...")}
-                className="!bg-gray-600 hover:!bg-gray-700 !text-white !border-none"
-              >
-                Reports
+                Register Staff
               </Button>
             </Tooltip>
           </div>
-        )}
-      </Card>
+        </Card>
+      )}
 
-      {/* ===== Principal Only: Growth Charts ===== */}
+      {/* ===== Growth Charts (Principal) ===== */}
       {user?.role === "principal" && (
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mt-6"
-        >
-          {/* ==== Dummy Data ==== */}
-   
-
-          <Card className="shadow-md rounded-xl border-none">
-            <Title level={4}>School Growth Analytics</Title>
-
-            <Row gutter={[16, 16]}>
-              {/* Student Growth Chart */}
-              <Col xs={24} md={12}>
-                <Card
-                  title="Student Growth"
-                  className="rounded-xl border-none"
-                  bodyStyle={{ padding: 10 }}
-                  headStyle={{ borderBottom: "none" }}
-                >
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={chatDetali?.studentGrowth || []}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="count"
-                        stroke="#3b82f6"
-                        strokeWidth={3}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Card>
-              </Col>
-
-              {/* Revenue Growth Chart */}
-              <Col xs={24} md={12}>
-                <Card
-                  title="Revenue Growth"
-                  className="rounded-xl border-none"
-                  bodyStyle={{ padding: 10 }}
-                  headStyle={{ borderBottom: "none" }}
-                >
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={chatDetali?.revenueGrowth || []}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="amount"
-                        stroke="#10b981"
-                        strokeWidth={3}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Card>
-              </Col>
-            </Row>
-          </Card>
-        </motion.div>
+        <Card className="rounded-xl shadow-md">
+          <Title level={4}>School Growth Analytics</Title>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <Card
+                title="Student Growth"
+                className="rounded-xl shadow-sm"
+                bodyStyle={{ padding: 10 }}
+                headStyle={{ borderBottom: "none" }}
+              >
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={chartData.studentGrowth}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <RechartsTooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Card>
+            </Col>
+            <Col xs={24} md={12}>
+              <Card
+                title="Revenue Growth"
+                className="rounded-xl shadow-sm"
+                bodyStyle={{ padding: 10 }}
+                headStyle={{ borderBottom: "none" }}
+              >
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={chartData.revenueGrowth}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <RechartsTooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="amount"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Card>
+            </Col>
+          </Row>
+        </Card>
       )}
 
       {/* ===== Recent Activity ===== */}
-      <Card className="shadow-md rounded-xl">
+      <Card className="rounded-xl shadow-md">
         <Title level={4}>Recent Activity</Title>
-        {loading ? (
-          <Skeleton active paragraph={{ rows: 6 }} />
-        ) : (
-          <Table
-            columns={columns}
-            dataSource={recentActivities}
-            bordered
-            size="small"
-            pagination={{
-              pageSize: 7,
-              position: ["bottomCenter"],
-              className: "custom-pagination",
-            }}
-            scroll={{ x: "max-content" }}
-            className="custom-table"
-          />
-        )}
+        <Table
+          columns={columns}
+          dataSource={recentActivities}
+          bordered
+          size="small"
+          pagination={{
+            pageSize: 7,
+            position: ["bottomCenter"],
+            className: "custom-pagination", // ✅ preserve your styling
+          }}
+          scroll={{ x: "max-content" }}
+          className="custom-table"
+        />
       </Card>
 
       {/* ===== Modals ===== */}
-      <UploadResult
-        open={isUploadModalVisible}
-        onClose={() => setIsUploadModalVisible(false)}
-      />
       <GeneratePin
         open={isPinModalVisible}
         onClose={() => setIsPinModalVisible(false)}
+      />
+      <CreateTeacher
+        open={isCreateStaffOpen}
+        onClose={() => setIsStaffClassOpen(false)}
       />
       <CreateClass
         open={isCreateClassOpen}

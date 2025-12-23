@@ -6,7 +6,8 @@ import { useNavigate } from "react-router";
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  const API_BASE_URL = "https://scholas-v2.onrender.com";
+  // const API_BASE_URL = "https://scholas-v2.onrender.com";
+  const API_BASE_URL = "https://scholas.onrender.com";
   const SECRET_KEY = import.meta.env.VITE_SECRET_KEY || "fallback-secret-key";
 
   const navigate = useNavigate(); // ✅ FIXED

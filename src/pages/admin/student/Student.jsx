@@ -43,7 +43,33 @@ import axios from "axios";
 const { Title } = Typography;
 const { Option } = Select;
 
-const sessions = ["2023/2024", "2024/2025", "2025/2026"];
+// const sessions = ["2023/2024", "2024/2025", "2025/2026"];
+
+// const getCurrentSession = () => {
+//   const now = new Date();
+//   const year = now.getFullYear();
+//   const month = now.getMonth(); // 0 = Jan
+
+//   return month < 8 ? `${year - 1}/${year}` : `${year}/${year + 1}`;
+// };
+
+const generateSessions = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0 = Jan
+  const currentSession =
+    currentMonth < 8 ? `${year - 1}/${year}` : `${year}/${year + 1}`;
+
+  // Generate 3 sessions: previous, current, next
+  const prevSession = `${parseInt(currentSession.split("/")[0]) - 1}/${
+    parseInt(currentSession.split("/")[1]) - 1
+  }`;
+  const nextSession = `${parseInt(currentSession.split("/")[0]) + 1}/${
+    parseInt(currentSession.split("/")[1]) + 1
+  }`;
+
+  return [prevSession, currentSession, nextSession];
+};
 
 const Student = () => {
   const [searchText, setSearchText] = useState("");
@@ -74,7 +100,7 @@ const Student = () => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [unassignLoader, setUnassignLoader] = useState(false);
-  const [localLoading, setLocalLoading] = useState(false)
+  const [localLoading, setLocalLoading] = useState(false);
 
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
@@ -220,29 +246,32 @@ const Student = () => {
   // };
 
   const reGenerateResult = async (record) => {
-   
     const payload = {
       studentId: record?._id,
       session: record?.session,
-      term: 1
-    }
+      term: 1,
+    };
 
     try {
-      setLocalLoading(true)
-      const res = await axios.post(`${API_BASE_URL}/api/results/generate`, payload, {
-      headers: {
+      setLocalLoading(true);
+      const res = await axios.post(
+        `${API_BASE_URL}/api/results/generate`,
+        payload,
+        {
+          headers: {
             Authorization: `Bearer ${token}`,
           },
-    })
-    console.log(res)
-    messageApi.success(res.data.message)
+        }
+      );
+      console.log(res);
+      messageApi.success(res.data.message);
     } catch (error) {
-      console.log(error)
-      messageApi.error( error?.response?.data?.message)
-    }finally{
-      setLocalLoading(false)
+      console.log(error);
+      messageApi.error(error?.response?.data?.message);
+    } finally {
+      setLocalLoading(false);
     }
-  }
+  };
 
   const getStudents = async (
     page = 1,
@@ -408,9 +437,23 @@ const Student = () => {
     setSelectedStudent(null);
   };
 
+  // const openAddModal = () => {
+  //   setEditingStudent(null);
+  //   form.resetFields();
+  //   setIsModalOpen(true);
+  // };
+
+  const sessions = generateSessions();
+
   const openAddModal = () => {
     setEditingStudent(null);
     form.resetFields();
+
+    // preselect current session
+    form.setFieldsValue({
+      session: generateSessions()[1], // middle item = current session
+    });
+
     setIsModalOpen(true);
   };
 
@@ -595,7 +638,7 @@ const Student = () => {
         );
         messageApi.success(res.data.message || "Student added successfully");
       }
-
+      getStudents()
       setIsModalOpen(false);
       form.resetFields();
       setEditingStudent(null);
@@ -634,7 +677,7 @@ const Student = () => {
   // console.log(token, API_BASE_URL);
 
   const handleDelete = async (record) => {
-    console.log(record);
+    // console.log(record);
     try {
       // Optional: show a loading message
       messageApi.open({
@@ -1370,15 +1413,6 @@ const Student = () => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item label="Status" name="status" initialValue="active">
-                <Select>
-                  <Option value="active">Active</Option>
-                  <Option value="inactive">Inactive</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-
-            <Col span={12}>
               <Form.Item
                 label="Session"
                 name="session"
@@ -1394,57 +1428,36 @@ const Student = () => {
               </Form.Item>
             </Col>
           </Row>
-          {/* 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label="House" name="house">
-                <Input placeholder="e.g. Blue House" />
-              </Form.Item>
-            </Col>
-          </Row> */}
+    
+          {editingStudent && (
+            <>
+              <Title level={5} className="mb-2 text-center">
+                Parent Information
+              </Title>
 
-          <Title level={5} className="mb-2 text-center">
-            Parent Information
-          </Title>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Parent Email" name="parentEmail">
+                    <Input type="email" />
+                  </Form.Item>
+                </Col>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Parent Email"
-                name="parentEmail"
-                // rules={[
-                //   { required: true, message: "Please enter parent email" },
-                // ]}
-              >
-                <Input type="email" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Parent Phone"
-                name="parentPhone"
-                // rules={[
-                //   { required: true, message: "Please enter parent phone" },
-                // ]}
-              >
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
+                <Col span={12}>
+                  <Form.Item label="Parent Phone" name="parentPhone">
+                    <Input />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-          <Row gutter={16}>
-            <Col span={24}>
-              <Form.Item
-                label="Parent Address"
-                name="parentAddress"
-                // rules={[
-                //   { required: true, message: "Please enter parent address" },
-                // ]}
-              >
-                <Input.TextArea rows={2} />
-              </Form.Item>
-            </Col>
-          </Row>
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item label="Parent Address" name="parentAddress">
+                    <Input.TextArea rows={2} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
 
           <div className="flex justify-end gap-3">
             <Button

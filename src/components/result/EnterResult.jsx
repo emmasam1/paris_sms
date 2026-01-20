@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Table, InputNumber, Tag, message, Select } from "antd";
+import { Modal, Table, InputNumber, Tag, message, Select, Input } from "antd";
 import axios from "axios";
 import { useApp } from "../../context/AppContext";
 
@@ -19,6 +19,7 @@ const EnterResult = ({
   teacherSubject,
   onClick,
   selectedLevel,
+  selectedSession,
 }) => {
   const [studentScores, setStudentScores] = useState([]);
   const { API_BASE_URL, token, loading, setLoading } = useApp();
@@ -26,10 +27,10 @@ const EnterResult = ({
   const [hasError, setHasError] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(
-    teacherSubject || null
+    teacherSubject || null,
   );
 
-  const [session, setSession] = useState(null);
+  // const [session, setSession] = useState(null);
   const [term, setTerm] = useState(null);
 
   // ------------------------------------------------------
@@ -41,7 +42,7 @@ const EnterResult = ({
         `${API_BASE_URL}/api/subject-management/subjects?limit=100`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
       const result = res.data;
       // console.log("All subjects:", result.data);
@@ -86,7 +87,7 @@ const EnterResult = ({
       setStudentScores([
         {
           key: selectedSubject._id,
-          subject: selectedSubject.name,
+          subject: selectedSubject,
           subjectId: selectedSubject._id,
           firstAssignment: 0,
           secondAssignment: 0,
@@ -116,7 +117,7 @@ const EnterResult = ({
           setHasError(true);
         } else {
           const stillInvalid = prev.some((r) =>
-            Object.keys(limits).some((f) => r[f] > limits[f])
+            Object.keys(limits).some((f) => r[f] > limits[f]),
           );
           setHasError(stillInvalid);
         }
@@ -131,7 +132,7 @@ const EnterResult = ({
         updated.grade = getGrade(updated.total);
 
         return updated;
-      })
+      }),
     );
   };
 
@@ -140,9 +141,7 @@ const EnterResult = ({
   // ------------------------------------------------------
   const enterScore = async () => {
     if (!student?._id) return message.error("No student selected");
-    if (!session) return message.error("Please select session");
     if (!term) return message.error("Please select term");
-    if (!selectedSubject?._id) return message.error("Please select subject");
     if (hasError) return message.error("Correct invalid score inputs");
 
     const score = studentScores[0];
@@ -150,7 +149,7 @@ const EnterResult = ({
     const payload = {
       studentId: student._id,
       subjectId: selectedSubject._id,
-      session,
+      selectedSession,
       term: Number(term),
       firstAssignment: score.firstAssignment,
       secondAssignment: score.secondAssignment,
@@ -159,6 +158,8 @@ const EnterResult = ({
       exam: score.exam,
     };
 
+    console.log(payload?.subjectId, "subject id")
+
     try {
       setLoading(true);
       const res = await axios.post(
@@ -166,7 +167,7 @@ const EnterResult = ({
         payload,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       onClick && onClick(res.data);
@@ -175,7 +176,9 @@ const EnterResult = ({
       onClose();
     } catch (error) {
       console.error(error);
-      messageApi.error("Score already recorded for this student, subject, session and term");
+      messageApi.error(
+        "Score already recorded for this student, subject, session and term",
+      );
     } finally {
       setLoading(false);
     }
@@ -188,7 +191,7 @@ const EnterResult = ({
       setStudentScores([
         {
           key: selectedSubject._id,
-          subject: selectedSubject.name,
+          subject: selectedSubject,
           subjectId: selectedSubject._id,
           firstAssignment: 0,
           secondAssignment: 0,
@@ -296,14 +299,14 @@ const EnterResult = ({
             g === "A"
               ? "green"
               : g === "B"
-              ? "blue"
-              : g === "C"
-              ? "orange"
-              : g === "D"
-              ? "volcano"
-              : g === "E"
-              ? "purple"
-              : "red"
+                ? "blue"
+                : g === "C"
+                  ? "orange"
+                  : g === "D"
+                    ? "volcano"
+                    : g === "E"
+                      ? "purple"
+                      : "red"
           }
         >
           {g}
@@ -329,19 +332,8 @@ const EnterResult = ({
       {contextHolder}
 
       {/* SESSION & TERM SELECT */}
-      <div className="flex">
-
       <div className="flex gap-4 mb-4">
-        <div className="flex flex-col w-40">
-          <label className="font-semibold mb-1">Session</label>
-          <Select value={session} onChange={setSession} placeholder="Session">
-            <Select.Option value="2024/2025">2024/2025</Select.Option>
-            <Select.Option value="2025/2026">2025/2026</Select.Option>
-            <Select.Option value="2026/2027">2026/2027</Select.Option>
-          </Select>
-        </div>
-
-        <div className="flex flex-col w-40">
+        <div className="flex flex-col w-40 -mt-1">
           <label className="font-semibold mb-1">Term</label>
           <Select value={term} onChange={setTerm} placeholder="Term">
             <Select.Option value="1">First Term</Select.Option>
@@ -349,11 +341,16 @@ const EnterResult = ({
             <Select.Option value="3">Third Term</Select.Option>
           </Select>
         </div>
-      </div>
 
-      <div className="flex flex-col w-80 mb-4 ml-4">
-        <label className="font-semibold mb-1">Subject</label>
-        <Select
+        <div className="">
+          <label className="font-semibold mb-1">Session</label>
+          <Input value={selectedSession} disabled />
+        </div>
+
+        <div className="">
+          <label className="font-semibold mb-1">Subject</label>
+          <Input value={selectedSubject} disabled />
+          {/* <Select
           value={selectedSubject?._id}
           onChange={(id) => {
             const fullSub = subjects.find((s) => s._id === id);
@@ -383,8 +380,8 @@ const EnterResult = ({
               {sub.name}
             </Select.Option>
           ))}
-        </Select>
-      </div>
+        </Select> */}
+        </div>
       </div>
 
       {/* SCORE TABLE */}

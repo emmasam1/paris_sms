@@ -1,5 +1,5 @@
 // MyClasses.jsx (cleaned version)
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Card,
   Table,
@@ -75,6 +75,28 @@ const MyClasses = () => {
 
   const [errors, setErrors] = useState({});
 
+  const [academicSessions, setAcademicSessions] = useState([]);
+  const [selectedAcademicSession, setSelectedAcademicSession] = useState(null);
+
+  const generateSessions = (yearsBack = 15) => {
+    const currentYear = new Date().getFullYear();
+    const sessions = [];
+
+    for (let i = yearsBack; i >= 1; i--) {
+      const startYear = currentYear - i;
+      sessions.push(`${startYear}/${startYear + 1}`);
+    }
+
+    sessions.push(`${currentYear}/${currentYear + 1}`);
+    return sessions;
+  };
+
+  const sessions = useMemo(() => generateSessions(15), []);
+
+  useEffect(() => {
+    setAcademicSessions(sessions);
+  }, [sessions]);
+
   // safe guard: editStudentRecord may be null
   const isJSS = !!editStudentRecord?.class?.name
     ?.toLowerCase?.()
@@ -115,10 +137,13 @@ const MyClasses = () => {
   // ---------------------------
   // GET teacher class details (levels, classes, subjects, students)
   // ---------------------------
+  
   const getTeacherClassDetails = async () => {
     if (!token) return;
+
     try {
       setLoading(true);
+
       const res = await axios.get(`${API_BASE_URL}/api/teacher/students`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -126,25 +151,15 @@ const MyClasses = () => {
       messageApi.success(res.data.message);
 
       const allLevels = res?.data?.data || [];
-      // keep full raw payload (we'll search it later)
+
+      // store raw payload
       setTeacherData(allLevels);
 
-      // Save top-level subject if present (legacy)
-      const responseSubject =
-        res?.data?.data?.[0]?.subject || res?.data?.subject;
-      if (responseSubject) setSubject(responseSubject);
-
-      // build unique level list:
+      // LEVELS (no session filter here)
       const levelList = [...new Set(allLevels.map((item) => item.level))];
       setLevels(levelList);
 
-      // IMPORTANT: do NOT auto-select level/arm/subject so user picks them explicitly.
-      // This prevents unexpected data loading when teacher has multiple subjects for same level/class.
-      setSelectedLevel(null);
-      setSelectedArm(null);
-      setSelectedSubject(null);
-
-      // Pre-populate `subjects` dropdown with distinct subjects available for the teacher
+      // SUBJECTS
       const subjMap = new Map();
       allLevels.forEach((entry) => {
         if (entry.subject && entry.subject._id) {
@@ -155,11 +170,17 @@ const MyClasses = () => {
         }
       });
       setSubjects(Array.from(subjMap.values()));
+
+      // RESET selections
+      setSelectedAcademicSession(null);
+      setSelectedLevel(null);
+      setSelectedArm(null);
+      setSelectedSubject(null);
     } catch (error) {
       console.error("getTeacherClassDetails error:", error);
       messageApi.error(
         error?.response?.data?.message ||
-          "Unable to fetch teacher class details."
+          "Unable to fetch teacher class details.",
       );
     } finally {
       setLoading(false);
@@ -171,6 +192,17 @@ const MyClasses = () => {
     getTeacherClassDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!selectedAcademicSession) return;
+
+    const filtered = teacherData.filter(
+      (item) =>
+        (item.academicSession || item.session) === selectedAcademicSession,
+    );
+
+    setLevels([...new Set(filtered.map((i) => i.level))]);
+  }, [selectedAcademicSession, teacherData]);
 
   // ---------------------------
   // when selectedLevel changes -> compute arms for that level, reset downstream selects
@@ -184,12 +216,10 @@ const MyClasses = () => {
       return;
     }
 
-    // find entries matching this level (teacherData may contain multiple entries per level if teacher teaches multiple subjects)
     const entriesForLevel = teacherData.filter(
-      (e) => e.level === selectedLevel
+      (e) => e.level === selectedLevel,
     );
 
-    // gather unique arms present across classes for this level (merge across subjects)
     const armsSet = new Set();
     entriesForLevel.forEach((entry) => {
       (entry.classes || []).forEach((c) => {
@@ -198,10 +228,8 @@ const MyClasses = () => {
       });
     });
 
-    setArms(Array.from(armsSet));
-    // reset arm & subject selection so user must explicitly choose
+    setArms([...armsSet]);
     setSelectedArm(null);
-    setSelectedSubject(null);
     setStudents([]);
     setTotal(0);
     setPage(1);
@@ -211,40 +239,38 @@ const MyClasses = () => {
   // When selectedLevel or selectedArm or selectedSubject changes:
   // Only fetch students AFTER user has selected level + arm + subject (explicit requirement).
   // ---------------------------
+  // useEffect(() => {
+  //   if (selectedLevel && selectedArm && selectedSubject) {
+  //     // fetch page 1
+  //     fetchStudentsForClass(1, limit);
+  //     // also fetch records (view/edit) if needed
+  //     getRecord();
+  //   } else {
+  //     setStudents([]);
+  //     setStudentsRecord([]);
+  //     setTotal(0);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [selectedLevel, selectedArm, selectedSubject]);
+
   useEffect(() => {
-    if (selectedLevel && selectedArm && selectedSubject) {
-      // fetch page 1
-      fetchStudentsForClass(1, limit);
-      // also fetch records (view/edit) if needed
-      getRecord();
-    } else {
-      setStudents([]);
-      setStudentsRecord([]);
-      setTotal(0);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLevel, selectedArm, selectedSubject]);
+    setStudents([]);
+    setStudentsRecord([]);
+    setTotal(0);
+  }, [selectedAcademicSession, selectedLevel, selectedArm, selectedSubject]);
 
   // ---------------------------
   // Helper: find the teacherData entry that matches level+arm+subjectId
   // (teacherData entries are per-level-per-subject typically)
   // ---------------------------
   const findEntryForSelection = (level, arm, subjectId) => {
-    if (!level || !arm || !subjectId) return null;
+    if (!level || !arm || !subjectId || !selectedAcademicSession) return null;
 
-    // First try to find an entry where level matches and subject._id matches
-    const bySubject = teacherData.find(
-      (e) =>
-        e.level === level &&
-        (e.subject?._id === subjectId || e.subject === subjectId)
-    );
-    if (bySubject) return bySubject;
-
-    // Fallback: find any entry with same level and class arm (useful if backend structure differs)
     return teacherData.find(
       (e) =>
+        (e.academicSession || e.session) === selectedAcademicSession &&
         e.level === level &&
-        (e.classes || []).some((c) => (c.class?.arm || c.class?.name) === arm)
+        (e.subject?._id === subjectId || e.subject === subjectId),
     );
   };
 
@@ -262,8 +288,11 @@ const MyClasses = () => {
       url.searchParams.append("level", selectedLevel);
       url.searchParams.append("arm", selectedArm);
       url.searchParams.append("subject", selectedSubject);
-      url.searchParams.append("page", pageParam);
+      url.searchParams.append("session", selectedAcademicSession);
+
       url.searchParams.append("limit", limitParam);
+
+      // console.log(selectedSubject)
 
       const res = await axios.get(url.toString(), {
         headers: { Authorization: `Bearer ${token}` },
@@ -274,7 +303,7 @@ const MyClasses = () => {
         `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
       const allSubjectsList =
         subRes?.data?.data?.map((s) => ({ _id: s._id, name: s.name })) || [];
@@ -289,7 +318,7 @@ const MyClasses = () => {
         const entry = findEntryForSelection(
           selectedLevel,
           selectedArm,
-          selectedSubject
+          selectedSubject,
         );
 
         if (entry) {
@@ -297,14 +326,14 @@ const MyClasses = () => {
           const matchedClass = (entry.classes || []).find(
             (c) =>
               (c.class?.arm || c.class?.name || "").toLowerCase() ===
-              selectedArm.toLowerCase()
+              selectedArm.toLowerCase(),
           );
           classStudents = matchedClass?.students || [];
         } else {
           // As fallback, use first-level object's classes that match arm
           const fallback = data.data[0];
           const matchedClass = (fallback.classes || []).find(
-            (c) => (c.class?.arm || c.class?.name) === selectedArm
+            (c) => (c.class?.arm || c.class?.name) === selectedArm,
           );
           classStudents = matchedClass?.students || [];
         }
@@ -322,17 +351,17 @@ const MyClasses = () => {
       // Extract classId robustly
       const classId =
         data?.data?.[0]?.classes?.find(
-          (c) => (c.class?.arm || c.class?.name) === selectedArm
+          (c) => (c.class?.arm || c.class?.name) === selectedArm,
         )?.class?._id || // from response
         // fallback: find entry and class there
         (() => {
           const entry = findEntryForSelection(
             selectedLevel,
             selectedArm,
-            selectedSubject
+            selectedSubject,
           );
           const matched = entry?.classes?.find(
-            (c) => (c.class?.arm || c.class?.name) === selectedArm
+            (c) => (c.class?.arm || c.class?.name) === selectedArm,
           );
           return matched?.class?._id;
         })();
@@ -347,7 +376,13 @@ const MyClasses = () => {
       }
 
       // Fetch result statuses for this class+subject
-      const dashboardURL = `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subjectId}&session=2025/2026&term=1`;
+      const dashboardURL =
+        `${API_BASE_URL}/api/records/teacher/scores/dashboard` +
+        `?classId=${classId}` +
+        `&subjectId=${subjectId}` +
+        `&session=${selectedAcademicSession}` +
+        `&term=1`;
+
       const scoreRes = await axios.get(dashboardURL, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -375,7 +410,7 @@ const MyClasses = () => {
       console.error("fetchStudentsForClass ERROR:", error);
       messageApi.error(
         error?.response?.data?.message ||
-          "No students in this class offer this subject"
+          "No students in this class offer this subject",
       );
     } finally {
       setLoading(false);
@@ -391,7 +426,7 @@ const MyClasses = () => {
         `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
       const cleaned =
         res.data?.data?.map((s) => ({ _id: s._id, name: s.name })) || [];
@@ -415,8 +450,12 @@ const MyClasses = () => {
     try {
       setLoading(true);
       const res = await axios.get(
-        `${API_BASE_URL}/api/teacher/records?subjectId=${subjectId}&session=2025/2026&term=1&limit=2000`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_BASE_URL}/api/teacher/records` +
+          `?subjectId=${subjectId}` +
+          `&session=${selectedAcademicSession}` +
+          `&term=1` +
+          `&limit=2000`,
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       const results = res.data?.data?.results;
@@ -449,7 +488,7 @@ const MyClasses = () => {
       }));
 
       setStudentsRecord(mappedStudents);
-      console.log(mappedStudents)
+      // console.log(mappedStudents);
     } catch (error) {
       console.error(error);
       message.error("Failed to fetch records");
@@ -476,8 +515,8 @@ const MyClasses = () => {
         prev.map((student) =>
           student._id === activeStudent?._id
             ? { ...student, hasRecord: true }
-            : student
-        )
+            : student,
+        ),
       );
     }
   };
@@ -528,6 +567,7 @@ const MyClasses = () => {
               setActiveStudent(record);
               setActiveSubjects(record.subjects || []);
               setIsResultModalOpen(true);
+              // console.log(record)
             }}
           >
             Enter
@@ -696,13 +736,35 @@ const MyClasses = () => {
               ))}
             </Select>
 
+            {/* SESSION SELECT */}
+            <Select
+              placeholder="Select Academic Session"
+              style={{ width: 240 }}
+              value={selectedAcademicSession}
+              onChange={setSelectedAcademicSession}
+              allowClear
+            >
+              {academicSessions.map((sess) => (
+                <Select.Option key={sess} value={sess}>
+                  {sess}
+                </Select.Option>
+              ))}
+            </Select>
+
             <Button
               onClick={() => {
-                if (!selectedLevel || !selectedArm || !selectedSubject) {
-                  message.error("Select Level, Subject and Arm first");
+                if (
+                  !selectedAcademicSession ||
+                  !selectedLevel ||
+                  !selectedArm ||
+                  !selectedSubject
+                ) {
+                  message.error(
+                    "Select Academic Session, Level, Subject and Arm first",
+                  );
                   return;
                 }
-                // manual trigger (optional) — fetches records & students
+
                 fetchStudentsForClass(1, limit);
                 getRecord();
               }}
@@ -787,6 +849,7 @@ const MyClasses = () => {
                 onClick={handleSubmit}
                 selectedLevel={selectedLevel}
                 selectedSubject={selectedSubject}
+                selectedSession={selectedAcademicSession}
               />
 
               <Modal
@@ -914,7 +977,7 @@ const MyClasses = () => {
                 payload,
                 {
                   headers: { Authorization: `Bearer ${token}` },
-                }
+                },
               );
 
               // UPDATE LOCAL UI
@@ -922,8 +985,8 @@ const MyClasses = () => {
                 prev.map((stu) =>
                   stu.recordId === editStudentRecord.recordId
                     ? { ...stu, record: { ...stu.record, ...values } }
-                    : stu
-                )
+                    : stu,
+                ),
               );
 
               messageApi.success("Record updated successfully!");
@@ -1032,3 +1095,4 @@ const MyClasses = () => {
 };
 
 export default MyClasses;
+

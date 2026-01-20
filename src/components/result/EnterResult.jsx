@@ -20,6 +20,7 @@ const EnterResult = ({
   onClick,
   selectedLevel,
   selectedSession,
+  subjectId
 }) => {
   const [studentScores, setStudentScores] = useState([]);
   const { API_BASE_URL, token, loading, setLoading } = useApp();
@@ -29,8 +30,7 @@ const EnterResult = ({
   const [selectedSubject, setSelectedSubject] = useState(
     teacherSubject || null,
   );
-
-  // const [session, setSession] = useState(null);
+ 
   const [term, setTerm] = useState(null);
 
   // ------------------------------------------------------
@@ -88,7 +88,7 @@ const EnterResult = ({
         {
           key: selectedSubject._id,
           subject: selectedSubject,
-          subjectId: selectedSubject._id,
+          subjectId: subjectId,
           firstAssignment: 0,
           secondAssignment: 0,
           firstCATest: 0,
@@ -148,8 +148,8 @@ const EnterResult = ({
 
     const payload = {
       studentId: student._id,
-      subjectId: selectedSubject._id,
-      selectedSession,
+      subjectId: subjectId,
+      session: selectedSession,
       term: Number(term),
       firstAssignment: score.firstAssignment,
       secondAssignment: score.secondAssignment,
@@ -158,7 +158,7 @@ const EnterResult = ({
       exam: score.exam,
     };
 
-    console.log(payload?.subjectId, "subject id")
+    console.log(payload)
 
     try {
       setLoading(true);
@@ -185,14 +185,14 @@ const EnterResult = ({
   };
 
   const resetForm = () => {
-    setSession(null);
+    
     setTerm(null);
     if (selectedSubject) {
       setStudentScores([
         {
           key: selectedSubject._id,
           subject: selectedSubject,
-          subjectId: selectedSubject._id,
+          subjectId: subjectId,
           firstAssignment: 0,
           secondAssignment: 0,
           firstCATest: 0,

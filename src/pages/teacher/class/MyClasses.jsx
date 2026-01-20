@@ -46,7 +46,10 @@ const MyClasses = () => {
   const [activeSubjects, setActiveSubjects] = useState(null);
   const [subject, setSubject] = useState(null); // teacherSubject from API (raw)
   // IMPORTANT: selectedSubject is the subject ID (string). This avoids confusion when API returns object sometimes.
-  const [selectedSubject, setSelectedSubject] = useState(null);
+  // selectedSubject === SUBJECT ID (string)
+const [selectedSubject, setSelectedSubject] = useState(null);
+const [selectedStudentId, setSelectedStudentId] = useState(null);
+
 
   const [studentsRecord, setStudentsRecord] = useState([]);
 
@@ -62,8 +65,9 @@ const MyClasses = () => {
 
   // students shown in the table
   const [students, setStudents] = useState([]);
-  // subjects shown in Subject dropdown (for user to pick). Each item: {_id, name}
+  
   const [subjects, setSubjects] = useState([]);
+
 
   // loading & messages
   const [loading, setLoading] = useState(false);
@@ -847,6 +851,7 @@ const MyClasses = () => {
                   subjects?.find((s) => s._id === selectedSubject)?.name
                 }
                 onClick={handleSubmit}
+                subjectId={selectedSubject}
                 selectedLevel={selectedLevel}
                 selectedSubject={selectedSubject}
                 selectedSession={selectedAcademicSession}

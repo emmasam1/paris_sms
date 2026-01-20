@@ -684,7 +684,7 @@ const MyClasses = () => {
             {/* LEVEL SELECT */}
             <Select
               placeholder="Select Level"
-              style={{ width: 220 }}
+              style={{ width: 120 }}
               value={selectedLevel}
               onChange={(value) => setSelectedLevel(value)}
               loading={loading && !levels.length}
@@ -739,7 +739,7 @@ const MyClasses = () => {
             {/* SESSION SELECT */}
             <Select
               placeholder="Select Academic Session"
-              style={{ width: 240 }}
+              style={{ width: 200 }}
               value={selectedAcademicSession}
               onChange={setSelectedAcademicSession}
               allowClear

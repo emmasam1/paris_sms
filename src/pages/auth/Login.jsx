@@ -131,7 +131,7 @@ const Login = () => {
 
       sessionStorage.setItem(
         "auth",
-        JSON.stringify({ token, user: { ...user, role: "parent" } })
+        JSON.stringify({ token, user: { ...user, role: "parent" } }),
       );
 
       messageApi.success(res.data.message || TEXT.loginSuccess);
@@ -153,151 +153,165 @@ const Login = () => {
   return (
     <>
       {contextHolder}
+      <div className="bg-white min-h-screen w-full overflow-hidden grid grid-cols-1 md:grid-cols-2">
+        {/* LEFT SIDE: Form */}
+        <div
+          className="hidden md:flex bg-cover bg-center"
+          style={{
+            backgroundImage:
+              "url('/student-with-yellow-t-shirt-writing-blackboard.jpg')",
+          }}
+        ></div>
 
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
-        <motion.div
-          className="bg-white shadow-xl rounded-2xl w-full max-w-md p-8 border border-gray-100"
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          {/* LOGO */}
-          <div className="flex flex-col items-center mb-6">
-            <img src={logo} alt="Logo" className="h-12 mb-2" />
-            <Text type="secondary" className="text-xs tracking-wide">
-              {TEXT.title}
-            </Text>
-            <p className="text-center text-gray-500 text-sm mt-1">
-              {TEXT.subtitle}
-            </p>
-          </div>
+        {/* RIGHT SIDE: Image */}
+        <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
+          <motion.div
+            className="bg-white  rounded-2xl w-full max-w-md p-8 border border-gray-100"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {/* LOGO */}
+            <div className="flex flex-col items-center mb-6">
+              <img src={logo} alt="Logo" className="h-12 mb-2" />
+              <Text type="secondary" className="text-xs tracking-wide">
+                {TEXT.title}
+              </Text>
+              <p className="text-center text-gray-500 text-sm mt-1">
+                {TEXT.subtitle}
+              </p>
+            </div>
 
-          {/* TABS */}
-          <Tabs
-            centered
-            size="small"
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            items={[
-              { key: "adminTeacher", label: TEXT.staffTab },
-              { key: "parent", label: TEXT.parentTab },
-            ]}
-          />
+            {/* TABS */}
+            <Tabs
+              centered
+              size="small"
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              items={[
+                { key: "adminTeacher", label: TEXT.staffTab },
+                { key: "parent", label: TEXT.parentTab },
+              ]}
+            />
 
-          <AnimatePresence mode="wait">
-            {activeTab === "adminTeacher" && (
-              <motion.div
-                key="staff"
-                variants={formVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-              >
-                <Form layout="vertical" onFinish={handleStaffLogin}>
-                  <Form.Item
-                    label={TEXT.email}
-                    name="email"
-                    rules={[
-                      { required: true, message: "Email is required" },
-                      {
-                        type: "email",
-                        message: "Enter a valid email address",
-                      },
-                    ]}
-                  >
-                    <Input
-                      prefix={<UserOutlined />}
-                      placeholder="name@example.com"
-                      autoComplete="email"
-                      aria-label="Email address"
-                      disabled={loading}
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    label={TEXT.password}
-                    name="password"
-                    rules={[
-                      { required: true, message: "Password is required" },
-                    ]}
-                  >
-                    <Input.Password
-                      prefix={<LockOutlined />}
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                      aria-label="Password"
-                      disabled={loading}
-                    />
-                  </Form.Item>
-
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    block
-                    className="!bg-slate-800 hover:!bg-slate-900 h-10 rounded-md"
-                  >
-                    {TEXT.signIn}
-                  </Button>
-                </Form>
-              </motion.div>
-            )}
-
-            {activeTab === "parent" && (
-              <motion.div
-                key="parent"
-                variants={formVariants}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-              >
-                <Form
-                  layout="vertical"
-                  form={form}
-                  onFinish={handleParentLogin}
+            <AnimatePresence mode="wait">
+              {activeTab === "adminTeacher" && (
+                <motion.div
+                  key="staff"
+                  variants={formVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
                 >
-                  <Form.Item
-                    label={TEXT.pin}
-                    name="pinCode"
-                    extra="Enter the access code provided by the school"
-                    rules={[
-                      { required: true, message: "Access code is required" },
-                    ]}
+                  <Form layout="vertical" onFinish={handleStaffLogin}>
+                    <Form.Item
+                      label={TEXT.email}
+                      name="email"
+                      rules={[
+                        { required: true, message: "Email is required" },
+                        {
+                          type: "email",
+                          message: "Enter a valid email address",
+                        },
+                      ]}
+                    >
+                      <Input
+                        prefix={<UserOutlined />}
+                        placeholder="name@example.com"
+                        autoComplete="email"
+                        aria-label="Email address"
+                        disabled={loading}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      label={TEXT.password}
+                      name="password"
+                      rules={[
+                        { required: true, message: "Password is required" },
+                      ]}
+                    >
+                      <Input.Password
+                        prefix={<LockOutlined />}
+                        placeholder="••••••••"
+                        autoComplete="current-password"
+                        aria-label="Password"
+                        disabled={loading}
+                      />
+                    </Form.Item>
+
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={loading}
+                      block
+                      className="!bg-slate-800 hover:!bg-slate-900 h-10 rounded-md"
+                    >
+                      {TEXT.signIn}
+                    </Button>
+                  </Form>
+                </motion.div>
+              )}
+
+              {activeTab === "parent" && (
+                <motion.div
+                  key="parent"
+                  variants={formVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  <Form
+                    layout="vertical"
+                    form={form}
+                    onFinish={handleParentLogin}
                   >
-                    <Input
-                      prefix={<IdcardOutlined />}
-                      placeholder="PAR-2025-XXXX-XXXX-XXXX"
-                      maxLength={24}
+                    <Form.Item
+                      label={TEXT.pin}
+                      name="pinCode"
+                      extra="Enter the access code provided by the school"
+                      rules={[
+                        {
+                          required: true,
+                          message: "Access code is required",
+                        },
+                      ]}
+                    >
+                      <Input
+                        prefix={<IdcardOutlined />}
+                        placeholder="PAR-2025-XXXX-XXXX-XXXX"
+                        maxLength={24}
+                        disabled={loading}
+                        onChange={(e) =>
+                          form.setFieldsValue({
+                            pinCode: formatPinInstant(e.target.value),
+                          })
+                        }
+                      />
+                    </Form.Item>
+
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={loading}
                       disabled={loading}
-                      onChange={(e) =>
-                        form.setFieldsValue({
-                          pinCode: formatPinInstant(e.target.value),
-                        })
-                      }
-                    />
-                  </Form.Item>
+                      block
+                      className="!bg-slate-800 hover:!bg-slate-900 h-10 rounded-md"
+                    >
+                      {loading ? "Signing in…" : "Sign in"}
+                    </Button>
+                  </Form>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    disabled={loading}
-                    block
-                    className="!bg-slate-800 hover:!bg-slate-900 h-10 rounded-md"
-                  >
-                    {loading ? "Signing in…" : "Sign in"}
-                  </Button>
-                </Form>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* FOOTER */}
-          <p className="text-xs text-center text-gray-400 mt-6">
-            © {new Date().getFullYear()} Smart Schola. All rights reserved.
-            <br />
-            Secure access • Encrypted sessions • GDPR-ready
-          </p>
-        </motion.div>
+            {/* FOOTER */}
+            <p className="text-xs text-center text-gray-400 mt-6">
+              © {new Date().getFullYear()} Smart Schola. All rights reserved.
+              <br />
+              Secure access • Encrypted sessions • GDPR-ready
+            </p>
+          </motion.div>
+        </div>
       </div>
     </>
   );

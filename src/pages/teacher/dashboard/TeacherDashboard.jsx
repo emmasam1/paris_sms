@@ -27,7 +27,6 @@ const TeacherDashboard = () => {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [loading, setLoading] = useState(false);
   const { token, API_BASE_URL, user, setUser } = useApp();
-  const [dashboardData, setDashboardData] = useState(null);
 
   const [statsData, setStatsData] = useState({
     totalResults: 0,
@@ -96,8 +95,6 @@ const TeacherDashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("res from teachers dashboard", res);
-
       // ✅ correct data source
       const analytics = res?.data?.data?.subjectAnalytics || [];
 
@@ -131,7 +128,7 @@ const TeacherDashboard = () => {
         totalClasses,
       });
 
-      setDashboardData(res.data);
+      // setDashboardData(res.data);
 
       messageApi.success(
         res.data.message || "Dashboard fetched successfully"

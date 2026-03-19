@@ -123,6 +123,8 @@ const Login = () => {
         pinCode: values.pinCode,
       });
 
+      console.log(res)
+
       const user = res.data.student;
       const token = res.data.token;
 

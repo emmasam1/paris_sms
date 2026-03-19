@@ -47,9 +47,8 @@ const MyClasses = () => {
   const [subject, setSubject] = useState(null); // teacherSubject from API (raw)
   // IMPORTANT: selectedSubject is the subject ID (string). This avoids confusion when API returns object sometimes.
   // selectedSubject === SUBJECT ID (string)
-const [selectedSubject, setSelectedSubject] = useState(null);
-const [selectedStudentId, setSelectedStudentId] = useState(null);
-
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
 
   const [studentsRecord, setStudentsRecord] = useState([]);
 
@@ -62,12 +61,12 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
   // selects
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [selectedArm, setSelectedArm] = useState(null);
+  const [selectedTerm, setSelectedTerm] = useState(null);
 
   // students shown in the table
   const [students, setStudents] = useState([]);
-  
-  const [subjects, setSubjects] = useState([]);
 
+  const [subjects, setSubjects] = useState([]);
 
   // loading & messages
   const [loading, setLoading] = useState(false);
@@ -141,7 +140,7 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
   // ---------------------------
   // GET teacher class details (levels, classes, subjects, students)
   // ---------------------------
-  
+
   const getTeacherClassDetails = async () => {
     if (!token) return;
 
@@ -239,42 +238,49 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
     setPage(1);
   }, [selectedLevel, teacherData]);
 
-  // ---------------------------
-  // When selectedLevel or selectedArm or selectedSubject changes:
-  // Only fetch students AFTER user has selected level + arm + subject (explicit requirement).
-  // ---------------------------
-  // useEffect(() => {
-  //   if (selectedLevel && selectedArm && selectedSubject) {
-  //     // fetch page 1
-  //     fetchStudentsForClass(1, limit);
-  //     // also fetch records (view/edit) if needed
-  //     getRecord();
-  //   } else {
-  //     setStudents([]);
-  //     setStudentsRecord([]);
-  //     setTotal(0);
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [selectedLevel, selectedArm, selectedSubject]);
-
   useEffect(() => {
     setStudents([]);
     setStudentsRecord([]);
     setTotal(0);
-  }, [selectedAcademicSession, selectedLevel, selectedArm, selectedSubject]);
+  }, [
+    selectedAcademicSession,
+    selectedLevel,
+    selectedArm,
+    selectedSubject,
+    selectedTerm, // ✅ ADD THIS
+  ]);
 
   // ---------------------------
   // Helper: find the teacherData entry that matches level+arm+subjectId
   // (teacherData entries are per-level-per-subject typically)
   // ---------------------------
+  // const findEntryForSelection = (level, arm, subjectId, selectedTerm) => {
+  //   if (!level || !arm || !subjectId || !selectedAcademicSession || !selectedTerm) return null;
+
+  //   return teacherData.find(
+  //     (e) =>
+  //       (e.academicSession || e.session) === selectedAcademicSession &&
+  //       e.level === level &&
+  //       (e.subject?._id === subjectId || e.subject === subjectId),
+  //   );
+  // };
+
   const findEntryForSelection = (level, arm, subjectId) => {
-    if (!level || !arm || !subjectId || !selectedAcademicSession) return null;
+    if (
+      !level ||
+      !arm ||
+      !subjectId ||
+      !selectedAcademicSession ||
+      !selectedTerm
+    )
+      return null;
 
     return teacherData.find(
       (e) =>
         (e.academicSession || e.session) === selectedAcademicSession &&
         e.level === level &&
-        (e.subject?._id === subjectId || e.subject === subjectId),
+        (e.subject?._id === subjectId || e.subject === subjectId) &&
+        (e.term === selectedTerm || !e.term), // fallback if term not in data
     );
   };
 
@@ -282,7 +288,17 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
   // Fetch students for selected level+arm+subject with pagination
   // ---------------------------
   const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
-    if (!token || !selectedLevel || !selectedArm || !selectedSubject) return;
+    if (
+      !token ||
+      !selectedLevel ||
+      !selectedArm ||
+      !selectedSubject ||
+      !selectedTerm ||
+      !selectedAcademicSession
+    ) {
+      messageApi.error("Please select all field");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -293,10 +309,11 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
       url.searchParams.append("arm", selectedArm);
       url.searchParams.append("subject", selectedSubject);
       url.searchParams.append("session", selectedAcademicSession);
+      url.searchParams.append("term", selectedTerm);
 
       url.searchParams.append("limit", limitParam);
 
-      // console.log(selectedSubject)
+      console.log(url);
 
       const res = await axios.get(url.toString(), {
         headers: { Authorization: `Bearer ${token}` },
@@ -323,6 +340,7 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
           selectedLevel,
           selectedArm,
           selectedSubject,
+          selectedTerm,
         );
 
         if (entry) {
@@ -385,7 +403,7 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
         `?classId=${classId}` +
         `&subjectId=${subjectId}` +
         `&session=${selectedAcademicSession}` +
-        `&term=1`;
+        `&term=${selectedTerm}`;
 
       const scoreRes = await axios.get(dashboardURL, {
         headers: { Authorization: `Bearer ${token}` },
@@ -457,7 +475,7 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
         `${API_BASE_URL}/api/teacher/records` +
           `?subjectId=${subjectId}` +
           `&session=${selectedAcademicSession}` +
-          `&term=1` +
+          `&term=${selectedTerm}` +
           `&limit=2000`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -581,28 +599,6 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
     },
   ];
 
-  // const progressColumns = [
-  //   { title: "Reg No", dataIndex: "admissionNumber", key: "admissionNumber" },
-  //   { title: "Name", dataIndex: "fullName", key: "fullName" },
-  //   {
-  //     title: "Actions",
-  //     width: 200,
-  //     render: (_, record) => (
-  //       <Button
-  //         type="default"
-  //         size="small"
-  //         icon={<BarChartOutlined />}
-  //         onClick={() => {
-  //           setActiveStudent(record);
-  //           setIsProgressModalOpen(true);
-  //         }}
-  //       >
-  //         View Progress
-  //       </Button>
-  //     ),
-  //   },
-  // ];
-
   const columns = [
     {
       title: "S/N",
@@ -683,221 +679,229 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
     <div className="flex gap-6">
       {contextHolder}
       <div className="flex-1">
-        <Card className="shadow-md rounded-xl">
-          <div className="flex items-center gap-2 mb-4">
-            {/* LEVEL SELECT */}
-            <Select
-              placeholder="Select Level"
-              style={{ width: 120 }}
-              value={selectedLevel}
-              onChange={(value) => setSelectedLevel(value)}
-              loading={loading && !levels.length}
-              allowClear
-            >
-              {levels.map((lvl) => (
-                <Option key={lvl} value={lvl}>
-                  {lvl}
-                </Option>
-              ))}
-            </Select>
+        {/* <Card className="shadow-md rounded-xl"> */}
+        <div className="flex items-center gap-2 mb-4">
+          {/* LEVEL SELECT */}
+          <Select
+            placeholder="Select Level"
+            style={{ width: 120 }}
+            value={selectedLevel}
+            onChange={(value) => setSelectedLevel(value)}
+            loading={loading && !levels.length}
+            allowClear
+          >
+            {levels.map((lvl) => (
+              <Option key={lvl} value={lvl}>
+                {lvl}
+              </Option>
+            ))}
+          </Select>
 
-            {/* SUBJECT SELECT */}
-            <Select
-              placeholder="Select Subject"
-              style={{ width: 260 }}
-              value={selectedSubject}
-              onChange={(value) => {
-                // value is subject id
-                setSelectedSubject(value);
-                // when a new subject is selected, clear students so they reload via effect
-                setStudents([]);
-                setStudentsRecord([]);
-              }}
-              disabled={!selectedLevel}
-              allowClear
-            >
-              {subjects?.map((sub) => (
-                <Select.Option key={sub._id} value={sub._id}>
-                  {sub.name}
-                </Select.Option>
-              ))}
-            </Select>
+          {/* SUBJECT SELECT */}
+          <Select
+            placeholder="Select Subject"
+            style={{ width: 260 }}
+            value={selectedSubject}
+            onChange={(value) => {
+              // value is subject id
+              setSelectedSubject(value);
+              // when a new subject is selected, clear students so they reload via effect
+              setStudents([]);
+              setStudentsRecord([]);
+            }}
+            disabled={!selectedLevel}
+            allowClear
+          >
+            {subjects?.map((sub) => (
+              <Select.Option key={sub._id} value={sub._id}>
+                {sub.name}
+              </Select.Option>
+            ))}
+          </Select>
 
-            {/* ARM SELECT */}
-            <Select
-              placeholder="Select Arm"
-              style={{ width: 260 }}
-              value={selectedArm}
-              onChange={(value) => setSelectedArm(value)}
-              loading={loading && !!selectedLevel}
-              disabled={!arms.length}
-              allowClear
-            >
-              {arms.map((arm) => (
-                <Option key={arm} value={arm}>
-                  {arm}
-                </Option>
-              ))}
-            </Select>
+          {/* ARM SELECT */}
+          <Select
+            placeholder="Select Arm"
+            style={{ width: 260 }}
+            value={selectedArm}
+            onChange={(value) => setSelectedArm(value)}
+            loading={loading && !!selectedLevel}
+            disabled={!arms.length}
+            allowClear
+          >
+            {arms.map((arm) => (
+              <Option key={arm} value={arm}>
+                {arm}
+              </Option>
+            ))}
+          </Select>
 
-            {/* SESSION SELECT */}
-            <Select
-              placeholder="Select Academic Session"
-              style={{ width: 200 }}
-              value={selectedAcademicSession}
-              onChange={setSelectedAcademicSession}
-              allowClear
-            >
-              {academicSessions.map((sess) => (
-                <Select.Option key={sess} value={sess}>
-                  {sess}
-                </Select.Option>
-              ))}
-            </Select>
+          {/* SESSION SELECT */}
+          <Select
+            placeholder="Select Academic Session"
+            style={{ width: 120 }}
+            value={selectedAcademicSession}
+            onChange={setSelectedAcademicSession}
+            allowClear
+          >
+            {academicSessions.map((sess) => (
+              <Select.Option key={sess} value={sess}>
+                {sess}
+              </Select.Option>
+            ))}
+          </Select>
 
-            <Button
-              onClick={() => {
-                if (
-                  !selectedAcademicSession ||
-                  !selectedLevel ||
-                  !selectedArm ||
-                  !selectedSubject
-                ) {
-                  message.error(
-                    "Select Academic Session, Level, Subject and Arm first",
-                  );
-                  return;
-                }
+          <Select
+            placeholder="Select Term"
+            // style={{ width: 140 }}
+            value={selectedTerm}
+            onChange={(value) => setSelectedTerm(value)}
+            allowClear
+          >
+            <Select.Option value="1">First Term</Select.Option>
+            <Select.Option value="2">Second Term</Select.Option>
+            <Select.Option value="3">Third Term</Select.Option>
+          </Select>
 
-                fetchStudentsForClass(1, limit);
-                getRecord();
-              }}
-            >
-              Get Record
-            </Button>
-          </div>
+          <Button
+            disabled={
+              !selectedAcademicSession ||
+              !selectedLevel ||
+              !selectedArm ||
+              !selectedSubject ||
+              !selectedTerm
+            }
+            onClick={() => {
+              fetchStudentsForClass(1, limit);
+              getRecord();
+            }}
+            loading={loading}
+          >
+            {loading ? "Loading..." : "Get Record"}
+          </Button>
+        </div>
 
-          <Tabs defaultActiveKey="1">
-            {/* STUDENT TAB */}
-            <TabPane
-              tab={
-                <span>
-                  <UserOutlined /> My Students
-                </span>
-              }
-              key="1"
-            >
-              {loading ? (
-                <Skeleton active paragraph={{ rows: 7 }} />
-              ) : (
-                <Table
-                  dataSource={students}
-                  columns={studentColumns}
-                  rowKey={(r) => r._id || r.id}
-                  bordered
-                  size="small"
-                  pagination={{
-                    current: page,
-                    total: total,
-                    pageSize: limit,
-                    onChange: handlePageChange,
-                    showSizeChanger: true,
-                    pageSizeOptions: ["10", "20", "50"],
-                    position: ["bottomCenter"],
-                    className: "custom-pagination",
-                  }}
-                  scroll={{ x: "max-content" }}
-                />
-              )}
-            </TabPane>
-
-            {/* RESULTS TAB */}
-            <TabPane
-              tab={
-                <span>
-                  <EditOutlined /> Results
-                </span>
-              }
-              key="2"
-            >
-              {loading ? (
-                <Skeleton active paragraph={{ rows: 7 }} />
-              ) : (
-                <Table
-                  dataSource={students}
-                  rowKey={(r) => r._id || r.id}
-                  bordered
-                  size="small"
-                  pagination={{
-                    current: page,
-                    total: total,
-                    pageSize: limit,
-                    onChange: handlePageChange,
-                    showSizeChanger: true,
-                    pageSizeOptions: ["10", "20", "50"],
-                    position: ["bottomCenter"],
-                    className: "custom-pagination",
-                  }}
-                  scroll={{ x: "max-content" }}
-                  columns={resultsColumns}
-                />
-              )}
-
-              <EnterResult
-                open={isResultModalOpen}
-                onClose={() => setIsResultModalOpen(false)}
-                student={activeStudent}
-                teacherSubject={
-                  subjects?.find((s) => s._id === selectedSubject)?.name
-                }
-                onClick={handleSubmit}
-                subjectId={selectedSubject}
-                selectedLevel={selectedLevel}
-                selectedSubject={selectedSubject}
-                selectedSession={selectedAcademicSession}
+        <Tabs defaultActiveKey="1">
+          {/* STUDENT TAB */}
+          <TabPane
+            tab={
+              <span>
+                <UserOutlined /> My Students
+              </span>
+            }
+            key="1"
+          >
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 7 }} />
+            ) : (
+              <Table
+                dataSource={students}
+                columns={studentColumns}
+                rowKey={(r) => r._id || r.id}
+                bordered
+                size="small"
+                pagination={{
+                  current: page,
+                  total: total,
+                  pageSize: limit,
+                  onChange: handlePageChange,
+                  showSizeChanger: true,
+                  pageSizeOptions: ["10", "20", "50"],
+                  position: ["bottomCenter"],
+                  className: "custom-pagination",
+                }}
+                scroll={{ x: "max-content" }}
               />
+            )}
+          </TabPane>
 
-              <Modal
-                title={`Result Sheet - ${activeStudent?.fullName}`}
-                open={isViewResultModalOpen}
-                onCancel={() => setIsViewResultModalOpen(false)}
-                footer={null}
-                width={800}
-              >
-                <ResultSheet student={activeStudent} />
-              </Modal>
-            </TabPane>
+          {/* RESULTS TAB */}
+          <TabPane
+            tab={
+              <span>
+                <EditOutlined /> Results
+              </span>
+            }
+            key="2"
+          >
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 7 }} />
+            ) : (
+              <Table
+                dataSource={students}
+                rowKey={(r) => r._id || r.id}
+                bordered
+                size="small"
+                pagination={{
+                  current: page,
+                  total: total,
+                  pageSize: limit,
+                  onChange: handlePageChange,
+                  showSizeChanger: true,
+                  pageSizeOptions: ["10", "20", "50"],
+                  position: ["bottomCenter"],
+                  className: "custom-pagination",
+                }}
+                scroll={{ x: "max-content" }}
+                columns={resultsColumns}
+              />
+            )}
 
-            {/* VIEW & EDIT RECORD */}
-            <TabPane
-              tab={
-                <span>
-                  <BarChartOutlined /> View and Edit Record
-                </span>
+            <EnterResult
+              open={isResultModalOpen}
+              onClose={() => setIsResultModalOpen(false)}
+              student={activeStudent}
+              teacherSubject={
+                subjects?.find((s) => s._id === selectedSubject)?.name
               }
-              key="3"
-            >
-              {loading ? (
-                <Skeleton active paragraph={{ rows: 7 }} />
-              ) : (
-                <Table
-                  columns={columns}
-                  size="small"
-                  bordered
-                  dataSource={studentsRecord}
-                  rowKey={(item) => item.studentId || item._id}
-                  loading={loading}
-                  pagination={{
-                    position: ["bottomCenter"],
-                    className: "custom-pagination",
-                  }}
-                  scroll={{ x: "max-content" }}
-                />
-              )}
-            </TabPane>
+              onClick={handleSubmit}
+              subjectId={selectedSubject}
+              selectedLevel={selectedLevel}
+              selectedSubject={selectedSubject}
+              selectedSession={selectedAcademicSession}
+            />
 
-            {/* PROGRESS */}
-            {/* <TabPane
+            <Modal
+              title={`Result Sheet - ${activeStudent?.fullName}`}
+              open={isViewResultModalOpen}
+              onCancel={() => setIsViewResultModalOpen(false)}
+              footer={null}
+              width={800}
+            >
+              <ResultSheet student={activeStudent} />
+            </Modal>
+          </TabPane>
+
+          {/* VIEW & EDIT RECORD */}
+          <TabPane
+            tab={
+              <span>
+                <BarChartOutlined /> View and Edit Record
+              </span>
+            }
+            key="3"
+          >
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 7 }} />
+            ) : (
+              <Table
+                columns={columns}
+                size="small"
+                bordered
+                dataSource={studentsRecord}
+                rowKey={(item) => item.studentId || item._id}
+                loading={loading}
+                pagination={{
+                  position: ["bottomCenter"],
+                  className: "custom-pagination",
+                }}
+                scroll={{ x: "max-content" }}
+              />
+            )}
+          </TabPane>
+
+          {/* PROGRESS */}
+          {/* <TabPane
               tab={
                 <span>
                   <BarChartOutlined /> Progress
@@ -938,8 +942,8 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
                 <ProgressChart studentName={activeStudent?.fullName} />
               </Modal>
             </TabPane> */}
-          </Tabs>
-        </Card>
+        </Tabs>
+        {/* </Card> */}
       </div>
 
       {/* EDIT RECORD MODAL */}
@@ -1100,4 +1104,3 @@ const [selectedStudentId, setSelectedStudentId] = useState(null);
 };
 
 export default MyClasses;
-

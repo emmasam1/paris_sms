@@ -239,7 +239,7 @@ const SubjectManagement = () => {
       );
 
       const result = res.data;
-      // console.log("subjects", result);
+      console.log("subjects", result);
       setSubjects(result?.data || []);
       setPagination({
         current: result?.pagination?.page || 1,

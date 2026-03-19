@@ -86,7 +86,7 @@ const Student = () => {
   const [teachers, setTeachers] = useState([]);
   const [importing, setImporting] = useState(false);
   const [openSubjectAssignModal, setOpenAssignSubjectsModal] = useState(false);
-  const [stdSubject, setStdSunject] = useState([]);
+  const [stdSubject, setStdSubject] = useState([]);
 
   const [subjects, setSubjects] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -261,7 +261,7 @@ const Student = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       console.log(res);
       messageApi.success(res.data.message);
@@ -277,7 +277,7 @@ const Student = () => {
     page = 1,
     search = "",
     classId = "",
-    pageSize = pagination.pageSize
+    pageSize = pagination.pageSize,
   ) => {
     setLoading(true);
     try {
@@ -290,16 +290,12 @@ const Student = () => {
 
       const res = await axios.get(
         `${API_BASE_URL}/api/student-management/student?${params.toString()}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      const studentsWithFullName = (res?.data?.data || []).map((s) => ({
-        ...s,
-        key: s._id,
-        name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
-      }));
+      console.log(res);
 
-      setStudents(studentsWithFullName);
+      setStudents(res?.data?.data);
 
       setPagination({
         current: res?.data?.pagination?.page || page,
@@ -308,7 +304,7 @@ const Student = () => {
       });
     } catch (error) {
       messageApi.error(
-        error?.response?.data?.message || "Failed to fetch students"
+        error?.response?.data?.message || "Failed to fetch students",
       );
     } finally {
       setLoading(false);
@@ -322,7 +318,7 @@ const Student = () => {
         `${API_BASE_URL}/api/staff-management/staff/all`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
       setTeachers(res?.data?.data || []);
       // console.log("teachers", res);
@@ -335,7 +331,7 @@ const Student = () => {
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/subject-management/subjects?limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       // console.log("all subjects", res);
@@ -365,11 +361,11 @@ const Student = () => {
       const res = await axios.post(
         `${API_BASE_URL}/api/student-management/students/${id}/subjects`,
         payload,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       messageApi.success(
-        res?.data?.message || "Subjects assigned successfully!"
+        res?.data?.message || "Subjects assigned successfully!",
       );
 
       const updatedStudent = {
@@ -378,14 +374,14 @@ const Student = () => {
       };
 
       setStudents((prev) =>
-        prev.map((std) => (std._id === id ? updatedStudent : std))
+        prev.map((std) => (std._id === id ? updatedStudent : std)),
       );
 
       setOpenAssignSubjectsModal(false);
     } catch (error) {
       console.error(error);
       messageApi.error(
-        error?.response?.data?.message || "Failed to assign subjects."
+        error?.response?.data?.message || "Failed to assign subjects.",
       );
     } finally {
       setAssignLoading(false);
@@ -405,7 +401,7 @@ const Student = () => {
       paginationConfig.current,
       searchText,
       selectedClass,
-      paginationConfig.pageSize
+      paginationConfig.pageSize,
     );
   };
 
@@ -427,7 +423,7 @@ const Student = () => {
   const adminGetProgress = async () => {
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/api/results/admin?classId=64fa2b8a1234abcd56789ef0&term=&session=2025/2026&page=1&limit=10`
+        `${API_BASE_URL}/api/results/admin?classId=64fa2b8a1234abcd56789ef0&term=&session=2025/2026&page=1&limit=10`,
       );
     } catch (error) {}
   };
@@ -463,7 +459,7 @@ const Student = () => {
         c._id === student.class ||
         c.name === student.class ||
         c.displayName ===
-          `${student.class}${student.arm ? " - " + student.arm : ""}`
+          `${student.class}${student.arm ? " - " + student.arm : ""}`,
     );
 
     form.setFieldsValue({
@@ -510,15 +506,15 @@ const Student = () => {
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/student-management/students/${student._id}/subjects?limit=20`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
       const subjectsArr = res?.data?.data || [];
-      setStdSunject(subjectsArr); // ✅ sets the student's subjects
+      setStdSubject(subjectsArr); // ✅ sets the student's subjects
       setSelectedSubjects(subjectsArr.map((sub) => sub._id)); // ✅ sets selectedSubjects by _id
     } catch (error) {
       console.log("Error getting subjects:", error);
-      setStdSunject([]);
+      setStdSubject([]);
       setSelectedSubjects([]);
     }
   };
@@ -534,7 +530,7 @@ const Student = () => {
         `${API_BASE_URL}/api/class-management/classes?limit=50`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       const classData = res?.data?.data || [];
@@ -553,7 +549,7 @@ const Student = () => {
     } catch (error) {
       console.error(error);
       messageApi.error(
-        error?.response?.data?.message || "Failed to fetch classes"
+        error?.response?.data?.message || "Failed to fetch classes",
       );
     } finally {
       setIsLoadingClasses(false);
@@ -619,7 +615,7 @@ const Student = () => {
               Authorization: `Bearer ${token}`,
               "Content-Type": "multipart/form-data",
             },
-          }
+          },
         );
         messageApi.success(res.data.message || "Student updated successfully");
         console.log(res);
@@ -634,11 +630,11 @@ const Student = () => {
               Authorization: `Bearer ${token}`,
               "Content-Type": "multipart/form-data",
             },
-          }
+          },
         );
         messageApi.success(res.data.message || "Student added successfully");
       }
-      getStudents()
+      getStudents();
       setIsModalOpen(false);
       form.resetFields();
       setEditingStudent(null);
@@ -646,7 +642,7 @@ const Student = () => {
     } catch (error) {
       console.error(error);
       messageApi.error(
-        error?.response?.data?.message || "Failed to save student"
+        error?.response?.data?.message || "Failed to save student",
       );
     } finally {
       setLoading(false);
@@ -692,7 +688,7 @@ const Student = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       // Close the loading message first
@@ -709,7 +705,7 @@ const Student = () => {
       console.error("Error deleting student:", error);
       messageApi.destroy();
       messageApi.error(
-        error?.response?.data?.message || "Failed to delete student"
+        error?.response?.data?.message || "Failed to delete student",
       );
     }
   };
@@ -725,7 +721,7 @@ const Student = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       // console.log(res);
       setIsUnassignModalOpen(false);
@@ -733,7 +729,7 @@ const Student = () => {
       messageApi.success(res.data.message);
     } catch (error) {
       messageApi.error(
-        error?.response?.data?.message || "Failed to remove subject"
+        error?.response?.data?.message || "Failed to remove subject",
       );
     } finally {
       setLoading(false);
@@ -756,10 +752,11 @@ const Student = () => {
     },
     {
       title: "Full Name",
-      dataIndex: "name",
       key: "name",
-      ellipsis: true,
-      render: (value) => (value ? value.toString().toUpperCase() : "-"),
+      render: (_, record) =>
+        record?.firstName && record?.lastName
+          ? `${record.firstName.toUpperCase()} ${record.lastName.toUpperCase()}`
+          : "-",
     },
     {
       title: "Gender",
@@ -793,18 +790,18 @@ const Student = () => {
       dataIndex: "session",
       key: "session",
     },
-    {
-      title: "Parent Name",
-      dataIndex: "parentName",
-      key: "parentName",
-      render: (_, record) => record.parent?.name || "-",
-    },
-    {
-      title: "Parent Phone",
-      dataIndex: "parentPhone",
-      key: "parentPhone",
-      // render: (_, record) => record.parent?.phone || "-",
-    },
+    // {
+    //   title: "Parent Name",
+    //   dataIndex: "parentName",
+    //   key: "parentName",
+    //   render: (_, record) => record.parent?.name || "-",
+    // },
+    // {
+    //   title: "Parent Phone",
+    //   dataIndex: "parentPhone",
+    //   key: "parentPhone",
+    //   // render: (_, record) => record.parent?.phone || "-",
+    // },
     {
       title: "Actions",
       key: "action",
@@ -910,14 +907,14 @@ const Student = () => {
         formData,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       // console.log(res);
 
       if (res.data?.success) {
         messageApi.success(
-          res.data?.message || "Preview generated successfully"
+          res.data?.message || "Preview generated successfully",
         );
         // store preview array in state
         // ensure it's a deep copy so edits don't mutate original response (safety)
@@ -975,7 +972,7 @@ const Student = () => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if (response.data.success) {
@@ -1284,26 +1281,24 @@ const Student = () => {
       {loading ? (
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : (
-        <Card className="shadow-md rounded-xl">
-          <Table
-            columns={columns}
-            dataSource={students}
-            rowKey="key"
-            bordered
-            size="small"
-            pagination={{
-              ...pagination,
-              showSizeChanger: true,
-              pageSizeOptions: ["5", "10", "20", "50", "100"], // add 50/100
-              position: ["bottomCenter"],
-              className: "custom-pagination",
-              // showSizeChanger: false,
-            }}
-            onChange={handleTableChange}
-            className="custom-table"
-            scroll={{ x: "max-content" }}
-          />
-        </Card>
+        <Table
+          columns={columns}
+          dataSource={students}
+          rowKey="key"
+          bordered
+          size="small"
+          pagination={{
+            ...pagination,
+            showSizeChanger: true,
+            pageSizeOptions: ["5", "10", "20", "50", "100"], // add 50/100
+            position: ["bottomCenter"],
+            className: "custom-pagination",
+            // showSizeChanger: false,
+          }}
+          onChange={handleTableChange}
+          className="custom-table"
+          scroll={{ x: "max-content" }}
+        />
       )}
 
       {/* ... your modals remain unchanged ... */}
@@ -1428,7 +1423,7 @@ const Student = () => {
               </Form.Item>
             </Col>
           </Row>
-    
+
           {editingStudent && (
             <>
               <Title level={5} className="mb-2 text-center">
@@ -1513,7 +1508,7 @@ const Student = () => {
             <Descriptions.Item label="class">
               {detailsStudent.class?.name}
             </Descriptions.Item>
-            <Descriptions.Item label="PIN">
+            {/* <Descriptions.Item label="PIN">
               {detailsStudent.pin}
             </Descriptions.Item>
             <Descriptions.Item label="Parent Name">
@@ -1530,7 +1525,7 @@ const Student = () => {
             </Descriptions.Item>
             <Descriptions.Item label="Parent Address">
               {detailsStudent.parentAddress || "—"}
-            </Descriptions.Item>
+            </Descriptions.Item> */}
             <Descriptions.Item label="Class Teacher">
               {/* {detailsStudent?.detailsStudent.class || "—"} */}
             </Descriptions.Item>
@@ -1568,12 +1563,12 @@ const Student = () => {
                 total >= 70
                   ? "A"
                   : total >= 60
-                  ? "B"
-                  : total >= 50
-                  ? "C"
-                  : total >= 40
-                  ? "D"
-                  : "F";
+                    ? "B"
+                    : total >= 50
+                      ? "C"
+                      : total >= 40
+                        ? "D"
+                        : "F";
               return { ...r, key: idx, total, grade };
             })}
             columns={[

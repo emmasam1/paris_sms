@@ -156,7 +156,7 @@ const PinManagement = () => {
 
         // ✅ Handle specific student name corrections
         studentName:
-          item.student?.fullName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
+          item.student?.firstNmae === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
             ? "ODEH DANIEL OKENENI"
             : item.student?.fullName === "NWANKWO ONYINUECHI"
             ? "NWANKWO ONYINYECHI"

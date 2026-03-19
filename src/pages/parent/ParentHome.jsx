@@ -38,7 +38,7 @@ const ParentDashboard = () => {
   const [selectedTerm, setSelectedTerm] = useState(null);
   const [result, setResult] = useState(null);
 
-  // console.log(user);
+  console.log(user);
 
   const child = {
     term: "1st Term, 2025",
@@ -81,6 +81,10 @@ const ParentDashboard = () => {
       console.error(msg || "No result yet");
     }
   };
+
+  // const getStudentById = async()=>{
+
+  // }
 
   useEffect(() => {
     if (!initialized || !token) return;
@@ -183,7 +187,7 @@ const ParentDashboard = () => {
           <Card className="rounded-2xl shadow-sm">
             <Text type="secondary">Student Name</Text>
             <Title level={5}>
-              {user?.fullName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
+              {user?.firstName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
                 ? "ODEH DANIEL OKENENI"
                 : user?.fullName === "NWANKWO ONYINUECHI"
                 ? "NWANKWO ONYINYECHI"

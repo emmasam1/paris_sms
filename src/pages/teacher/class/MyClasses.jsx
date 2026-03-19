@@ -287,157 +287,452 @@ const MyClasses = () => {
   // ---------------------------
   // Fetch students for selected level+arm+subject with pagination
   // ---------------------------
-  const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
-    if (
-      !token ||
-      !selectedLevel ||
-      !selectedArm ||
-      !selectedSubject ||
-      !selectedTerm ||
-      !selectedAcademicSession
-    ) {
-      messageApi.error("Please select all field");
+//   const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
+//     if (
+//       !token ||
+//       !selectedLevel ||
+//       !selectedArm ||
+//       !selectedSubject ||
+//       !selectedTerm ||
+//       !selectedAcademicSession
+//     ) {
+//       messageApi.error("Please select all field");
+//       return;
+//     }
+
+//     try {
+//       setLoading(true);
+
+//       // API in your app supports query params; pass selectedLevel/Arm/Subject
+//       const url = new URL(`${API_BASE_URL}/api/teacher/students`);
+//       url.searchParams.append("level", selectedLevel);
+//       url.searchParams.append("arm", selectedArm);
+//       url.searchParams.append("subject", selectedSubject);
+//       url.searchParams.append("session", selectedAcademicSession);
+//       url.searchParams.append("term", selectedTerm);
+
+//       url.searchParams.append("limit", limitParam);
+
+//       console.log(url);
+
+//       const res = await axios.get(url.toString(), {
+//         headers: { Authorization: `Bearer ${token}` },
+//       });
+
+//       console.log(res)
+
+//       // fetch all subjects for subjects dropdown (keep it small)
+//       const subRes = await axios.get(
+//         `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
+//         {
+//           headers: { Authorization: `Bearer ${token}` },
+//         },
+//       );
+//       const allSubjectsList =
+//         subRes?.data?.data?.map((s) => ({ _id: s._id, name: s.name })) || [];
+//       setSubjects(allSubjectsList);
+
+//       const data = res?.data;
+//       let classStudents = [];
+
+//       // Backend returns different shapes: data.data (levels array) OR data.students (direct)
+//       if (data?.data?.length) {
+//         // Find the specific entry matching level + subject
+//         const entry = findEntryForSelection(
+//           selectedLevel,
+//           selectedArm,
+//           selectedSubject,
+//         );
+
+//         if (entry) {
+//           // find matched class inside the entry
+//           const matchedClass = (entry.classes || []).find(
+//             (c) =>
+//               (c.class?.arm || c.class?.name || "").toLowerCase() ===
+//               selectedArm.toLowerCase(),
+//           );
+//           classStudents = matchedClass?.students || [];
+//         } else {
+//           // As fallback, use first-level object's classes that match arm
+//          let matchedClass = null;
+
+// for (const entry of data.data) {
+//   matchedClass = (entry.classes || []).find(
+//     (c) =>
+//       (c.class?.arm || c.class?.name || "").toLowerCase() ===
+//       selectedArm.toLowerCase(),
+//   );
+
+//   if (matchedClass) break; // stop once found
+// }
+
+// classStudents = matchedClass?.students || [];
+//         }
+//       } else if (data?.students) {
+//         classStudents = data.students;
+//       }
+
+//       // If no students found, set empty and return after warning
+//       if (!classStudents || classStudents.length === 0) {
+//         setStudents([]);
+//         setTotal(0);
+//         // still attempt to fetch status (dashboard) if we have classId & subjectId below, otherwise return
+//       }
+
+//       // Extract classId robustly
+//       const classId =
+//         data?.data?.[0]?.classes?.find(
+//           (c) => (c.class?.arm || c.class?.name) === selectedArm,
+//         )?.class?._id || // from response
+//         // fallback: find entry and class there
+//         (() => {
+//           const entry = findEntryForSelection(
+//             selectedLevel,
+//             selectedArm,
+//             selectedSubject,
+//           );
+//           const matched = entry?.classes?.find(
+//             (c) => (c.class?.arm || c.class?.name) === selectedArm,
+//           );
+//           return matched?.class?._id;
+//         })();
+
+//       const subjectId = selectedSubject; // we keep selectedSubject as id
+
+//       if (!classId || !subjectId) {
+//         // no class or subject id — skip status fetch but populate students
+//         setStudents(classStudents);
+//         setTotal(classStudents.length);
+//         return;
+//       }
+
+//       // Fetch result statuses for this class+subject
+//       const dashboardURL =
+//         `${API_BASE_URL}/api/records/teacher/scores/dashboard` +
+//         `?classId=${classId}` +
+//         `&subjectId=${subjectId}` +
+//         `&session=${selectedAcademicSession}` +
+//         `&term=${selectedTerm}`;
+
+//       const scoreRes = await axios.get(dashboardURL, {
+//         headers: { Authorization: `Bearer ${token}` },
+//       });
+//       const statusList = scoreRes?.data?.students || [];
+
+//       // Merge status into fetched students
+//       const mergedStudents = (classStudents || []).map((stu) => {
+//         const studentId = stu._id || stu.id;
+//         const found = statusList.find((s) => s.studentId === studentId);
+//         return { ...stu, hasRecord: found?.status === "recorded" };
+//       });
+
+//       setStudents(mergedStudents);
+
+//       // pagination
+//       const pagination = data?.pagination;
+//       if (pagination) {
+//         setPage(pagination.page);
+//         setLimit(pagination.limit);
+//         setTotal(pagination.total);
+//       } else {
+//         setTotal(mergedStudents.length);
+//       }
+//     } catch (error) {
+//       console.error("fetchStudentsForClass ERROR:", error);
+//       messageApi.error(
+//         error?.response?.data?.message ||
+//           "No students in this class offer this subject",
+//       );
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+// const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
+//   if (
+//     !token ||
+//     !selectedLevel ||
+//     !selectedArm ||
+//     !selectedSubject ||
+//     !selectedTerm ||
+//     !selectedAcademicSession
+//   ) {
+//     messageApi.error("Please select all fields");
+//     return;
+//   }
+
+//   console.log('.....', selectedSubject)
+
+//   try {
+//     setLoading(true);
+
+//     // ✅ force limit = 30 when class is selected
+//     const finalLimit = selectedArm ? 30 : limitParam;
+
+//     const url = new URL(`${API_BASE_URL}/api/teacher/students`);
+//     url.searchParams.append("level", selectedLevel);
+//     url.searchParams.append("arm", selectedArm);
+//     url.searchParams.append("subject", selectedSubject);
+//     url.searchParams.append("session", selectedAcademicSession);
+//     url.searchParams.append("term", selectedTerm);
+//     url.searchParams.append("limit", finalLimit);
+
+//     console.log("REQUEST URL:", url.toString());
+
+//     const res = await axios.get(url.toString(), {
+//       headers: { Authorization: `Bearer ${token}` },
+//     });
+
+//     console.log(res)
+//     console.log(token)
+
+//     const data = res?.data;
+
+//     // -------------------------------
+//     // ✅ STEP 1: Extract students safely
+//     // -------------------------------
+//     let classStudents = [];
+
+//     if (Array.isArray(data?.data)) {
+//       for (const entry of data.data) {
+//         const matchedClass = (entry.classes || []).find(
+//           (c) =>
+//             (c.class?.arm || c.class?.name || "").toLowerCase() ===
+//             selectedArm.toLowerCase()
+//         );
+
+//         if (matchedClass) {
+//           classStudents = matchedClass.students || [];
+//           break; // ✅ stop when found
+//         }
+//       }
+//     } else if (Array.isArray(data?.students)) {
+//       classStudents = data.students;
+//     }
+
+//     if (!classStudents.length) {
+//       setStudents([]);
+//       setTotal(0);
+//       return;
+//     }
+
+//     // -------------------------------
+//     // ✅ STEP 2: Get classId
+//     // -------------------------------
+//     let classId = null;
+
+//     for (const entry of data.data || []) {
+//       const matched = (entry.classes || []).find(
+//         (c) =>
+//           (c.class?.arm || c.class?.name || "").toLowerCase() ===
+//           selectedArm.toLowerCase()
+//       );
+
+//       if (matched?.class?._id) {
+//         classId = matched.class._id;
+//         break;
+//       }
+//     }
+
+//     const subjectId = selectedSubject;
+
+//     // -------------------------------
+//     // ✅ STEP 3: Merge result status
+//     // -------------------------------
+//     let mergedStudents = classStudents;
+
+//     if (classId && subjectId) {
+//       try {
+//         const dashboardURL =
+//           `${API_BASE_URL}/api/records/teacher/scores/dashboard` +
+//           `?classId=${classId}` +
+//           `&subjectId=${subjectId}` +
+//           `&session=${selectedAcademicSession}` +
+//           `&term=${selectedTerm}`;
+
+//         const scoreRes = await axios.get(dashboardURL, {
+//           headers: { Authorization: `Bearer ${token}` },
+//         });
+
+//         const statusList = scoreRes?.data?.students || [];
+
+//         mergedStudents = classStudents.map((stu) => {
+//           const found = statusList.find(
+//             (s) => s.studentId === (stu._id || stu.id)
+//           );
+
+//           return {
+//             ...stu,
+//             hasRecord: found?.status === "recorded",
+//           };
+//         });
+//       } catch (err) {
+//         console.warn("Status fetch failed, continuing without it");
+//       }
+//     }
+
+//     // -------------------------------
+//     // ✅ STEP 4: SET STATE
+//     // -------------------------------
+//     setStudents(mergedStudents);
+//     setTotal(mergedStudents.length);
+//     setPage(pageParam);
+//     setLimit(finalLimit);
+
+//   } catch (error) {
+//     console.error("fetchStudentsForClass ERROR:", error);
+//     messageApi.error(
+//       error?.response?.data?.message ||
+//         "No students in this class offer this subject"
+//     );
+//   } finally {
+//     setLoading(false);
+//   }
+// };
+
+const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
+  if (
+    !token ||
+    !selectedLevel ||
+    !selectedArm ||
+    !selectedSubject ||
+    !selectedTerm ||
+    !selectedAcademicSession
+  ) {
+    messageApi.error("Please select all fields");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const url = new URL(`${API_BASE_URL}/api/teacher/students`);
+    url.searchParams.append("level", selectedLevel);
+    url.searchParams.append("arm", selectedArm);
+    url.searchParams.append("subject", selectedSubject);
+    url.searchParams.append("session", selectedAcademicSession);
+    url.searchParams.append("term", selectedTerm);
+    url.searchParams.append("limit", 30);
+
+    console.log("REQUEST:", url.toString());
+
+    const res = await axios.get(url.toString(), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = res?.data;
+
+    // ----------------------------------
+    // ✅ STEP 1: FILTER BY SUBJECT (VERY IMPORTANT)
+    // ----------------------------------
+    let filteredEntries = [];
+
+    if (Array.isArray(data?.data)) {
+      filteredEntries = data.data.filter(
+        (entry) =>
+          entry.subject?._id === selectedSubject ||
+          entry.subject === selectedSubject
+      );
+    }
+
+    console.log("FILTERED ENTRIES:", filteredEntries);
+
+    // ----------------------------------
+    // ✅ STEP 2: GET STUDENTS FROM MATCHED CLASS
+    // ----------------------------------
+    let classStudents = [];
+    let classId = null;
+
+    for (const entry of filteredEntries) {
+      const matchedClass = (entry.classes || []).find(
+        (c) =>
+          (c.class?.arm || c.class?.name || "").toLowerCase() ===
+          selectedArm.toLowerCase()
+      );
+
+      if (matchedClass) {
+        classStudents = matchedClass.students || [];
+        classId = matchedClass.class?._id;
+        break;
+      }
+    }
+
+    // fallback (if backend ignores subject completely)
+    if (!classStudents.length && Array.isArray(data?.data)) {
+      for (const entry of data.data) {
+        const matchedClass = (entry.classes || []).find(
+          (c) =>
+            (c.class?.arm || c.class?.name || "").toLowerCase() ===
+            selectedArm.toLowerCase()
+        );
+
+        if (matchedClass) {
+          classStudents = matchedClass.students || [];
+          classId = matchedClass.class?._id;
+          break;
+        }
+      }
+    }
+
+    if (!classStudents.length) {
+      setStudents([]);
+      setTotal(0);
       return;
     }
 
-    try {
-      setLoading(true);
+    // ----------------------------------
+    // ✅ STEP 3: MERGE RESULT STATUS
+    // ----------------------------------
+    let mergedStudents = classStudents;
 
-      // API in your app supports query params; pass selectedLevel/Arm/Subject
-      const url = new URL(`${API_BASE_URL}/api/teacher/students`);
-      url.searchParams.append("level", selectedLevel);
-      url.searchParams.append("arm", selectedArm);
-      url.searchParams.append("subject", selectedSubject);
-      url.searchParams.append("session", selectedAcademicSession);
-      url.searchParams.append("term", selectedTerm);
+    if (classId && selectedSubject) {
+      try {
+        const dashboardURL =
+          `${API_BASE_URL}/api/records/teacher/scores/dashboard` +
+          `?classId=${classId}` +
+          `&subjectId=${selectedSubject}` +
+          `&session=${selectedAcademicSession}` +
+          `&term=${selectedTerm}`;
 
-      url.searchParams.append("limit", limitParam);
-
-      console.log(url);
-
-      const res = await axios.get(url.toString(), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      // fetch all subjects for subjects dropdown (keep it small)
-      const subRes = await axios.get(
-        `${API_BASE_URL}/api/subject-management/subjects?limit=50`,
-        {
+        const scoreRes = await axios.get(dashboardURL, {
           headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      const allSubjectsList =
-        subRes?.data?.data?.map((s) => ({ _id: s._id, name: s.name })) || [];
-      setSubjects(allSubjectsList);
+        });
 
-      const data = res?.data;
-      let classStudents = [];
+        const statusList = scoreRes?.data?.students || [];
 
-      // Backend returns different shapes: data.data (levels array) OR data.students (direct)
-      if (data?.data?.length) {
-        // Find the specific entry matching level + subject
-        const entry = findEntryForSelection(
-          selectedLevel,
-          selectedArm,
-          selectedSubject,
-          selectedTerm,
-        );
-
-        if (entry) {
-          // find matched class inside the entry
-          const matchedClass = (entry.classes || []).find(
-            (c) =>
-              (c.class?.arm || c.class?.name || "").toLowerCase() ===
-              selectedArm.toLowerCase(),
+        mergedStudents = classStudents.map((stu) => {
+          const found = statusList.find(
+            (s) => s.studentId === (stu._id || stu.id)
           );
-          classStudents = matchedClass?.students || [];
-        } else {
-          // As fallback, use first-level object's classes that match arm
-          const fallback = data.data[0];
-          const matchedClass = (fallback.classes || []).find(
-            (c) => (c.class?.arm || c.class?.name) === selectedArm,
-          );
-          classStudents = matchedClass?.students || [];
-        }
-      } else if (data?.students) {
-        classStudents = data.students;
+
+          return {
+            ...stu,
+            hasRecord: found?.status === "recorded",
+          };
+        });
+      } catch (err) {
+        console.warn("Dashboard fetch failed");
       }
-
-      // If no students found, set empty and return after warning
-      if (!classStudents || classStudents.length === 0) {
-        setStudents([]);
-        setTotal(0);
-        // still attempt to fetch status (dashboard) if we have classId & subjectId below, otherwise return
-      }
-
-      // Extract classId robustly
-      const classId =
-        data?.data?.[0]?.classes?.find(
-          (c) => (c.class?.arm || c.class?.name) === selectedArm,
-        )?.class?._id || // from response
-        // fallback: find entry and class there
-        (() => {
-          const entry = findEntryForSelection(
-            selectedLevel,
-            selectedArm,
-            selectedSubject,
-          );
-          const matched = entry?.classes?.find(
-            (c) => (c.class?.arm || c.class?.name) === selectedArm,
-          );
-          return matched?.class?._id;
-        })();
-
-      const subjectId = selectedSubject; // we keep selectedSubject as id
-
-      if (!classId || !subjectId) {
-        // no class or subject id — skip status fetch but populate students
-        setStudents(classStudents);
-        setTotal(classStudents.length);
-        return;
-      }
-
-      // Fetch result statuses for this class+subject
-      const dashboardURL =
-        `${API_BASE_URL}/api/records/teacher/scores/dashboard` +
-        `?classId=${classId}` +
-        `&subjectId=${subjectId}` +
-        `&session=${selectedAcademicSession}` +
-        `&term=${selectedTerm}`;
-
-      const scoreRes = await axios.get(dashboardURL, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const statusList = scoreRes?.data?.students || [];
-
-      // Merge status into fetched students
-      const mergedStudents = (classStudents || []).map((stu) => {
-        const studentId = stu._id || stu.id;
-        const found = statusList.find((s) => s.studentId === studentId);
-        return { ...stu, hasRecord: found?.status === "recorded" };
-      });
-
-      setStudents(mergedStudents);
-
-      // pagination
-      const pagination = data?.pagination;
-      if (pagination) {
-        setPage(pagination.page);
-        setLimit(pagination.limit);
-        setTotal(pagination.total);
-      } else {
-        setTotal(mergedStudents.length);
-      }
-    } catch (error) {
-      console.error("fetchStudentsForClass ERROR:", error);
-      messageApi.error(
-        error?.response?.data?.message ||
-          "No students in this class offer this subject",
-      );
-    } finally {
-      setLoading(false);
     }
-  };
+
+    // ----------------------------------
+    // ✅ STEP 4: SET STATE
+    // ----------------------------------
+    setStudents(mergedStudents);
+    setTotal(mergedStudents.length);
+    setPage(pageParam);
+    setLimit(30);
+
+  } catch (error) {
+    console.error("ERROR:", error);
+    messageApi.error(
+      error?.response?.data?.message ||
+        "No students found for this subject"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ---------------------------
   // Get all subjects (simple listing) - kept but not used as primary source (we also populate from teacherData)
@@ -547,6 +842,11 @@ const MyClasses = () => {
   // Columns
   // ---------------------------
   const studentColumns = [
+    {
+      title: "S/N",
+      key: "sn",
+      render: (_, __, index) => index + 1,
+    },
     { title: "Reg No", dataIndex: "admissionNumber", key: "admissionNumber" },
     { title: "Name", dataIndex: "fullName", key: "fullName" },
     {
@@ -561,6 +861,11 @@ const MyClasses = () => {
   ];
 
   const resultsColumns = [
+    {
+      title: "S/N",
+      key: "sn",
+      render: (_, __, index) => index + 1,
+    },
     { title: "Reg No", dataIndex: "admissionNumber", key: "admissionNumber" },
     { title: "Name", dataIndex: "fullName", key: "fullName" },
     {

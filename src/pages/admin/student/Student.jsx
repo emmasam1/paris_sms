@@ -282,8 +282,11 @@ const Student = () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
+
+      const effectiveLimit = classId ? 30 : pageSize; // ✅ KEY FIX
+
       params.append("page", page);
-      params.append("limit", pageSize); // <- this is critical
+      params.append("limit", effectiveLimit);
 
       if (search) params.append("search", search);
       if (classId) params.append("classId", classId);
@@ -293,14 +296,12 @@ const Student = () => {
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      console.log(res);
-
       setStudents(res?.data?.data);
 
       setPagination({
         current: res?.data?.pagination?.page || page,
         total: res?.data?.pagination?.total || 0,
-        pageSize: res?.data?.pagination?.limit || pageSize,
+        pageSize: res?.data?.pagination?.limit || effectiveLimit, // ✅ keep in sync
       });
     } catch (error) {
       messageApi.error(
@@ -410,7 +411,7 @@ const Student = () => {
     if (!searchText.trim()) {
       getStudents(); // If empty, show all
     } else {
-      getStudents(1, searchText);
+      getStudents(1, searchText, selectedClass);
     }
   };
 
@@ -419,6 +420,16 @@ const Student = () => {
     getTeachers();
     getAllSubjects();
   }, [initialized, token]);
+
+  useEffect(() => {
+  if (selectedClass) {
+    setPagination((prev) => ({
+      ...prev,
+      pageSize: 30,
+      current: 1,
+    }));
+  }
+}, [selectedClass]);
 
   const adminGetProgress = async () => {
     try {
@@ -496,7 +507,7 @@ const Student = () => {
   const openDetails = (record) => {
     setDetailsStudent(record);
     setIsDetailsOpen(true);
-    console.log(record);
+    // console.log(record);
   };
 
   //Get student subjects

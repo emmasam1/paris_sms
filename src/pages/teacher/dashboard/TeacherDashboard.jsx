@@ -25,10 +25,10 @@ import ChangePassword from "../../../components/chnagePassword/ChangePassword";
 const TeacherDashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
-  // const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const { token, API_BASE_URL, user, setUser } = useApp();
   const [dashboardData, setDashboardData] = useState(null);
+
   const [statsData, setStatsData] = useState({
     totalResults: 0,
     resultsEntered: 0,
@@ -36,6 +36,7 @@ const TeacherDashboard = () => {
     totalStudents: 0,
     totalClasses: 0,
   });
+
   const [messageApi, contextHolder] = message.useMessage();
   const [userLoaded, setUserLoaded] = useState(false);
 
@@ -63,7 +64,9 @@ const TeacherDashboard = () => {
     },
   ]);
 
-  // Fetch teacher user info
+  // ---------------------------
+  // GET USER
+  // ---------------------------
   const getUser = async () => {
     if (!token) return;
     try {
@@ -80,54 +83,59 @@ const TeacherDashboard = () => {
     }
   };
 
-  // console.log(token, API_BASE_URL)
-
-  // Fetch students to get classId and subjectId, then fetch dashboard stats
-  const getDashboardStats = async () => {
+  // ---------------------------
+  // ✅ FIXED DASHBOARD LOGIC
+  // ---------------------------
+  const getDashboardStatus = async () => {
     if (!token) return;
 
     try {
       setLoading(true);
 
-      // 1️⃣ Fetch students
-      const res = await axios.get(`${API_BASE_URL}/api/teacher/students`, {
+      const res = await axios.get(`${API_BASE_URL}/api/teacher/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // console.log("res from teachers dashboard", res)
-      // `${API_BASE_URL}/api/teacher/students?page=1&limit=20`,
-      const students = res.data.students || [];
-      if (!students.length) return;
 
-      const classId = students[0]?.class?._id;
-      const subjectId =
-        students[0]?.subjects?.[0]?._id || res.data.subject?._id;
+      console.log("res from teachers dashboard", res);
 
-      // 2️⃣ Fetch dashboard results using classId and subjectId
-      if (classId && subjectId) {
-        const resultRes = await axios.get(
-          `${API_BASE_URL}/api/records/teacher/scores/dashboard?classId=${classId}&subjectId=${subjectId}&session=2025/2026&term=1`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+      // ✅ correct data source
+      const analytics = res?.data?.data?.subjectAnalytics || [];
 
-        // console.log("testing",resultRes);
-
-        if (resultRes.data.success) {
-          const stats = resultRes.data.stats;
-
-          setStatsData({
-            totalResults: stats.totalStudents,
-            resultsEntered: stats.numberRecorded,
-            resultsLeft: stats.numberNotRecorded,
-            totalStudents: students.length,
-            totalClasses: new Set(students.map((s) => s.class._id)).size,
-          });
-
-          setDashboardData(resultRes.data);
-          messageApi.success(
-            resultRes.data.message || "Dashboard fetched successfully"
-          );
-        }
+      if (!analytics.length) {
+        messageApi.warning("No analytics data found");
+        return;
       }
+
+      let totalStudents = 0;
+      let totalClasses = 0;
+      let totalResults = 0;
+      let resultsEntered = 0;
+      let resultsLeft = 0;
+
+      analytics.forEach((item) => {
+        totalStudents += item.totalStudents || 0;
+        totalResults += item.totalStudents || 0;
+
+        totalClasses += item.groupedByClass?.length || 0;
+
+        const entered = item.students?.length || 0;
+        resultsEntered += entered;
+        resultsLeft += (item.totalStudents || 0) - entered;
+      });
+
+      setStatsData({
+        totalResults,
+        resultsEntered,
+        resultsLeft,
+        totalStudents,
+        totalClasses,
+      });
+
+      setDashboardData(res.data);
+
+      messageApi.success(
+        res.data.message || "Dashboard fetched successfully"
+      );
     } catch (error) {
       console.error(error);
       messageApi.error("Failed to fetch dashboard data");
@@ -138,9 +146,12 @@ const TeacherDashboard = () => {
 
   useEffect(() => {
     getUser();
-    getDashboardStats();
+    getDashboardStatus();
   }, []);
 
+  // ---------------------------
+  // ANNOUNCEMENTS
+  // ---------------------------
   const openMessage = (message) => {
     setSelectedMessage(message);
     setIsModalOpen(true);
@@ -152,7 +163,9 @@ const TeacherDashboard = () => {
 
   const unreadCount = announcements.filter((m) => !m.read).length;
 
-  // Stats cards
+  // ---------------------------
+  // STATS
+  // ---------------------------
   const stats = [
     {
       title: "My Students",
@@ -191,7 +204,9 @@ const TeacherDashboard = () => {
     },
   ];
 
-  // Welcome text
+  // ---------------------------
+  // WELCOME TEXT
+  // ---------------------------
   const getWelcomeText = () => {
     if (!user) return "";
     const isFormTeacher = user.formClass?.name;
@@ -201,8 +216,9 @@ const TeacherDashboard = () => {
     return `Welcome ${user.title} ${user.firstName} ${user.lastName}`;
   };
 
-  // console.log(user)
-
+  // ---------------------------
+  // UI
+  // ---------------------------
   return (
     <div>
       {contextHolder}
@@ -214,7 +230,7 @@ const TeacherDashboard = () => {
         <h2 className="text-xl font-bold mb-4">{getWelcomeText()}</h2>
       </Skeleton>
 
-      {/* Stats cards */}
+      {/* Stats */}
       <Row gutter={[16, 16]}>
         {stats.map((stat, idx) => (
           <Col xs={24} sm={12} md={6} key={idx}>

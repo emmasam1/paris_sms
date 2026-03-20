@@ -26,6 +26,7 @@ const PinManagement = () => {
   const [loader, setLoader] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
 
+  const [selectedClass, setSelectedClass] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
   const [selectedTerm, setSelectedTerm] = useState(null);
 
@@ -126,7 +127,12 @@ const PinManagement = () => {
     },
     { title: "PIN Code", dataIndex: "pin", key: "pin" },
     { title: "Session", dataIndex: "session", key: "session" },
-    { title: "Assigned To", dataIndex: "studentName", key: "studentName" },
+    {
+      title: "Assigned To",
+      key: "studentName",
+      render: (_, record) =>
+        `${record.firstName || ""} ${record.lastName || ""}`,
+    },
     { title: "Class", dataIndex: "class", key: "class" },
     { title: "Arm", dataIndex: "arm", key: "arm" },
     {
@@ -137,47 +143,44 @@ const PinManagement = () => {
   ];
 
   // ------------------ FETCH ALL PINS ------------------
-  const getAllPins = async () => {
+  const getAllPins = async (filters = {}) => {
     if (!token) return;
 
     try {
       setLoading(true);
 
-      const res = await axios.get(
-        `${API_BASE_URL}/api/pin/dashboard?limit=1000`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      // Build query params only if values exist
+      const query = new URLSearchParams({
+        ...(filters.classId ? { classId: filters.classId } : {}),
+        ...(filters.session ? { session: filters.session } : {}),
+        ...(filters.term ? { term: filters.term } : {}),
+        limit: 1000,
+      }).toString();
 
-      console.log("PIN RESPONSE:", res);
-      //
+      const url = `${API_BASE_URL}/api/pin/dashboard?${query}`;
+      console.log("Fetching URL:", url); // <- check the URL
+
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       const pinsArray = res.data?.data || [];
 
       const mappedPins = pinsArray.map((item, idx) => ({
         key: item._id || idx,
         pin: item.pinCode || "--",
         session: item.session || "--",
-        generatedDate: new Date(item.createdAt).toLocaleDateString(),
-
-        // ✅ Handle specific student name corrections
-        studentName:
-          item.student?.firstNmae === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
-            ? "ODEH DANIEL OKENENI"
-            : item.student?.fullName === "NWANKWO ONYINUECHI"
-              ? "NWANKWO ONYINYECHI"
-              : item.student?.fullName || "--",
-
+        firstName: item.student?.firstName || "--",
+        lastName: item.student?.lastName || "--",
         class: item.student?.class?.name || "--",
         arm: item.student?.class?.arm || "--",
-        avatar: item.student?.avatar || "",
-        studentId: item.student?._id,
+        generatedDate: new Date(item.createdAt).toLocaleDateString(),
       }));
 
       setPins(mappedPins);
-    } catch (error) {
-      console.log(error);
-      message.error("Failed to fetch PINs");
+    } catch (err) {
+      console.log(err);
+      messageApi.error("Failed to fetch PINs");
     } finally {
       setLoading(false);
     }
@@ -208,43 +211,51 @@ const PinManagement = () => {
   };
 
   // ------------------ GENERATE PINS ------------------
-  const generation = async (values) => {
-    try {
-      setLoader(true);
+const generation = async (values) => {
+  try {
+    setLoader(true);
 
-      let payload, url;
+    let payload, url;
 
-      if (mode === "whole class") {
-        payload = {
-          classId: values.classId,
-          session: values.session,
-          term: Number(values.term),
-        };
-        url = `${API_BASE_URL}/api/pin/generate-bulk`;
-      } else {
-        payload = {
-          studentId: values.student,
-          session: values.session,
-          term: Number(values.term),
-        };
-        url = `${API_BASE_URL}/api/pin/generate-single`;
-      }
-
-      const res = await axios.post(url, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      messageApi.success(res.data.message || "PIN generated successfully");
-      await getAllPins();
-      setIsModalOpen(false);
-    } catch {
-      messageApi.error("Failed to generate PIN");
-    } finally {
-      setLoader(false);
+    if (mode === "whole class") {
+      payload = {
+        classId: values.classId,
+        session: values.session,
+        term: values.term, // keep as string if backend expects "first", "second", "third"
+      };
+      url = `${API_BASE_URL}/api/pin/generate-bulk`;
+    } else {
+      payload = {
+        studentId: values.student,
+        session: values.session,
+        term: values.term,
+      };
+      url = `${API_BASE_URL}/api/pin/generate-single`;
     }
-  };
 
-  const generateSessions = (num = 5) => {
+    const res = await axios.post(url, payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    messageApi.success(res.data.message || "PIN generated successfully");
+
+    // ✅ Refresh pins for same session & term after generation
+    await getAllPins({
+      classId: values.classId || null,
+      session: values.session,
+      term: values.term,
+    });
+
+    setIsModalOpen(false);
+  } catch (error) {
+    messageApi.error("Failed to generate PIN");
+    console.log(error);
+  } finally {
+    setLoader(false);
+  }
+};
+
+  const generateSessions = (num = 2) => {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth(); // 0 - 11
@@ -263,7 +274,7 @@ const PinManagement = () => {
     });
   };
 
-  const sessions = generateSessions(5);
+  const sessions = generateSessions(2);
 
   const terms = [
     { id: "first", name: "First Term" },
@@ -273,7 +284,7 @@ const PinManagement = () => {
 
   useEffect(() => {
     if (!initialized || !token) return;
-    getAllPins();
+    // getAllPins();
     getStudents();
     getClass();
   }, [initialized, token]);
@@ -286,28 +297,43 @@ const PinManagement = () => {
 
       <div className="flex justify-between items-center">
         <div className="flex justify-end items-center gap-2">
-          <Select placeholder="Select a class" className="w-fit">
-            {classes.map((cls) => (
-              <Option key={cls._id} value={cls._id}>
-                {cls.name} {cls.arm}
-              </Option>
-            ))}
-          </Select>
-          <Select placeholder="Select a session" className="w-fit">
+          <Select
+            placeholder="Select a session"
+            className="w-fit"
+            allowClear
+            onChange={setSelectedSession} // store selected session
+          >
             {sessions.map((session) => (
               <Option key={session.id} value={session.id}>
                 {session.name}
               </Option>
             ))}
           </Select>
-          <Select placeholder="Select a term" className="w-fit">
+
+          <Select
+            placeholder="Select a term"
+            className="w-fit"
+            allowClear
+            onChange={setSelectedTerm} // store selected term
+          >
             {terms.map((term) => (
               <Option key={term.id} value={term.id}>
                 {term.name}
               </Option>
             ))}
           </Select>
-          <Button>Get Record</Button>
+          <Button
+            type="primary"
+            onClick={() =>
+              getAllPins({
+                classId: selectedClass,
+                session: selectedSession,
+                term: selectedTerm,
+              })
+            }
+          >
+           {loading ? "Getting Record" : " Get Record"}
+          </Button>
         </div>
         <div className="flex justify-end items-center gap-2">
           <Button type="primary" onClick={() => setIsModalOpen(true)}>
@@ -399,10 +425,12 @@ const PinManagement = () => {
             name="session"
             rules={[{ required: true, message: "Select session" }]}
           >
-            <Select>
-              <Option value="2024/2025">2024/2025</Option>
-              <Option value="2025/2026">2025/2026</Option>
-              <Option value="2026/2027">2026/2027</Option>
+            <Select placeholder="Select Session">
+            {sessions.map((session) => (
+              <Option key={session.id} value={session.id}>
+                {session.name}
+              </Option>
+            ))}
             </Select>
           </Form.Item>
 
@@ -411,8 +439,10 @@ const PinManagement = () => {
             name="term"
             rules={[{ required: true, message: "Select term" }]}
           >
-            <Select>
-              <Option value="1">1</Option>
+            <Select placeholder="Select Term">
+              <Option value="first">First Term</Option>
+              <Option value="second">Second Term</Option>
+              <Option value="third">Third Term</Option>
             </Select>
           </Form.Item>
 

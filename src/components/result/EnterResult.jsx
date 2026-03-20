@@ -20,7 +20,8 @@ const EnterResult = ({
   onClick,
   selectedLevel,
   selectedSession,
-  subjectId
+  subjectId,
+  selectedTerm
 }) => {
   const [studentScores, setStudentScores] = useState([]);
   const { API_BASE_URL, token, loading, setLoading } = useApp();
@@ -140,8 +141,7 @@ const EnterResult = ({
   // Submit score
   // ------------------------------------------------------
   const enterScore = async () => {
-    if (!student?._id) return message.error("No student selected");
-    if (!term) return message.error("Please select term");
+    // if (!student?._id) return message.error("No student selected");
     if (hasError) return message.error("Correct invalid score inputs");
 
     const score = studentScores[0];
@@ -150,7 +150,7 @@ const EnterResult = ({
       studentId: student._id,
       subjectId: subjectId,
       session: selectedSession,
-      term: Number(term),
+      term: selectedTerm,
       firstAssignment: score.firstAssignment,
       secondAssignment: score.secondAssignment,
       firstCA: score.firstCATest,
@@ -335,11 +335,12 @@ const EnterResult = ({
       <div className="flex gap-4 mb-4">
         <div className="flex flex-col w-40 -mt-1">
           <label className="font-semibold mb-1">Term</label>
-          <Select value={term} onChange={setTerm} placeholder="Term">
+          {/* <Select value={term} onChange={setTerm} placeholder="Term">
             <Select.Option value="1">First Term</Select.Option>
             <Select.Option value="2">Second Term</Select.Option>
             <Select.Option value="3">Third Term</Select.Option>
-          </Select>
+          </Select> */}
+           <Input value={selectedTerm} disabled />
         </div>
 
         <div className="">

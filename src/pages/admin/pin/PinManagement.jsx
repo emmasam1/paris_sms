@@ -26,6 +26,9 @@ const PinManagement = () => {
   const [loader, setLoader] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
 
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [selectedTerm, setSelectedTerm] = useState(null);
+
   // PAGINATION STATE
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -87,7 +90,7 @@ const PinManagement = () => {
               <p><b>Session:</b> ${p.session} (1st Term)</p>
               <p><b>Website:</b> https://paris-sms.vercel.app</p>
             </div>
-          `
+          `,
           )
           .join("")}
       </div>
@@ -140,15 +143,18 @@ const PinManagement = () => {
     try {
       setLoading(true);
 
-      const res = await axios.get(`${API_BASE_URL}/api/pin/dashboard?limit=1000`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(
+        `${API_BASE_URL}/api/pin/dashboard?limit=1000`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
       console.log("PIN RESPONSE:", res);
-// 
+      //
       const pinsArray = res.data?.data || [];
 
-     const mappedPins = pinsArray.map((item, idx) => ({
+      const mappedPins = pinsArray.map((item, idx) => ({
         key: item._id || idx,
         pin: item.pinCode || "--",
         session: item.session || "--",
@@ -159,8 +165,8 @@ const PinManagement = () => {
           item.student?.firstNmae === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
             ? "ODEH DANIEL OKENENI"
             : item.student?.fullName === "NWANKWO ONYINUECHI"
-            ? "NWANKWO ONYINYECHI"
-            : item.student?.fullName || "--",
+              ? "NWANKWO ONYINYECHI"
+              : item.student?.fullName || "--",
 
         class: item.student?.class?.name || "--",
         arm: item.student?.class?.arm || "--",
@@ -181,7 +187,7 @@ const PinManagement = () => {
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/student-management/student?limit=1000`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setStudents(res.data.data);
     } catch (error) {
@@ -193,7 +199,7 @@ const PinManagement = () => {
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/class-management/classes?limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setClasses(res.data.data);
     } catch (error) {
@@ -238,6 +244,33 @@ const PinManagement = () => {
     }
   };
 
+  const generateSessions = (num = 5) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0 - 11
+
+    // Assume session starts around September
+    const startYear = month >= 8 ? year : year - 1;
+
+    return Array.from({ length: num }, (_, i) => {
+      const start = startYear - i;
+      const end = start + 1;
+
+      return {
+        id: `${start}/${end}`,
+        name: `${start}/${end}`,
+      };
+    });
+  };
+
+  const sessions = generateSessions(5);
+
+  const terms = [
+    { id: "first", name: "First Term" },
+    { id: "second", name: "Second Term" },
+    { id: "third", name: "Third Term" },
+  ];
+
   useEffect(() => {
     if (!initialized || !token) return;
     getAllPins();
@@ -251,14 +284,44 @@ const PinManagement = () => {
 
       {/* HEADER */}
 
-      <div className="flex justify-end items-center gap-2">
-        <Button type="primary" onClick={() => setIsModalOpen(true)}>
-          Generate PIN
-        </Button>
+      <div className="flex justify-between items-center">
+        <div className="flex justify-end items-center gap-2">
+          <Select placeholder="Select a class" className="w-fit">
+            {classes.map((cls) => (
+              <Option key={cls._id} value={cls._id}>
+                {cls.name} {cls.arm}
+              </Option>
+            ))}
+          </Select>
+          <Select placeholder="Select a session" className="w-fit">
+            {sessions.map((session) => (
+              <Option key={session.id} value={session.id}>
+                {session.name}
+              </Option>
+            ))}
+          </Select>
+          <Select placeholder="Select a term" className="w-fit">
+            {terms.map((term) => (
+              <Option key={term.id} value={term.id}>
+                {term.name}
+              </Option>
+            ))}
+          </Select>
+          <Button>Get Record</Button>
+        </div>
+        <div className="flex justify-end items-center gap-2">
+          <Button type="primary" onClick={() => setIsModalOpen(true)}>
+            Generate PIN
+          </Button>
 
-        <Button type="default" onClick={downloadPDF} loading={downloadLoading}>
-          Download PDF
-        </Button>
+          <Button
+            type="default"
+            onClick={downloadPDF}
+            loading={downloadLoading}
+          >
+            Download PDF
+          </Button>
+        </div>
       </div>
 
       {/* TABLE */}

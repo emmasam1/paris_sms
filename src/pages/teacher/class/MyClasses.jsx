@@ -275,7 +275,7 @@ const MyClasses = () => {
       url.searchParams.append("term", selectedTerm);
       url.searchParams.append("limit", 30);
 
-      console.log("REQUEST:", url.toString());
+      // console.log("REQUEST:", url.toString());
 
       const res = await axios.get(url.toString(), {
         headers: { Authorization: `Bearer ${token}` },
@@ -296,7 +296,7 @@ const MyClasses = () => {
         );
       }
 
-      console.log("FILTERED ENTRIES:", filteredEntries);
+      // console.log("FILTERED ENTRIES:", filteredEntries);
 
       // ----------------------------------
       // ✅ STEP 2: GET STUDENTS FROM MATCHED CLASS

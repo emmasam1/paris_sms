@@ -30,8 +30,8 @@ import {
   MoreOutlined,
   PlusOutlined,
   MinusOutlined,
-  KeyOutlined ,
-  SwapOutlined 
+  KeyOutlined,
+  SwapOutlined,
 } from "@ant-design/icons";
 import teacher_img from "../../../assets/teacher.jpg";
 import { useApp } from "../../../context/AppContext";
@@ -58,6 +58,8 @@ const Teacher = () => {
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [selectedClass, setSelectedClass] = useState(null);
   const [assignLoading, setAssignLoading] = useState(false);
+
+  const [resetPss, setResetPass] = useState(false);
 
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   // const [selectedStaff, setSelectedStaff] = useState(null);
@@ -93,7 +95,7 @@ const Teacher = () => {
     setPreviewImage(file.url || file.preview);
     setPreviewOpen(true);
     setPreviewTitle(
-      file.name || file.url.substring(file.url.lastIndexOf("/") + 1)
+      file.name || file.url.substring(file.url.lastIndexOf("/") + 1),
     );
   };
 
@@ -129,40 +131,39 @@ const Teacher = () => {
   }, [editingTeacher]);
 
   // ✅ Fetch teachers
- const getTeachers = async (page = 1, limit = 200, search = "") => {
-  if (!token) return;
+  const getTeachers = async (page = 1, limit = 200, search = "") => {
+    if (!token) return;
 
-  setIsFetching(true);
+    setIsFetching(true);
 
-  try {
-    const res = await axios.get(
-      `${API_BASE_URL}/api/staff-management/staff/all?page=${page}&limit=${limit}${
-        search ? `&search=${search}` : ""
-      }`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/staff-management/staff/all?page=${page}&limit=${limit}${
+          search ? `&search=${search}` : ""
+        }`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
 
-    const result = res.data.data || [];
+      const result = res.data.data || [];
 
-    if (page === 1) {
-      setStaff(result); // first page → replace
-    } else {
-      setStaff((prev) => [...prev, ...result]); // next pages → append
+      if (page === 1) {
+        setStaff(result); // first page → replace
+      } else {
+        setStaff((prev) => [...prev, ...result]); // next pages → append
+      }
+
+      setPagination({
+        current: res.data.pagination?.page || page,
+        pageSize: res.data.pagination?.limit || limit,
+        total: res.data.pagination?.total || result.length,
+      });
+    } catch (error) {
+      console.error(error);
+      messageApi.error("Failed to load staff");
+    } finally {
+      setIsFetching(false);
     }
-
-    setPagination({
-      current: res.data.pagination?.page || page,
-      pageSize: res.data.pagination?.limit || limit,
-      total: res.data.pagination?.total || result.length,
-    });
-
-  } catch (error) {
-    console.error(error);
-    messageApi.error("Failed to load staff");
-  } finally {
-    setIsFetching(false);
-  }
-};
+  };
 
   //Change staff role
   const changeStaffRole = async (newRole) => {
@@ -178,7 +179,7 @@ const Teacher = () => {
         { newRole },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       messageApi.success(res.data.message || "Role updated successfully!");
@@ -186,11 +187,11 @@ const Teacher = () => {
 
       // ✅ Update only the current row in table (NO full reload)
       setStaff((prev) =>
-        prev.map((t) => (t._id === id ? { ...t, role: newRole } : t))
+        prev.map((t) => (t._id === id ? { ...t, role: newRole } : t)),
       );
     } catch (error) {
       messageApi.error(
-        error?.response?.data?.message || "Failed to change staff role!"
+        error?.response?.data?.message || "Failed to change staff role!",
       );
     } finally {
       setLoading(false);
@@ -214,12 +215,11 @@ const Teacher = () => {
   };
 
   // ✅ Debounced search
- // 🚀 Load teachers on first mount
-useEffect(() => {
-  if (!initialized || !token) return;
-  getTeachers(1, pagination.pageSize, "");
-}, [initialized, token]);
-
+  // 🚀 Load teachers on first mount
+  useEffect(() => {
+    if (!initialized || !token) return;
+    getTeachers(1, pagination.pageSize, "");
+  }, [initialized, token]);
 
   // ✅ Avatar fallback
   const renderAvatar = (record) => {
@@ -281,7 +281,7 @@ useEffect(() => {
               // DON'T set Content-Type manually—let the browser set the multipart boundary:
               // "Content-Type": "multipart/form-data"
             },
-          }
+          },
         );
         // console.log(res);
         messageApi.success(res?.data?.message || "Staff updated successfully");
@@ -309,7 +309,7 @@ useEffect(() => {
       messageApi.error(
         error?.response?.data?.message ||
           error?.response?.data?.errors?.[0]?.msg ||
-          "Something went wrong. Please try again."
+          "Something went wrong. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -324,7 +324,7 @@ useEffect(() => {
         `${API_BASE_URL}/api/class-management/classes?limit=50`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
       setClasses(res?.data?.data || []);
       // console.log(res);
@@ -332,7 +332,7 @@ useEffect(() => {
     } catch (error) {
       console.error(error);
       messageApi.error(
-        error?.response?.data?.message || "Failed to fetch classes"
+        error?.response?.data?.message || "Failed to fetch classes",
       );
     }
   };
@@ -359,11 +359,11 @@ useEffect(() => {
         },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       messageApi.success(
-        res?.data?.message || "Admin role assigned successfully!"
+        res?.data?.message || "Admin role assigned successfully!",
       );
       setIsAssignModalOpen(false);
       setSelectedClass(null);
@@ -372,7 +372,7 @@ useEffect(() => {
     } catch (error) {
       console.error(error);
       messageApi.error(
-        error?.response?.data?.message || "Failed to assign admin role"
+        error?.response?.data?.message || "Failed to assign admin role",
       );
     } finally {
       setAssignLoading(false);
@@ -388,7 +388,7 @@ useEffect(() => {
       const res = await axios.patch(
         `${API_BASE_URL}/api/staff-management/staff/${id}/demote-class-admin`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       messageApi.success(res?.data?.message);
       getTeachers();
@@ -431,6 +431,25 @@ useEffect(() => {
     setIsAssignModalOpen(true);
   };
 
+  const resetPassword = async (record) => {
+    const userId = record?._id;
+
+    try {
+      setResetPass(true);
+      const res = await axios.post(
+        `${API_BASE_URL}/api/admin/reset-password/${userId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      messageApi.success(res.data.message);
+    } catch (error) {
+      messageApi.error(error);
+    } finally {
+      setResetPass(false);
+    }
+  };
   const columns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     {
@@ -561,10 +580,19 @@ useEffect(() => {
             {user?.role === "principal" && (
               <Menu.Item
                 key="resetPassword"
-                icon={<KeyOutlined  />}
-                // onClick={() => openRoleModal(record)}
+                icon={<KeyOutlined />}
+                onClick={async () => {
+                  setResetPass(true); // start loading
+                  try {
+                    await resetPassword(record); // your async reset function
+                  } catch (err) {
+                    console.log(err);
+                  } finally {
+                    setResetPass(false); // stop loading
+                  }
+                }}
               >
-                Reset Password
+                {resetPss ? "Please wait..." : "Reset Password"}
               </Menu.Item>
             )}
             <Menu.Item
@@ -702,7 +730,7 @@ useEffect(() => {
                       <Option key={title} value={title}>
                         {title}
                       </Option>
-                    )
+                    ),
                   )}
                 </Select>
               </Form.Item>
@@ -897,10 +925,10 @@ useEffect(() => {
                   value: cls.name,
                   label: cls.name,
                   disabled: teachers?.some(
-                    (t) => t.adminLevel === cls.name // 🔒 disable if someone is already admin over this class
+                    (t) => t.adminLevel === cls.name, // 🔒 disable if someone is already admin over this class
                   ),
                 },
-              ])
+              ]),
             ).values(),
           ]}
         />

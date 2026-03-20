@@ -62,12 +62,12 @@ const ParentDashboard = () => {
 
   const getStudentsResult = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/parent/results?term=1`, {
+      const res = await axios.get(`${API_BASE_URL}/api/parent/results?${selectedTerm}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       // Store result in state
-      setResult(res.data.data);
+      setResult(res);
     } catch (error) {
       const msg = error?.response?.data?.message;
 
@@ -187,11 +187,12 @@ const ParentDashboard = () => {
           <Card className="rounded-2xl shadow-sm">
             <Text type="secondary">Student Name</Text>
             <Title level={5}>
-              {user?.firstName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
+              {user?.fullName}
+              {/* {user?.firstName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
                 ? "ODEH DANIEL OKENENI"
                 : user?.fullName === "NWANKWO ONYINUECHI"
                 ? "NWANKWO ONYINYECHI"
-                : user?.fullName || "--"}
+                : user?.fullName || "--"} */}
             </Title>
 
             <Divider className="" />

@@ -158,7 +158,7 @@ const PinManagement = () => {
       }).toString();
 
       const url = `${API_BASE_URL}/api/pin/dashboard?${query}`;
-      console.log("Fetching URL:", url); // <- check the URL
+      // console.log("Fetching URL:", url); // <- check the URL
 
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -277,9 +277,9 @@ const generation = async (values) => {
   const sessions = generateSessions(2);
 
   const terms = [
-    { id: "first", name: "First Term" },
-    { id: "second", name: "Second Term" },
-    { id: "third", name: "Third Term" },
+    { id: 1, name: "First Term" },
+    { id: 2, name: "Second Term" },
+    { id: 3, name: "Third Term" },
   ];
 
   useEffect(() => {
@@ -440,9 +440,9 @@ const generation = async (values) => {
             rules={[{ required: true, message: "Select term" }]}
           >
             <Select placeholder="Select Term">
-              <Option value="first">First Term</Option>
-              <Option value="second">Second Term</Option>
-              <Option value="third">Third Term</Option>
+              <Option value="1">First Term</Option>
+              <Option value="2">Second Term</Option>
+              <Option value="3">Third Term</Option>
             </Select>
           </Form.Item>
 

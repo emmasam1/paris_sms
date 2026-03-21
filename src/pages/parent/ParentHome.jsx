@@ -41,7 +41,7 @@ const ParentDashboard = () => {
   console.log(user);
 
   const child = {
-    term: "1st Term, 2025",
+    term: "2nd Term, 2026",
     avatar: null,
     // performance: 82,
     attendance: 90,

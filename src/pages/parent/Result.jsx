@@ -173,9 +173,9 @@ const ParentResult = () => {
 
 
   const studentInfo = {
-    termStarted: "15TH JANUARY, 2025",
-    termEnded: "5TH DECEMBER, 2025",
-    nextTermBegins: "12TH JANUARY, 2026",
+    termStarted: "12TH JANUARY, 2026",
+    termEnded: "27TH MARCH, 2026",
+    nextTermBegins: "20TH APRIL, 2026",
     schoolOpened: result?.student?.opened,
     present: result?.student?.present,
     absent: result?.student?.absent,

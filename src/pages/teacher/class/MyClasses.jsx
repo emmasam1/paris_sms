@@ -15,6 +15,7 @@ import {
   Row,
   Col,
 } from "antd";
+import { Spin } from "antd";
 import {
   EditOutlined,
   BarChartOutlined,
@@ -38,22 +39,15 @@ const MyClasses = () => {
 
   // UI state
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
-  // const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isViewResultModalOpen, setIsViewResultModalOpen] = useState(false);
 
   // active row / subject
   const [activeStudent, setActiveStudent] = useState(null);
   const [activeSubjects, setActiveSubjects] = useState(null);
-  const [subject, setSubject] = useState(null); // teacherSubject from API (raw)
-  // IMPORTANT: selectedSubject is the subject ID (string). This avoids confusion when API returns object sometimes.
-  // selectedSubject === SUBJECT ID (string)
   const [selectedSubject, setSelectedSubject] = useState(null);
-  const [selectedStudentId, setSelectedStudentId] = useState(null);
 
   const [studentsRecord, setStudentsRecord] = useState([]);
 
-  // teacher data structure: levels -> classes -> students
-  // teacherData holds the API payload as-is (array of entries: { level, subject, classes, totalStudents })
   const [teacherData, setTeacherData] = useState([]);
   const [levels, setLevels] = useState([]); // unique level strings
   const [arms, setArms] = useState([]); // arms for selected level
@@ -70,6 +64,7 @@ const MyClasses = () => {
 
   // loading & messages
   const [loading, setLoading] = useState(false);
+  const [tableLoading, setTableLoading] = useState(false); // UI loading
   const [messageApi, contextHolder] = message.useMessage();
 
   const [isEditRecordModalOpen, setIsEditRecordModalOpen] = useState(false);
@@ -250,7 +245,6 @@ const MyClasses = () => {
     selectedTerm, // ✅ ADD THIS
   ]);
 
-
   const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
     if (
       !token ||
@@ -265,7 +259,7 @@ const MyClasses = () => {
     }
 
     try {
-      setLoading(true);
+      setTableLoading(true);
 
       const url = new URL(`${API_BASE_URL}/api/teacher/students`);
       url.searchParams.append("level", selectedLevel);
@@ -275,17 +269,13 @@ const MyClasses = () => {
       url.searchParams.append("term", selectedTerm);
       url.searchParams.append("limit", 30);
 
-      // console.log("REQUEST:", url.toString());
-
       const res = await axios.get(url.toString(), {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = res?.data;
 
-      // ----------------------------------
-      // ✅ STEP 1: FILTER BY SUBJECT (VERY IMPORTANT)
-      // ----------------------------------
+      // ---------------- FILTER BY SUBJECT ----------------
       let filteredEntries = [];
 
       if (Array.isArray(data?.data)) {
@@ -296,11 +286,7 @@ const MyClasses = () => {
         );
       }
 
-      // console.log("FILTERED ENTRIES:", filteredEntries);
-
-      // ----------------------------------
-      // ✅ STEP 2: GET STUDENTS FROM MATCHED CLASS
-      // ----------------------------------
+      // ---------------- GET STUDENTS ----------------
       let classStudents = [];
       let classId = null;
 
@@ -318,7 +304,7 @@ const MyClasses = () => {
         }
       }
 
-      // fallback (if backend ignores subject completely)
+      // fallback
       if (!classStudents.length && Array.isArray(data?.data)) {
         for (const entry of data.data) {
           const matchedClass = (entry.classes || []).find(
@@ -335,15 +321,15 @@ const MyClasses = () => {
         }
       }
 
+      // ---------------- NO DATA ----------------
       if (!classStudents.length) {
         setStudents([]);
         setTotal(0);
+        setTableLoading(false); // ✅ stop loader
         return;
       }
 
-      // ----------------------------------
-      // ✅ STEP 3: MERGE RESULT STATUS
-      // ----------------------------------
+      // ---------------- MERGE RESULT STATUS ----------------
       let mergedStudents = classStudents;
 
       if (classId && selectedSubject) {
@@ -376,22 +362,165 @@ const MyClasses = () => {
         }
       }
 
-      // ----------------------------------
-      // ✅ STEP 4: SET STATE
-      // ----------------------------------
-      setStudents(mergedStudents);
-      setTotal(mergedStudents.length);
-      setPage(pageParam);
-      setLimit(30);
+      // ---------------- SET STATE (SMOOTH UX) ----------------
+      setTimeout(() => {
+        setStudents(mergedStudents);
+        setTotal(mergedStudents.length);
+        setPage(pageParam);
+        setLimit(30);
+
+        setTableLoading(false); // ✅ stop loader AFTER data is ready
+      }, 500); // adjust 300–700ms if needed
     } catch (error) {
       console.error("ERROR:", error);
       messageApi.error(
         error?.response?.data?.message || "No students found for this subject",
       );
-    } finally {
-      setLoading(false);
+      setTableLoading(false); // ✅ stop loader on error
     }
   };
+
+  // const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
+  //   if (
+  //     !token ||
+  //     !selectedLevel ||
+  //     !selectedArm ||
+  //     !selectedSubject ||
+  //     !selectedTerm ||
+  //     !selectedAcademicSession
+  //   ) {
+  //     messageApi.error("Please select all fields");
+  //     return;
+  //   }
+
+  //   try {
+  //     setTableLoading(true);
+
+  //     const url = new URL(`${API_BASE_URL}/api/teacher/students`);
+  //     url.searchParams.append("level", selectedLevel);
+  //     url.searchParams.append("arm", selectedArm);
+  //     url.searchParams.append("subject", selectedSubject);
+  //     url.searchParams.append("session", selectedAcademicSession);
+  //     url.searchParams.append("term", selectedTerm);
+  //     url.searchParams.append("limit", 30);
+
+  //     // console.log("REQUEST:", url.toString());
+
+  //     const res = await axios.get(url.toString(), {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+
+  //     const data = res?.data;
+
+  //     // ----------------------------------
+  //     // ✅ STEP 1: FILTER BY SUBJECT (VERY IMPORTANT)
+  //     // ----------------------------------
+  //     let filteredEntries = [];
+
+  //     if (Array.isArray(data?.data)) {
+  //       filteredEntries = data.data.filter(
+  //         (entry) =>
+  //           entry.subject?._id === selectedSubject ||
+  //           entry.subject === selectedSubject,
+  //       );
+  //     }
+
+  //     // console.log("FILTERED ENTRIES:", filteredEntries);
+
+  //     // ----------------------------------
+  //     // ✅ STEP 2: GET STUDENTS FROM MATCHED CLASS
+  //     // ----------------------------------
+  //     let classStudents = [];
+  //     let classId = null;
+
+  //     for (const entry of filteredEntries) {
+  //       const matchedClass = (entry.classes || []).find(
+  //         (c) =>
+  //           (c.class?.arm || c.class?.name || "").toLowerCase() ===
+  //           selectedArm.toLowerCase(),
+  //       );
+
+  //       if (matchedClass) {
+  //         classStudents = matchedClass.students || [];
+  //         classId = matchedClass.class?._id;
+  //         break;
+  //       }
+  //     }
+
+  //     // fallback (if backend ignores subject completely)
+  //     if (!classStudents.length && Array.isArray(data?.data)) {
+  //       for (const entry of data.data) {
+  //         const matchedClass = (entry.classes || []).find(
+  //           (c) =>
+  //             (c.class?.arm || c.class?.name || "").toLowerCase() ===
+  //             selectedArm.toLowerCase(),
+  //         );
+
+  //         if (matchedClass) {
+  //           classStudents = matchedClass.students || [];
+  //           classId = matchedClass.class?._id;
+  //           break;
+  //         }
+  //       }
+  //     }
+
+  //     if (!classStudents.length) {
+  //       setStudents([]);
+  //       setTotal(0);
+  //       return;
+  //     }
+
+  //     // ----------------------------------
+  //     // ✅ STEP 3: MERGE RESULT STATUS
+  //     // ----------------------------------
+  //     let mergedStudents = classStudents;
+
+  //     if (classId && selectedSubject) {
+  //       try {
+  //         const dashboardURL =
+  //           `${API_BASE_URL}/api/records/teacher/scores/dashboard` +
+  //           `?classId=${classId}` +
+  //           `&subjectId=${selectedSubject}` +
+  //           `&session=${selectedAcademicSession}` +
+  //           `&term=${selectedTerm}`;
+
+  //         const scoreRes = await axios.get(dashboardURL, {
+  //           headers: { Authorization: `Bearer ${token}` },
+  //         });
+
+  //         const statusList = scoreRes?.data?.students || [];
+
+  //         mergedStudents = classStudents.map((stu) => {
+  //           const found = statusList.find(
+  //             (s) => s.studentId === (stu._id || stu.id),
+  //           );
+
+  //           return {
+  //             ...stu,
+  //             hasRecord: found?.status === "recorded",
+  //           };
+  //         });
+  //       } catch (err) {
+  //         console.warn("Dashboard fetch failed");
+  //       }
+  //     }
+
+  //     // ----------------------------------
+  //     // ✅ STEP 4: SET STATE
+  //     // ----------------------------------
+  //     setStudents(mergedStudents);
+  //     setTotal(mergedStudents.length);
+  //     setPage(pageParam);
+  //     setLimit(30);
+  //   } catch (error) {
+  //     console.error("ERROR:", error);
+  //     messageApi.error(
+  //       error?.response?.data?.message || "No students found for this subject",
+  //     );
+  //   } finally {
+  //     setTableLoading(true);
+  //   }
+  // };
 
   // ---------------------------
   // Get all subjects (simple listing) - kept but not used as primary source (we also populate from teacherData)
@@ -644,13 +773,13 @@ const MyClasses = () => {
       {contextHolder}
       <div className="flex-1">
         {/* <Card className="shadow-md rounded-xl"> */}
-        <div className="flex items-center gap-2 mb-4">
-          {/* LEVEL SELECT */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {/* LEVEL */}
           <Select
             placeholder="Select Level"
-            style={{ width: 120 }}
+            className="w-full sm:w-[120px]"
             value={selectedLevel}
-            onChange={(value) => setSelectedLevel(value)}
+            onChange={setSelectedLevel}
             loading={loading && !levels.length}
             allowClear
           >
@@ -661,15 +790,13 @@ const MyClasses = () => {
             ))}
           </Select>
 
-          {/* SUBJECT SELECT */}
+          {/* SUBJECT */}
           <Select
             placeholder="Select Subject"
-            style={{ width: 260 }}
+            className="w-full sm:w-[220px]"
             value={selectedSubject}
             onChange={(value) => {
-              // value is subject id
               setSelectedSubject(value);
-              // when a new subject is selected, clear students so they reload via effect
               setStudents([]);
               setStudentsRecord([]);
             }}
@@ -677,19 +804,18 @@ const MyClasses = () => {
             allowClear
           >
             {subjects?.map((sub) => (
-              <Select.Option key={sub._id} value={sub._id}>
+              <Option key={sub._id} value={sub._id}>
                 {sub.name}
-              </Select.Option>
+              </Option>
             ))}
           </Select>
 
-          {/* ARM SELECT */}
+          {/* ARM */}
           <Select
             placeholder="Select Arm"
-            style={{ width: 260 }}
+            className="w-full sm:w-[180px]"
             value={selectedArm}
-            onChange={(value) => setSelectedArm(value)}
-            loading={loading && !!selectedLevel}
+            onChange={setSelectedArm}
             disabled={!arms.length}
             allowClear
           >
@@ -700,34 +826,38 @@ const MyClasses = () => {
             ))}
           </Select>
 
-          {/* SESSION SELECT */}
+          {/* SESSION */}
           <Select
-            placeholder="Select Academic Session"
-            style={{ width: 120 }}
+            placeholder="Session"
+            className="w-full sm:w-[150px]"
             value={selectedAcademicSession}
             onChange={setSelectedAcademicSession}
             allowClear
           >
             {academicSessions.map((sess) => (
-              <Select.Option key={sess} value={sess}>
+              <Option key={sess} value={sess}>
                 {sess}
-              </Select.Option>
+              </Option>
             ))}
           </Select>
 
+          {/* TERM */}
           <Select
-            placeholder="Select Term"
-            // style={{ width: 140 }}
+            placeholder="Term"
+            className="w-full sm:w-[140px]"
             value={selectedTerm}
-            onChange={(value) => setSelectedTerm(value)}
+            onChange={setSelectedTerm}
             allowClear
           >
-            <Select.Option value="1">First Term</Select.Option>
-            <Select.Option value="2">Second Term</Select.Option>
-            <Select.Option value="3">Third Term</Select.Option>
+            <Option value="1">First Term</Option>
+            <Option value="2">Second Term</Option>
+            <Option value="3">Third Term</Option>
           </Select>
 
+          {/* BUTTON */}
           <Button
+            type="primary"
+            className="w-full sm:w-auto"
             disabled={
               !selectedAcademicSession ||
               !selectedLevel ||
@@ -755,29 +885,28 @@ const MyClasses = () => {
             }
             key="1"
           >
-            {loading ? (
-              <Skeleton active paragraph={{ rows: 7 }} />
-            ) : (
-              <Table
-                dataSource={students}
-                columns={studentColumns}
-                rowKey={(r) => r._id || r.id}
-                loading={loading}
-                bordered
-                size="small"
-                pagination={{
-                  current: page,
-                  total: total,
-                  pageSize: limit,
-                  onChange: handlePageChange,
-                  showSizeChanger: true,
-                  pageSizeOptions: ["10", "20", "50"],
-                  position: ["bottomCenter"],
-                  className: "custom-pagination",
-                }}
-                scroll={{ x: "max-content" }}
-              />
-            )}
+            <Table
+              dataSource={students}
+              columns={studentColumns}
+              rowKey={(r) => r._id || r.id}
+              loading={{
+                spinning: tableLoading,
+                indicator: <Spin size="large" />, // custom loader
+              }}
+              bordered
+              size="small"
+              pagination={{
+                current: page,
+                total: total,
+                pageSize: limit,
+                onChange: handlePageChange,
+                showSizeChanger: true,
+                pageSizeOptions: ["10", "20", "50"],
+                position: ["bottomCenter"],
+                className: "custom-pagination",
+              }}
+              scroll={{ x: "max-content" }} // ✅ horizontal scroll
+            />
           </TabPane>
 
           {/* RESULTS TAB */}
@@ -807,7 +936,7 @@ const MyClasses = () => {
                   position: ["bottomCenter"],
                   className: "custom-pagination",
                 }}
-                scroll={{ x: "max-content" }}
+                // scroll={{ x: "max-content" }}
                 columns={resultsColumns}
               />
             )}

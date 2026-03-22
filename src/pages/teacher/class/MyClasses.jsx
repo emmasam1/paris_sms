@@ -976,23 +976,22 @@ const MyClasses = () => {
             }
             key="3"
           >
-              <Table
-                columns={columns}
-                size="small"
-                bordered
-                loading={{
+            <Table
+              columns={columns}
+              size="small"
+              bordered
+              loading={{
                 spinning: tableLoading,
                 indicator: <Spin size="large" />, // custom loader
               }}
-                dataSource={studentsRecord}
-                rowKey={(item) => item.studentId || item._id}
-                loading={loading}
-                pagination={{
-                  position: ["bottomCenter"],
-                  className: "custom-pagination",
-                }}
-                scroll={{ x: "max-content" }}
-              />
+              dataSource={studentsRecord}
+              rowKey={(item) => item.studentId || item._id}
+              pagination={{
+                position: ["bottomCenter"],
+                className: "custom-pagination",
+              }}
+              scroll={{ x: "max-content" }}
+            />
           </TabPane>
 
           {/* PROGRESS */}

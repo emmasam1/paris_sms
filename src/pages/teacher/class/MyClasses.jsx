@@ -918,28 +918,28 @@ const MyClasses = () => {
             }
             key="2"
           >
-            {loading ? (
-              <Skeleton active paragraph={{ rows: 7 }} />
-            ) : (
-              <Table
-                dataSource={students}
-                rowKey={(r) => r._id || r.id}
-                bordered
-                size="small"
-                pagination={{
-                  current: page,
-                  total: total,
-                  pageSize: limit,
-                  onChange: handlePageChange,
-                  showSizeChanger: true,
-                  pageSizeOptions: ["10", "20", "50"],
-                  position: ["bottomCenter"],
-                  className: "custom-pagination",
-                }}
-                // scroll={{ x: "max-content" }}
-                columns={resultsColumns}
-              />
-            )}
+            <Table
+              dataSource={students}
+              rowKey={(r) => r._id || r.id}
+              bordered
+              size="small"
+              loading={{
+                spinning: tableLoading,
+                indicator: <Spin size="large" />, // custom loader
+              }}
+              pagination={{
+                current: page,
+                total: total,
+                pageSize: limit,
+                onChange: handlePageChange,
+                showSizeChanger: true,
+                pageSizeOptions: ["10", "20", "50"],
+                position: ["bottomCenter"],
+                className: "custom-pagination",
+              }}
+              scroll={{ x: "max-content" }}
+              columns={resultsColumns}
+            />
 
             <EnterResult
               open={isResultModalOpen}
@@ -976,13 +976,14 @@ const MyClasses = () => {
             }
             key="3"
           >
-            {loading ? (
-              <Skeleton active paragraph={{ rows: 7 }} />
-            ) : (
               <Table
                 columns={columns}
                 size="small"
                 bordered
+                loading={{
+                spinning: tableLoading,
+                indicator: <Spin size="large" />, // custom loader
+              }}
                 dataSource={studentsRecord}
                 rowKey={(item) => item.studentId || item._id}
                 loading={loading}
@@ -992,7 +993,6 @@ const MyClasses = () => {
                 }}
                 scroll={{ x: "max-content" }}
               />
-            )}
           </TabPane>
 
           {/* PROGRESS */}

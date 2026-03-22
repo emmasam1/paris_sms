@@ -976,22 +976,24 @@ const MyClasses = () => {
             }
             key="3"
           >
-            <Table
-              columns={columns}
-              size="small"
-              bordered
-              loading={{
-                spinning: tableLoading,
-                indicator: <Spin size="large" />, // custom loader
-              }}
-              dataSource={studentsRecord}
-              rowKey={(item) => item.studentId || item._id}
-              pagination={{
-                position: ["bottomCenter"],
-                className: "custom-pagination",
-              }}
-              scroll={{ x: "max-content" }}
-            />
+            <div className="w-full overflow-x-auto">
+              <Table
+                columns={columns}
+                size="small"
+                bordered
+                loading={{
+                  spinning: tableLoading,
+                  indicator: <Spin size="large" />,
+                }}
+                dataSource={studentsRecord}
+                rowKey={(item) => item.studentId || item._id}
+                pagination={{
+                  position: ["bottomCenter"],
+                  className: "custom-pagination",
+                }}
+                // scroll={{ x: 1200 }} // 👈 IMPORTANT: fixed width
+              />
+            </div>
           </TabPane>
 
           {/* PROGRESS */}

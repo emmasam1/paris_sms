@@ -248,7 +248,7 @@ const generation = async (values) => {
 
     setIsModalOpen(false);
   } catch (error) {
-    messageApi.error("Failed to generate PIN");
+    messageApi.error(error?.response?.data?.message);
     console.log(error);
   } finally {
     setLoader(false);

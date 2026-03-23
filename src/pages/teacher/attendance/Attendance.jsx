@@ -261,7 +261,7 @@ const Attendance = ({ className }) => {
 
 
   const saveDomain = async (values) => {
-    console.log(stdResultId)
+    // console.log(stdResultId)
     try {
       setDomainLoading(true);
       const res = await axios.patch(

@@ -976,7 +976,7 @@ const MyClasses = () => {
             }
             key="3"
           >
-            <div className="w-full overflow-x-auto">
+            
               <Table
                 columns={columns}
                 size="small"
@@ -991,9 +991,9 @@ const MyClasses = () => {
                   position: ["bottomCenter"],
                   className: "custom-pagination",
                 }}
-                // scroll={{ x: 1200 }} // 👈 IMPORTANT: fixed width
+                 scroll={{ x: "max-content" }}
               />
-            </div>
+            
           </TabPane>
 
           {/* PROGRESS */}

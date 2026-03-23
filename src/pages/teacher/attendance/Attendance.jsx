@@ -243,23 +243,25 @@ const Attendance = ({ className }) => {
   };
 
   //Get student result
-  const getResult = async (id) => {
+  const getResult = async (record) => {
+    const id = record?.id
     try {
-      const stdresult = await axios.get(
-        `${API_BASE_URL}/api/results?studentId=${id}&session=2025/2026&term=1`,
+      const res = await axios.get(
+        `${API_BASE_URL}/api/results?studentId=${id}&session=2025/2026&term=2`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      const resultId = stdresult?.data?.data?._id;
-      setStdResultId(resultId);
-      return resultId; // ⭐ return result ID
+      setStdResultId(res?.data?.data?._id);
+      // return resultId; // ⭐ return result ID
     } catch (error) {
       console.log(error);
       return null;
     }
   };
 
+
+
   const saveDomain = async (values) => {
+    console.log(stdResultId)
     try {
       setDomainLoading(true);
       const res = await axios.patch(
@@ -665,7 +667,8 @@ const Attendance = ({ className }) => {
                           form.resetFields();
                           setSelectedDomainStudent(record);
                           setDomainModalOpen(true); // ✅ OPEN FIRST
-
+                          console.log(record)
+                          getResult(record)
                         
                         }}
                       >

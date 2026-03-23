@@ -976,7 +976,8 @@ const MyClasses = () => {
             }
             key="3"
           >
-            
+            {/* Horizontal scroll wrapper for mobile */}
+            <div className="w-full overflow-x-auto">
               <Table
                 columns={columns}
                 size="small"
@@ -993,7 +994,7 @@ const MyClasses = () => {
                 }}
                  scroll={{ x: "max-content" }}
               />
-            
+            </div>
           </TabPane>
 
           {/* PROGRESS */}

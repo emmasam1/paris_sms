@@ -76,18 +76,16 @@ const MyClasses = () => {
   const [academicSessions, setAcademicSessions] = useState([]);
   const [selectedAcademicSession, setSelectedAcademicSession] = useState(null);
 
-  const generateSessions = (yearsBack = 1) => {
-    const currentYear = new Date().getFullYear();
-    const sessions = [];
+ const generateSessions = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0–11
 
-    for (let i = yearsBack; i >= 1; i--) {
-      const startYear = currentYear - i;
-      sessions.push(`${startYear}/${startYear + 1}`);
-    }
+  // session starts around September (month 8)
+  const startYear = month >= 8 ? year : year - 1;
 
-    sessions.push(`${currentYear}/${currentYear + 1}`);
-    return sessions;
-  };
+  return [`${startYear}/${startYear + 1}`];
+};
 
   const sessions = useMemo(() => generateSessions(1), []);
 

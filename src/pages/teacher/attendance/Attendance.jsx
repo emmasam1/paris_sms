@@ -250,6 +250,7 @@ const Attendance = ({ className }) => {
         `${API_BASE_URL}/api/results?studentId=${id}&session=2025/2026&term=2`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      // console.log(res)
       setStdResultId(res?.data?.data?._id);
       // return resultId; // ⭐ return result ID
     } catch (error) {
@@ -667,7 +668,7 @@ const Attendance = ({ className }) => {
                           form.resetFields();
                           setSelectedDomainStudent(record);
                           setDomainModalOpen(true); // ✅ OPEN FIRST
-                          console.log(record)
+                          // console.log(record)
                           getResult(record)
                         
                         }}

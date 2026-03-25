@@ -27,7 +27,7 @@ import PrivateRoute from "./privateRoute/PrivateRoute";
 import NotFound from "./components/notfound/NotFound";
 import Attendance from "./pages/teacher/attendance/Attendance";
 import StudentProgress from "./pages/admin/progress/StudentProgress";
-import { BroadSheet } from "./pages/admin/broadsheet/BroadSheet";
+import BroadSheet from "./pages/admin/broadsheet/BroadSheet";
 
 const App = () => {
   return (

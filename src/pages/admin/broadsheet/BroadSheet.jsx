@@ -2,8 +2,9 @@ import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { useApp } from "../../../context/AppContext";
 import { Button, Select, message, Table, Typography, Card, Divider } from "antd";
-import * as XLSX from "xlsx";
+import XLSX from "xlsx-js-style"
 import { saveAs } from "file-saver";
+
 
 const { Option } = Select;
 const { Title } = Typography;
@@ -123,53 +124,101 @@ const exportToExcel = () => {
       return;
     }
 
-    // Get metadata from state or fallbacks
-    const schoolName = data?.metadata?.school;
+    // 1. DATA & METADATA
+    const schoolName = data?.metadata?.school || "PARIS AFRICANA INTERNATIONAL SCHOOL";
     const currentSession = data?.metadata?.session || selectedSession;
     const termLabel = selectedTerm === 1 ? 'FIRST' : selectedTerm === 2 ? 'SECOND' : 'THIRD';
-
     const workbook = XLSX.utils.book_new();
     const worksheetData = [];
 
-    // 1. DYNAMIC SCHOOL HEADER (Matches the API response)
-    worksheetData.push([schoolName]); 
-    worksheetData.push([`${termLabel} TERM BROADSHEET REPORT`]); 
-    worksheetData.push([`SESSION: ${currentSession}`]); 
-    worksheetData.push([`CLASS: ${selectedClass}`]); 
+    // 2. DEFINE REUSABLE STYLES
+    const styles = {
+      schoolHeader: {
+        font: { bold: true, sz: 18, name: "Arial" },
+        alignment: { horizontal: "center" }
+      },
+      subHeader: {
+        font: { bold: true, sz: 12 },
+        alignment: { horizontal: "center" }
+      },
+      tableHeader: {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "4F81BD" } },
+        alignment: { horizontal: "center" },
+        border: {
+          top: { style: "thin" }, bottom: { style: "thin" },
+          left: { style: "thin" }, right: { style: "thin" }
+        }
+      },
+      cellBody: {
+        border: {
+          top: { style: "thin" }, bottom: { style: "thin" },
+          left: { style: "thin" }, right: { style: "thin" }
+        },
+        alignment: { horizontal: "center" }
+      },
+      summaryTitle: {
+        font: { bold: true, sz: 12, underline: true },
+        alignment: { horizontal: "left" }
+      },
+      summaryHeader: {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "375623" } }, // Dark Green
+        alignment: { horizontal: "center" },
+        border: {
+          top: { style: "thin" }, bottom: { style: "thin" },
+          left: { style: "thin" }, right: { style: "thin" }
+        }
+      }
+    };
+
+    // 3. BUILD HEADER ROWS
+    const studentHeaders = ["S/N", "STUDENT NAME", ...subjects.map(s => s.toUpperCase()), "TOTAL", "AVERAGE", "POSITION", "REMARK"];
+    const totalColsCount = studentHeaders.length;
+
+    worksheetData.push([{ v: schoolName.toUpperCase(), s: styles.schoolHeader }]);
+    worksheetData.push([{ v: "ACADEMIC EVALUATION UNIT", s: styles.subHeader }]);
+    worksheetData.push([{ v: `${termLabel} TERM BROADSHEET REPORT`, s: styles.subHeader }]);
+    worksheetData.push([{ v: `SESSION: ${currentSession} | CLASS: ${selectedClass}`, s: styles.subHeader }]);
     worksheetData.push([]); // Spacer
 
-    // 2. MAIN TABLE HEADERS
-    const studentHeaders = [
-      "S/N",
-      "STUDENT NAME",
-      ...subjects.map(s => s.toUpperCase()),
-      "TOTAL",
-      "AVERAGE",
-      "POSITION",
-      "REMARK",
-    ];
-    worksheetData.push(studentHeaders);
+    // 4. MAIN STUDENT TABLE
+    worksheetData.push(studentHeaders.map(h => ({ v: h, s: styles.tableHeader })));
 
-    // 3. STUDENT DATA ROWS
     students.forEach((item, index) => {
-      const row = [
-        index + 1,
-        item.student?.name?.toUpperCase() || "N/A",
-        ...subjects.map((sub) => item.scores?.[sub]?.total ?? "-"),
-        item.summary?.termTotal || 0,
-        item.summary?.termAverage ? Number(item.summary.termAverage).toFixed(1) : 0,
-        item.summary?.termPosition || "-",
-        getRemark(item.summary?.termAverage).toUpperCase(),
-      ];
-      worksheetData.push(row);
+      worksheetData.push([
+        { v: index + 1, s: styles.cellBody },
+        { v: item.student?.name?.toUpperCase() || "N/A", s: { ...styles.cellBody, alignment: { horizontal: "left" } } },
+        ...subjects.map((sub) => ({ v: item.scores?.[sub]?.total ?? "-", s: styles.cellBody })),
+        { v: item.summary?.termTotal || 0, s: styles.cellBody },
+        { v: item.summary?.termAverage ? Number(item.summary.termAverage).toFixed(1) : 0, s: styles.cellBody },
+        { v: item.summary?.termPosition || "-", s: styles.cellBody },
+        { v: getRemark(item.summary?.termAverage).toUpperCase(), s: styles.cellBody },
+      ]);
     });
 
+    // 5. SPACERS BEFORE SUMMARY
     worksheetData.push([]);
     worksheetData.push([]);
 
-    // 4. SUMMARIES SECTION (Horizontal Alignment)
-    worksheetData.push(["PERFORMANCE SUMMARY", "", "", "CLASS ARMS DISTRIBUTION"]);
-    worksheetData.push(["DESCRIPTION", "COUNT", "", "ARM", "TEACHER", "TOTAL STUDENTS"]);
+    // 6. STYLED SUMMARY SECTION
+    const summaryStartRow = worksheetData.length;
+
+    // Summary Titles
+    // We start Performance Summary at Col 1 (B) and Class Distribution at Col 5 (F)
+    const titleRow = Array(6).fill("");
+    titleRow[1] = { v: "PERFORMANCE SUMMARY", s: styles.summaryTitle };
+    titleRow[4] = { v: "CLASS ARMS DISTRIBUTION", s: styles.summaryTitle };
+    worksheetData.push(titleRow);
+
+    // Summary Headers
+    const headerRow = Array(7).fill("");
+    headerRow[1] = { v: "DESCRIPTION", s: styles.summaryHeader };
+    headerRow[2] = { v: "COUNT", s: styles.summaryHeader };
+    headerRow[4] = { v: "ARM", s: styles.summaryHeader };
+    headerRow[5] = { v: "TEACHER", s: styles.summaryHeader };
+    headerRow[6] = { v: "STUDENTS", s: styles.summaryHeader };
+    worksheetData.push(headerRow);
 
     const performanceRows = [
       ["TOTAL NUMBER ABOVE 70%", summaryCounts.above70],
@@ -186,48 +235,57 @@ const exportToExcel = () => {
       const pRow = performanceRows[i] || ["", ""];
       const cRow = classSummaryData[i] ? [classSummaryData[i].arm, classSummaryData[i].teacher, classSummaryData[i].numStudents] : ["", "", ""];
       
-      worksheetData.push([
-        pRow[0], pRow[1], "", 
-        cRow[0], cRow[1], cRow[2]
-      ]);
+      const dataRow = Array(7).fill("");
+      // Left Table (Performance)
+      dataRow[1] = { v: pRow[0], s: { ...styles.cellBody, alignment: { horizontal: "left", wrapText: true } } };
+      dataRow[2] = { v: pRow[1], s: styles.cellBody };
+      // Right Table (Arms)
+      dataRow[4] = { v: cRow[0], s: styles.cellBody };
+      dataRow[5] = { v: cRow[1], s: styles.cellBody };
+      dataRow[6] = { v: cRow[2], s: styles.cellBody };
+      
+      worksheetData.push(dataRow);
     }
 
-    // 5. CREATE SHEET & APPLY STRUCTURE
+    // 7. CREATE WORKSHEET & APPLY MERGES
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
-    // Column Widths
+    const merges = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: totalColsCount - 1 } }, // School name
+      { s: { r: 1, c: 0 }, e: { r: 1, c: totalColsCount - 1 } }, // Unit
+      { s: { r: 2, c: 0 }, e: { r: 2, c: totalColsCount - 1 } }, // Term
+      { s: { r: 3, c: 0 }, e: { r: 3, c: totalColsCount - 1 } }, // Session
+      
+      // Merge Performance Title
+      { s: { r: summaryStartRow, c: 1 }, e: { r: summaryStartRow, c: 2 } },
+      // Merge Arms Title
+      { s: { r: summaryStartRow, c: 4 }, e: { r: summaryStartRow, c: 6 } },
+    ];
+
+    worksheet['!merges'] = merges;
+
+    // 8. COLUMN WIDTHS
     const wscols = [
-      { wch: 6 },   // S/N
-      { wch: 35 },  // Student Name (Widened for longer names)
-      ...subjects.map(() => ({ wch: 12 })), // Subjects
-      { wch: 10 },  // Total
-      { wch: 10 },  // Average
-      { wch: 8 },   // Pos
-      { wch: 15 },  // Remark
+      { wch: 6 },   // S/N (Col A)
+      { wch: 35 },  // Student Name / Description (Col B)
+      { wch: 12 },  // Count (Col C)
+      { wch: 5 },   // Gap (Col D)
+      { wch: 12 },  // Arm (Col E)
+      { wch: 25 },  // Teacher (Col F)
+      { wch: 12 },  // Students Count (Col G)
+      ...subjects.slice(5).map(() => ({ wch: 10 })), // Remaining subject cols
     ];
     worksheet['!cols'] = wscols;
 
-    // Center Align the Merged Headers
-    const totalCols = studentHeaders.length - 1;
-    worksheet['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: totalCols } }, // School Name
-      { s: { r: 1, c: 0 }, e: { r: 1, c: totalCols } }, // Subtitle
-      { s: { r: 2, c: 0 }, e: { r: 2, c: totalCols } }, // Term
-      { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols } }, // Session
-      { s: { r: 4, c: 0 }, e: { r: 4, c: totalCols } }, // Class
-    ];
-
+    // 9. FINAL EXPORT
     XLSX.utils.book_append_sheet(workbook, worksheet, "BroadSheet");
-
-    // 6. GENERATE FILENAME & DOWNLOAD
-    const termFile = selectedTerm === 1 ? "1stTerm" : selectedTerm === 2 ? "2ndTerm" : "3rdTerm";
-    const fileName = `${schoolName.split(' ')[0]}_${selectedClass}_${termFile}.xlsx`;
-    
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const dataBlob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    saveAs(dataBlob, fileName);
     
-    messageApi.success("Professional BroadSheet Downloaded!");
+    const fileName = `${schoolName.split(' ')[0]}_${selectedClass}_Broadsheet.xlsx`;
+    saveAs(dataBlob, fileName);
+    messageApi.success("Excel Broadsheet Generated Successfully!");
+
   } catch (error) {
     console.error("Export Error:", error);
     messageApi.error("Export failed: " + error.message);

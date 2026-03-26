@@ -456,7 +456,7 @@ const resetPassword = async (record) => {
     );
 
     // 3. Success handling
-    console.log("Response:", res.data);
+    // console.log("Response:", res.data);
     messageApi.success(res.data.message || "Password reset successful");
     
   } catch (error) {

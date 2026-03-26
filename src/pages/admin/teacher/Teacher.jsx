@@ -443,8 +443,9 @@ const resetPassword = async (record) => {
     setResetPass(true);
     
     // 2. Perform the POST request
-    const res = await axios.patch(
-      `${API_BASE_URL}/api/admin/staff/${userId}/reset-password`,
+    const res = await axios.post(
+      `${API_BASE_URL}/api/admin/staff/${userId}/reset-to-default`,
+      
       {}, // Sending empty body as required
       {
         headers: { 

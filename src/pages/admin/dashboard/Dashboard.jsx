@@ -11,6 +11,9 @@ import {
   Tooltip,
   message,
   Skeleton,
+  Modal,
+  Spin,
+  Descriptions,
 } from "antd";
 import {
   UserOutlined,
@@ -37,6 +40,7 @@ import { motion } from "framer-motion";
 import { useApp } from "../../../context/AppContext";
 import { useNavigate } from "react-router";
 import axios from "axios";
+import moment from "moment";
 
 import GeneratePin from "../../../components/generatepin/GeneratePin";
 import CreateClass from "../../../components/createclass/CreateClass";
@@ -61,61 +65,15 @@ const Dashboard = () => {
     revenueGrowth: [],
   });
 
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
+
   const [messageApi, contextHolder] = message.useMessage();
 
   const { API_BASE_URL, token, user } = useApp();
   const navigate = useNavigate();
-
-  // ===== Recent Activity =====
-  const recentActivities = [
-    {
-      key: "1",
-      action: "New Student Registered",
-      actor: "Admin",
-      time: "2 mins ago",
-      status: "success",
-    },
-    {
-      key: "2",
-      action: "Class JSS1 Created",
-      actor: "Admin",
-      time: "10 mins ago",
-      status: "processing",
-    },
-    {
-      key: "3",
-      action: "PIN Generated for Parents",
-      actor: "Admin",
-      time: "1 hour ago",
-      status: "success",
-    },
-    {
-      key: "4",
-      action: "Message Sent to Teachers",
-      actor: "Admin",
-      time: "Yesterday",
-      status: "warning",
-    },
-  ];
-
-  const columns = [
-    { title: "Action", dataIndex: "action", key: "action" },
-    { title: "By", dataIndex: "actor", key: "actor" },
-    { title: "Time", dataIndex: "time", key: "time" },
-    {
-      title: "Status",
-      key: "status",
-      dataIndex: "status",
-      render: (status) => {
-        const colors = {
-          success: "green",
-          processing: "blue",
-          warning: "orange",
-        };
-        return <Tag color={colors[status]}>{status.toUpperCase()}</Tag>;
-      },
-    },
-  ];
 
   // ===== Fetch Analytics =====
   const getAnalyticsData = async () => {
@@ -127,9 +85,9 @@ const Dashboard = () => {
       });
       // console.log(res)
       setAnalytics(res.data.data.totals);
-      setActiveStudent(res?.data?.data?.totals?.activeStudents)
-      setInActiveStudent(res?.data?.data?.totals?.inactiveStudents)
-      setAllStudent(res?.data?.data?.totals?.students)
+      setActiveStudent(res?.data?.data?.totals?.activeStudents);
+      setInActiveStudent(res?.data?.data?.totals?.inactiveStudents);
+      setAllStudent(res?.data?.data?.totals?.students);
       messageApi.success(res?.data?.message || "Dashboard loaded.");
     } catch (error) {
       console.error(error);
@@ -139,88 +97,179 @@ const Dashboard = () => {
     }
   };
 
+  const getLog = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/activity-logs`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log(res);
+      const activities = Array.isArray(res?.data?.data) ? res.data.data : [];
+      setRecentActivities(activities);
+    } catch (error) {
+      console.error("Failed to fetch recent activities:", error);
+      message.error("Failed to fetch recent activities");
+      setRecentActivities([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getLog();
+  }, [token]);
+
+  // Fetch single activity by ID when button is clicked
+  const showDetails = async (activityId) => {
+    if (!token) return;
+    setModalLoading(true);
+    setModalVisible(true);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/api/admin/activity-logs/${activityId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      setSelectedActivity(res.data.data);
+    } catch (error) {
+      console.error("Failed to fetch activity details:", error);
+      message.error("Failed to fetch activity details");
+      setModalVisible(false);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const columns = [
+    {
+      title: "By",
+      dataIndex: "actor",
+      key: "actor",
+      render: (actor) => actor?.fullName || "Unknown",
+    },
+    {
+      title: "Action",
+      dataIndex: "message",
+      key: "message",
+    },
+    {
+      title: "Time",
+      dataIndex: "createdAt",
+      key: "time",
+      render: (createdAt) =>
+        createdAt ? moment(createdAt).format("YYYY-MM-DD HH:mm") : "-",
+    },
+    {
+      title: "Status",
+      key: "status",
+      dataIndex: "action",
+      render: (action) => {
+        const statusMap = {
+          STUDENT_ARCHIVED: { text: "Archived", color: "orange" },
+          STUDENT_UNARCHIVED: { text: "Active", color: "green" },
+        };
+        const { text, color } = statusMap[action] || {
+          text: action,
+          color: "blue",
+        };
+        return <Tag color={color}>{text}</Tag>;
+      },
+    },
+    {
+      title: "Action",
+      key: "details",
+      render: (_, record) => (
+        <Button type="link" onClick={() => showDetails(record._id)}>
+          View Details
+        </Button>
+      ),
+    },
+  ];
+
   useEffect(() => {
     getAnalyticsData();
   }, [token]);
 
   // ===== Stat Cards =====
-const statCards = [
-  {
-    icon: <UserOutlined />,
-    label: "All Time Students",
-    value: allStudent ?? 0,
-    route: "/admin/dashboard/students",
-    // Matured Slate/Navy
-    bgColor: "#f0f2f5", 
-    iconBg: "#d9e2ec",
-    iconColor: "#334e68", 
-  },
-  {
-    icon: <UserOutlined />,
-    label: "Active Students",
-    value: activeStudent ?? 0,
-    route: "/admin/dashboard/students",
-    // Matured Teal/Sage
-    bgColor: "#f1f7f6",
-    iconBg: "#cce0db",
-    iconColor: "#00695c",
-  },
-  {
-    icon: <UserOutlined />,
-    label: "Archived Students",
-    value: inactiveStudent ?? 0,
-    route: "/admin/dashboard/students",
-    // Matured Rose/Terracotta
-    bgColor: "#fff5f5",
-    iconBg: "#f7d6d6",
-    iconColor: "#a64452",
-  },
-  {
-    icon: <IdcardOutlined />,
-    label: "Staff",
-    value: analytics?.staff ?? 0,
-    route: "/admin/dashboard/teachers",
-    // Matured Ochre/Sand
-    bgColor: "#fdf8f3",
-    iconBg: "#f3e4d4",
-    iconColor: "#8d6e63",
-  },
-  {
-    icon: <BookOutlined />,
-    label: "Classes",
-    value: analytics?.classes ?? 0,
-    route: "/admin/dashboard/class-management",
-    // Matured Lavender/Steel
-    bgColor: "#f5f3ff",
-    iconBg: "#e0e0f7",
-    iconColor: "#5e5ce6",
-  },
-  ...(user?.role === "principal"
-    ? [
-        {
-          icon: <KeyOutlined />,
-          label: "PINs",
-          value: analytics?.pinsGenerated ?? 0,
-          route: "/admin/dashboard/pin-management",
-          // Matured Bronze/Olive
-          bgColor: "#fcfaf2",
-          iconBg: "#f0e6c1",
-          iconColor: "#85754e",
-        },
-        {
-          icon: <DollarOutlined />,
-          label: "Revenue",
-          value: analytics?.totalRevenue
-            ? `₦${analytics.totalRevenue.toLocaleString()}`
-            : "₦0",
-          // Matured Emerald/Forest
-          bgColor: "#f2fcf5",
-          iconBg: "#c6e9d1",
-          iconColor: "#2d6a4f",
-        },
-      ]
-    : []),
-];
+  const statCards = [
+    {
+      icon: <UserOutlined />,
+      label: "All Time Students",
+      value: allStudent ?? 0,
+      route: "/admin/dashboard/students",
+      // Matured Slate/Navy
+      bgColor: "#f0f2f5",
+      iconBg: "#d9e2ec",
+      iconColor: "#334e68",
+    },
+    {
+      icon: <UserOutlined />,
+      label: "Active Students",
+      value: activeStudent ?? 0,
+      route: "/admin/dashboard/students",
+      // Matured Teal/Sage
+      bgColor: "#f1f7f6",
+      iconBg: "#cce0db",
+      iconColor: "#00695c",
+    },
+    {
+      icon: <UserOutlined />,
+      label: "Archived Students",
+      value: inactiveStudent ?? 0,
+      route: "/admin/dashboard/students",
+      // Matured Rose/Terracotta
+      bgColor: "#fff5f5",
+      iconBg: "#f7d6d6",
+      iconColor: "#a64452",
+    },
+    {
+      icon: <IdcardOutlined />,
+      label: "Staff",
+      value: analytics?.staff ?? 0,
+      route: "/admin/dashboard/teachers",
+      // Matured Ochre/Sand
+      bgColor: "#fdf8f3",
+      iconBg: "#f3e4d4",
+      iconColor: "#8d6e63",
+    },
+    {
+      icon: <BookOutlined />,
+      label: "Classes",
+      value: analytics?.classes ?? 0,
+      route: "/admin/dashboard/class-management",
+      // Matured Lavender/Steel
+      bgColor: "#f5f3ff",
+      iconBg: "#e0e0f7",
+      iconColor: "#5e5ce6",
+    },
+    ...(user?.role === "principal"
+      ? [
+          {
+            icon: <KeyOutlined />,
+            label: "PINs",
+            value: analytics?.pinsGenerated ?? 0,
+            route: "/admin/dashboard/pin-management",
+            // Matured Bronze/Olive
+            bgColor: "#fcfaf2",
+            iconBg: "#f0e6c1",
+            iconColor: "#85754e",
+          },
+          {
+            icon: <DollarOutlined />,
+            label: "Revenue",
+            value: analytics?.totalRevenue
+              ? `₦${analytics.totalRevenue.toLocaleString()}`
+              : "₦0",
+            // Matured Emerald/Forest
+            bgColor: "#f2fcf5",
+            iconBg: "#c6e9d1",
+            iconColor: "#2d6a4f",
+          },
+        ]
+      : []),
+  ];
 
   // ===== Dummy Charts =====
   useEffect(() => {
@@ -252,41 +301,47 @@ const statCards = [
       {user?.needsPasswordChange && <ChangePassword />}
 
       {/* ===== Stat Cards ===== */}
-<Row gutter={[16, 16]}>
-  {statCards.map((card, index) => (
-    <Col xs={24} sm={12} lg={8} xl={6} key={index}>
-      <Card
-        hoverable
-        style={{ backgroundColor: card.bgColor, borderRadius: '12px', border: 'none' }}
-        onClick={() => card.route && navigate(card.route)}
-      >
-        <div className="flex items-center gap-4">
-          {/* Circular Icon Container */}
-          <div 
-            style={{ 
-              backgroundColor: card.iconBg, 
-              color: card.textColor,
-              width: '50px', 
-              height: '50px', 
-              borderRadius: '50%' 
-            }}
-            className="flex items-center justify-center text-2xl"
-          >
-            {card.icon}
-          </div>
+      <Row gutter={[16, 16]}>
+        {statCards.map((card, index) => (
+          <Col xs={24} sm={12} lg={8} xl={6} key={index}>
+            <Card
+              hoverable
+              style={{
+                backgroundColor: card.bgColor,
+                borderRadius: "12px",
+                border: "none",
+              }}
+              onClick={() => card.route && navigate(card.route)}
+            >
+              <div className="flex items-center gap-4">
+                {/* Circular Icon Container */}
+                <div
+                  style={{
+                    backgroundColor: card.iconBg,
+                    color: card.textColor,
+                    width: "50px",
+                    height: "50px",
+                    borderRadius: "50%",
+                  }}
+                  className="flex items-center justify-center text-2xl"
+                >
+                  {card.icon}
+                </div>
 
-          {/* Text Content */}
-          <div>
-            <p style={{ color: '#595959', marginBottom: 0 }}>{card.label}</p>
-            <Title level={4} style={{ margin: 0, color: card.textColor }}>
-              {card.value}
-            </Title>
-          </div>
-        </div>
-      </Card>
-    </Col>
-  ))}
-</Row>
+                {/* Text Content */}
+                <div>
+                  <p style={{ color: "#595959", marginBottom: 0 }}>
+                    {card.label}
+                  </p>
+                  <Title level={4} style={{ margin: 0, color: card.textColor }}>
+                    {card.value}
+                  </Title>
+                </div>
+              </div>
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
       {/* ===== Quick Actions ===== */}
       {user?.role === "principal" && (
@@ -399,21 +454,81 @@ const statCards = [
       )}
 
       {/* ===== Recent Activity ===== */}
-      <Card className="rounded-xl shadow-md">
+      <Card className="rounded-xl shadow-md !mt-4">
         <Title level={4}>Recent Activity</Title>
-        <Table
-          columns={columns}
-          dataSource={recentActivities}
-          bordered
-          size="small"
-          pagination={{
-            pageSize: 7,
-            position: ["bottomCenter"],
-            className: "custom-pagination", // ✅ preserve your styling
-          }}
-          scroll={{ x: "max-content" }}
-          className="custom-table"
-        />
+        {loading ? (
+          <Spin tip="Loading recent activities..." />
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={recentActivities}
+            rowKey="_id"
+            bordered
+            size="small"
+            pagination={{
+              pageSize: 7,
+              position: ["bottomCenter"],
+              className: "custom-pagination",
+            }}
+            scroll={{ x: "max-content" }}
+            className="custom-table"
+            locale={{ emptyText: "No recent activity" }}
+          />
+        )}
+
+        <Modal
+          title="Activity Details"
+          visible={modalVisible}
+          footer={null}
+          onCancel={() => setModalVisible(false)}
+        >
+          {modalLoading ? (
+            <Spin tip="Loading activity details..." />
+          ) : (
+            selectedActivity && (
+              <Descriptions column={1} bordered size="small">
+                <Descriptions.Item label="Action">
+                  {selectedActivity.action}
+                </Descriptions.Item>
+                <Descriptions.Item label="Message">
+                  {selectedActivity.message}
+                </Descriptions.Item>
+                <Descriptions.Item label="By">
+                  {selectedActivity.actor?.fullName}
+                </Descriptions.Item>
+                <Descriptions.Item label="Email">
+                  {selectedActivity.actor?.email}
+                </Descriptions.Item>
+                <Descriptions.Item label="Role">
+                  {selectedActivity.actor?.role}
+                </Descriptions.Item>
+                <Descriptions.Item label="Created At">
+                  {moment(selectedActivity.createdAt).format(
+                    "YYYY-MM-DD HH:mm",
+                  )}
+                </Descriptions.Item>
+                {/* <Descriptions.Item label="IP Address">
+                  {selectedActivity.ipAddress}
+                </Descriptions.Item> */}
+                {/* <Descriptions.Item label="User Agent">
+                  {selectedActivity.userAgent}
+                </Descriptions.Item> */}
+                {/* <Descriptions.Item label="Target Model">
+                  {selectedActivity.targetModel}
+                </Descriptions.Item> */}
+                {/* <Descriptions.Item label="Target ID">
+                  {selectedActivity.targetId}
+                </Descriptions.Item> */}
+                <Descriptions.Item label="Changes Before">
+                  {JSON.stringify(selectedActivity.changes?.before)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Changes After">
+                  {JSON.stringify(selectedActivity.changes?.after)}
+                </Descriptions.Item>
+              </Descriptions>
+            )
+          )}
+        </Modal>
       </Card>
 
       {/* ===== Modals ===== */}

@@ -101,6 +101,7 @@ const Student = () => {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [unassignLoader, setUnassignLoader] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
+  const [fliteredStd, setFeliteredStd] = useState("active");
 
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
@@ -131,34 +132,6 @@ const Student = () => {
   const [fileList, setFileList] = useState([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
-
-  //  const getStudentsResult = async () => {
-  //   const id = selectedStudent?._id
-  //     try {
-  //       setLoading(true);
-
-  //       const res = await axios.get(
-  //         `${API_BASE_URL}/api/results?studentId=${id}&session=2025/2026&term=1`,
-  //         {
-  //           headers: {
-  //             Authorization: `Bearer ${token}`,
-  //           },
-  //         }
-  //       );
-
-  //       setResult(res.data?.data || []);
-
-  //       console.log("RESULT:", res.data);
-  //     } catch (error) {
-  //       console.log("Error get result", error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   useEffect(() => {
-  //     getStudentsResult();
-  //   }, []);
 
   const handlePreview = async (file) => {
     setPreviewImage(file.url || file.preview);
@@ -203,48 +176,6 @@ const Student = () => {
     }
   }, [editingStudent, form]);
 
-  // const getStudents = async (
-  //   page = 1,
-  //   search = "",
-  //   classId = "",
-  //   pageSize = pagination.pageSize
-  // ) => {
-  //   setLoading(true);
-  //   try {
-  //     const params = new URLSearchParams();
-  //     params.append("page", page);
-  //     params.append("limit", pageSize);
-
-  //     if (search) params.append("search", search);
-  //     if (classId) params.append("classId", classId);
-
-  //     const res = await axios.get(
-  //       `${API_BASE_URL}/api/student-management/student?${params.toString()}`,
-  //       { headers: { Authorization: `Bearer ${token}` } }
-  //     );
-
-  //     const studentsWithFullName = (res?.data?.data || []).map((s) => ({
-  //       ...s,
-  //       key: s._id,
-  //       name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
-  //     }));
-
-  //     setStudents(studentsWithFullName);
-
-  //     setPagination({
-  //       current: res?.data?.pagination?.page || page,
-  //       total: res?.data?.pagination?.total || 0,
-  //       pageSize: res?.data?.pagination?.limit || pageSize,
-  //     });
-  //   } catch (error) {
-  //     messageApi.error(
-  //       error?.response?.data?.message || "Failed to fetch students"
-  //     );
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const reGenerateResult = async (record) => {
     const payload = {
       studentId: record?._id,
@@ -278,15 +209,21 @@ const Student = () => {
     search = "",
     classId = "",
     pageSize = pagination.pageSize,
+    status = fliteredStd,
   ) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
 
       const effectiveLimit = classId ? 30 : pageSize; // ✅ KEY FIX
+      // Inside getStudents function:
+      if (status && status !== "all") {
+        params.append("status", status);
+      }
 
       params.append("page", page);
       params.append("limit", effectiveLimit);
+      params.append("status", status);
 
       if (search) params.append("search", search);
       if (classId) params.append("classId", classId);
@@ -312,6 +249,20 @@ const Student = () => {
     }
   };
 
+  // Trigger fetch when the filter changes
+  useEffect(() => {
+    if (initialized && token) {
+      // Reset to page 1 when filter changes
+      getStudents(
+        1,
+        searchText,
+        selectedClass,
+        pagination.pageSize,
+        fliteredStd,
+      );
+    }
+  }, [fliteredStd]);
+
   const getTeachers = async () => {
     if (!token) return;
     try {
@@ -329,6 +280,7 @@ const Student = () => {
   };
 
   const getAllSubjects = async () => {
+    if (!token) return;
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/subject-management/subjects?limit=100`,
@@ -422,22 +374,14 @@ const Student = () => {
   }, [initialized, token]);
 
   useEffect(() => {
-  if (selectedClass) {
-    setPagination((prev) => ({
-      ...prev,
-      pageSize: 30,
-      current: 1,
-    }));
-  }
-}, [selectedClass]);
-
-  const adminGetProgress = async () => {
-    try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/results/admin?classId=64fa2b8a1234abcd56789ef0&term=&session=2025/2026&page=1&limit=10`,
-      );
-    } catch (error) {}
-  };
+    if (selectedClass) {
+      setPagination((prev) => ({
+        ...prev,
+        pageSize: 30,
+        current: 1,
+      }));
+    }
+  }, [selectedClass]);
 
   const closeDrawer = () => {
     setDrawerOpen(false);
@@ -507,7 +451,7 @@ const Student = () => {
   const openDetails = (record) => {
     setDetailsStudent(record);
     setIsDetailsOpen(true);
-    // console.log(record);
+    console.log(record);
   };
 
   //Get student subjects
@@ -683,41 +627,86 @@ const Student = () => {
 
   // console.log(token, API_BASE_URL);
 
-  const handleDelete = async (record) => {
-    // console.log(record);
+  // const handlearchive = async (record) => {
+
+  //   if(!token) return
+  //   try {
+  //     // Optional: show a loading message
+  //     messageApi.open({
+  //       type: "loading",
+  //       content: "Archiving student...",
+  //       duration: 0,
+  //     });
+
+  //     const res = await axios.patch(
+  //       `${API_BASE_URL}/api/admin/student/${record._id}/status`,
+  //      {status: "archived"},
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       },
+  //     );
+
+  //     console.log(res)
+  //     // Close the loading message first
+  //     messageApi.destroy();
+
+  //     messageApi.success(res?.data?.message || "Student archived successfully");
+
+  //     // Update local state (remove deleted student)
+  //     setStudents((prev) => prev.filter((s) => s._id !== record._id));
+
+  //     // Refresh class list if needed
+  //     getClass?.();
+  //   } catch (error) {
+  //     console.error("Error deleting student:", error);
+  //     messageApi.destroy();
+  //     messageApi.error(
+  //       error?.response?.data?.message || "Failed to archive student",
+  //     );
+  //   }
+  // };
+
+  const toggleStudentStatus = async (record) => {
+    if (!token) return;
+
+    // Determine target status
+    const isArchived = record.status === "archived";
+    const newStatus = isArchived ? "active" : "archived";
+    const actionText = isArchived ? "Unarchiving" : "Archiving";
+
     try {
-      // Optional: show a loading message
       messageApi.open({
+        key: "statusUpdate",
         type: "loading",
-        content: "Deleting student...",
+        content: `${actionText} student...`,
         duration: 0,
       });
 
-      const res = await axios.delete(
-        `${API_BASE_URL}/api/admin/student/${record._id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
+      const res = await axios.patch(
+        `${API_BASE_URL}/api/admin/student/${record._id}/status`,
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } },
       );
 
-      // Close the loading message first
-      messageApi.destroy();
+      messageApi.success({
+        key: "statusUpdate",
+        content: res?.data?.message || `Student ${newStatus} successfully`,
+      });
 
-      messageApi.success(res?.data?.message || "Student deleted successfully");
-
-      // Update local state (remove deleted student)
+      // Remove from current view since the status changed
       setStudents((prev) => prev.filter((s) => s._id !== record._id));
 
-      // Refresh class list if needed
+      // Optional: Refresh global class counts
       getClass?.();
     } catch (error) {
-      console.error("Error deleting student:", error);
-      messageApi.destroy();
-      messageApi.error(
-        error?.response?.data?.message || "Failed to delete student",
-      );
+      console.error("Error updating student status:", error);
+      messageApi.error({
+        key: "statusUpdate",
+        content:
+          error?.response?.data?.message || `Failed to update student status`,
+      });
     }
   };
 
@@ -875,17 +864,37 @@ const Student = () => {
         // }
 
         if (user.role === "principal") {
+          // Dynamic Archive/Unarchive button
+          const isCurrentlyArchived =
+            record.status === "archived" || fliteredStd === "archived";
+
           items.push({
             key: "6",
-            icon: <DeleteOutlined style={{ color: "#ff4d4f" }} />,
+            icon: isCurrentlyArchived ? (
+              <ReloadOutlined style={{ color: "#52c41a" }} />
+            ) : (
+              <DeleteOutlined style={{ color: "#ff4d4f" }} />
+            ),
             label: (
               <Popconfirm
-                title="Delete student?"
-                onConfirm={() => handleDelete(record)}
+                title={
+                  isCurrentlyArchived
+                    ? "Restore this student?"
+                    : "Archive this student?"
+                }
+                onConfirm={() => toggleStudentStatus(record)}
                 okText="Yes"
                 cancelText="No"
               >
-                <span className="text-red-500">Delete</span>
+                <span
+                  className={
+                    isCurrentlyArchived ? "text-green-600" : "text-red-500"
+                  }
+                >
+                  {isCurrentlyArchived
+                    ? "Unarchive Student"
+                    : "Archive Student"}
+                </span>
               </Popconfirm>
             ),
           });
@@ -1221,6 +1230,32 @@ const Student = () => {
 
         <div className="flex items-center gap-3">
           <Select
+            placeholder="Filter Students"
+            allowClear
+            className="w-40"
+            value={fliteredStd} // Bind the value to state
+            onChange={(value) => {
+              // If user clears the selection, maybe default to "active" or null
+              const newValue = value || "active";
+              setFeliteredStd(newValue);
+
+              // Optional: You can call it here directly for faster response,
+              // but pass 'value' directly because 'fliteredStd' won't be updated yet.
+              getStudents(
+                1,
+                searchText,
+                selectedClass,
+                pagination.pageSize,
+                newValue,
+              );
+            }}
+          >
+            <Option value="all">All Time Students</Option>
+            <Option value="archived">Archived Students</Option>
+            <Option value="active">Active Students</Option>
+          </Select>
+
+          <Select
             placeholder="Select Class"
             allowClear
             className="w-40"
@@ -1426,7 +1461,7 @@ const Student = () => {
               >
                 <Select placeholder="Select session">
                   {sessions.map((s) => (
-                    <Option key={s} value={s}>
+                    <Option key={s._id} value={s}>
                       {s}
                     </Option>
                   ))}
@@ -1508,7 +1543,8 @@ const Student = () => {
               {detailsStudent.admissionNumber}
             </Descriptions.Item>
             <Descriptions.Item label="Name">
-              {detailsStudent.name}
+              {detailsStudent.firstName} &nbsp;
+              {detailsStudent.lastName}
             </Descriptions.Item>
             <Descriptions.Item label="Gender">
               {detailsStudent.gender}
@@ -1517,7 +1553,8 @@ const Student = () => {
               {detailsStudent.session}
             </Descriptions.Item>
             <Descriptions.Item label="class">
-              {detailsStudent.class?.name}
+              {detailsStudent.class?.name}&nbsp;
+              {detailsStudent.class?.arm}
             </Descriptions.Item>
             {/* <Descriptions.Item label="PIN">
               {detailsStudent.pin}
@@ -1537,9 +1574,9 @@ const Student = () => {
             <Descriptions.Item label="Parent Address">
               {detailsStudent.parentAddress || "—"}
             </Descriptions.Item> */}
-            <Descriptions.Item label="Class Teacher">
-              {/* {detailsStudent?.detailsStudent.class || "—"} */}
-            </Descriptions.Item>
+            {/* <Descriptions.Item label="Class Teacher">
+              {detailsStudent?.detailsStudent.class || "—"}
+            </Descriptions.Item> */}
             <Descriptions.Item label="Subjects Offered">
               {detailsStudent.subjects && detailsStudent.subjects.length > 0
                 ? detailsStudent.subjects.map((s) => s.name).join(", ")

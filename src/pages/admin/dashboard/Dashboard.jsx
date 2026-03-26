@@ -53,6 +53,9 @@ const Dashboard = () => {
   const [isCreateStaffOpen, setIsStaffClassOpen] = useState(false);
   const [sendMessage, setSendMessage] = useState(false);
   const [analytics, setAnalytics] = useState(null);
+  const [allStudent, setAllStudent] = useState(null);
+  const [inactiveStudent, setInActiveStudent] = useState(null);
+  const [activeStudent, setActiveStudent] = useState(null);
   const [chartData, setChartData] = useState({
     studentGrowth: [],
     revenueGrowth: [],
@@ -122,7 +125,11 @@ const Dashboard = () => {
       const res = await axios.get(`${API_BASE_URL}/api/analytics/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      // console.log(res)
       setAnalytics(res.data.data.totals);
+      setActiveStudent(res?.data?.data?.totals?.activeStudents)
+      setInActiveStudent(res?.data?.data?.totals?.inactiveStudents)
+      setAllStudent(res?.data?.data?.totals?.students)
       messageApi.success(res?.data?.message || "Dashboard loaded.");
     } catch (error) {
       console.error(error);
@@ -140,10 +147,24 @@ const Dashboard = () => {
   const statCards = [
     {
       icon: <UserOutlined className="text-3xl text-blue-500" />,
-      label: "Students",
-      value: analytics?.students ?? 0,
+      label: "All Time Students",
+      value: allStudent ?? 0,
       route: "/admin/dashboard/students",
-      tooltip: "View students",
+      tooltip: "View active students",
+    },
+    {
+      icon: <UserOutlined className="text-3xl text-blue-500" />,
+      label: "Active Students",
+      value: activeStudent ?? 0,
+      route: "/admin/dashboard/students",
+      tooltip: "View active students",
+    },
+    {
+      icon: <UserOutlined className="text-3xl text-blue-500" />,
+      label: "Archived Students",
+      value: inactiveStudent ?? 0,
+      route: "/admin/dashboard/students",
+      tooltip: "View active students",
     },
     {
       icon: <IdcardOutlined className="text-3xl text-orange-500" />,

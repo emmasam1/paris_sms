@@ -76,16 +76,16 @@ const MyClasses = () => {
   const [academicSessions, setAcademicSessions] = useState([]);
   const [selectedAcademicSession, setSelectedAcademicSession] = useState(null);
 
- const generateSessions = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth(); // 0–11
+  const generateSessions = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0–11
 
-  // session starts around September (month 8)
-  const startYear = month >= 8 ? year : year - 1;
+    // session starts around September (month 8)
+    const startYear = month >= 8 ? year : year - 1;
 
-  return [`${startYear}/${startYear + 1}`];
-};
+    return [`${startYear}/${startYear + 1}`];
+  };
 
   const sessions = useMemo(() => generateSessions(1), []);
 
@@ -377,148 +377,6 @@ const MyClasses = () => {
       setTableLoading(false); // ✅ stop loader on error
     }
   };
-
-  // const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
-  //   if (
-  //     !token ||
-  //     !selectedLevel ||
-  //     !selectedArm ||
-  //     !selectedSubject ||
-  //     !selectedTerm ||
-  //     !selectedAcademicSession
-  //   ) {
-  //     messageApi.error("Please select all fields");
-  //     return;
-  //   }
-
-  //   try {
-  //     setTableLoading(true);
-
-  //     const url = new URL(`${API_BASE_URL}/api/teacher/students`);
-  //     url.searchParams.append("level", selectedLevel);
-  //     url.searchParams.append("arm", selectedArm);
-  //     url.searchParams.append("subject", selectedSubject);
-  //     url.searchParams.append("session", selectedAcademicSession);
-  //     url.searchParams.append("term", selectedTerm);
-  //     url.searchParams.append("limit", 30);
-
-  //     // console.log("REQUEST:", url.toString());
-
-  //     const res = await axios.get(url.toString(), {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-
-  //     const data = res?.data;
-
-  //     // ----------------------------------
-  //     // ✅ STEP 1: FILTER BY SUBJECT (VERY IMPORTANT)
-  //     // ----------------------------------
-  //     let filteredEntries = [];
-
-  //     if (Array.isArray(data?.data)) {
-  //       filteredEntries = data.data.filter(
-  //         (entry) =>
-  //           entry.subject?._id === selectedSubject ||
-  //           entry.subject === selectedSubject,
-  //       );
-  //     }
-
-  //     // console.log("FILTERED ENTRIES:", filteredEntries);
-
-  //     // ----------------------------------
-  //     // ✅ STEP 2: GET STUDENTS FROM MATCHED CLASS
-  //     // ----------------------------------
-  //     let classStudents = [];
-  //     let classId = null;
-
-  //     for (const entry of filteredEntries) {
-  //       const matchedClass = (entry.classes || []).find(
-  //         (c) =>
-  //           (c.class?.arm || c.class?.name || "").toLowerCase() ===
-  //           selectedArm.toLowerCase(),
-  //       );
-
-  //       if (matchedClass) {
-  //         classStudents = matchedClass.students || [];
-  //         classId = matchedClass.class?._id;
-  //         break;
-  //       }
-  //     }
-
-  //     // fallback (if backend ignores subject completely)
-  //     if (!classStudents.length && Array.isArray(data?.data)) {
-  //       for (const entry of data.data) {
-  //         const matchedClass = (entry.classes || []).find(
-  //           (c) =>
-  //             (c.class?.arm || c.class?.name || "").toLowerCase() ===
-  //             selectedArm.toLowerCase(),
-  //         );
-
-  //         if (matchedClass) {
-  //           classStudents = matchedClass.students || [];
-  //           classId = matchedClass.class?._id;
-  //           break;
-  //         }
-  //       }
-  //     }
-
-  //     if (!classStudents.length) {
-  //       setStudents([]);
-  //       setTotal(0);
-  //       return;
-  //     }
-
-  //     // ----------------------------------
-  //     // ✅ STEP 3: MERGE RESULT STATUS
-  //     // ----------------------------------
-  //     let mergedStudents = classStudents;
-
-  //     if (classId && selectedSubject) {
-  //       try {
-  //         const dashboardURL =
-  //           `${API_BASE_URL}/api/records/teacher/scores/dashboard` +
-  //           `?classId=${classId}` +
-  //           `&subjectId=${selectedSubject}` +
-  //           `&session=${selectedAcademicSession}` +
-  //           `&term=${selectedTerm}`;
-
-  //         const scoreRes = await axios.get(dashboardURL, {
-  //           headers: { Authorization: `Bearer ${token}` },
-  //         });
-
-  //         const statusList = scoreRes?.data?.students || [];
-
-  //         mergedStudents = classStudents.map((stu) => {
-  //           const found = statusList.find(
-  //             (s) => s.studentId === (stu._id || stu.id),
-  //           );
-
-  //           return {
-  //             ...stu,
-  //             hasRecord: found?.status === "recorded",
-  //           };
-  //         });
-  //       } catch (err) {
-  //         console.warn("Dashboard fetch failed");
-  //       }
-  //     }
-
-  //     // ----------------------------------
-  //     // ✅ STEP 4: SET STATE
-  //     // ----------------------------------
-  //     setStudents(mergedStudents);
-  //     setTotal(mergedStudents.length);
-  //     setPage(pageParam);
-  //     setLimit(30);
-  //   } catch (error) {
-  //     console.error("ERROR:", error);
-  //     messageApi.error(
-  //       error?.response?.data?.message || "No students found for this subject",
-  //     );
-  //   } finally {
-  //     setTableLoading(true);
-  //   }
-  // };
 
   // ---------------------------
   // Get all subjects (simple listing) - kept but not used as primary source (we also populate from teacherData)
@@ -990,53 +848,10 @@ const MyClasses = () => {
                   position: ["bottomCenter"],
                   className: "custom-pagination",
                 }}
-                 scroll={{ x: "max-content" }}
+                scroll={{ x: "max-content" }}
               />
             </div>
           </TabPane>
-
-          {/* PROGRESS */}
-          {/* <TabPane
-              tab={
-                <span>
-                  <BarChartOutlined /> Progress
-                </span>
-              }
-              key="4"
-            >
-              {loading ? (
-                <Skeleton active paragraph={{ rows: 7 }} />
-              ) : (
-                <Table
-                  dataSource={students}
-                  columns={progressColumns}
-                  rowKey={(r) => r._id || r.id}
-                  bordered
-                  size="small"
-                  pagination={{
-                    current: page,
-                    total: total,
-                    pageSize: limit,
-                    onChange: handlePageChange,
-                    showSizeChanger: true,
-                    pageSizeOptions: ["10", "20", "50"],
-                    position: ["bottomCenter"],
-                    className: "custom-pagination",
-                  }}
-                  scroll={{ x: "max-content" }}
-                />
-              )}
-
-              <Modal
-                title={`Progress - ${activeStudent?.fullName}`}
-                open={isProgressModalOpen}
-                onCancel={() => setIsProgressModalOpen(false)}
-                footer={null}
-                width={600}
-              >
-                <ProgressChart studentName={activeStudent?.fullName} />
-              </Modal>
-            </TabPane> */}
         </Tabs>
         {/* </Card> */}
       </div>

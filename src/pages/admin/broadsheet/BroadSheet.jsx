@@ -55,7 +55,7 @@ const BroadSheet = () => {
         `${API_BASE_URL}/api/broadsheet?className=${selectedClass}&session=${selectedSession}&term=${selectedTerm}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      console.log(res)
+      // console.log(res)
       setData(res.data);
     } catch (err) {
       messageApi.error(err.response?.data?.message || err.message);

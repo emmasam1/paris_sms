@@ -332,7 +332,7 @@ const generation = async (values) => {
               })
             }
           >
-           {loading ? "Getting Record" : " Get Record"}
+           {loading ? "Getting Pin" : " Get Pin"}
           </Button>
         </div>
         <div className="flex justify-end items-center gap-2">

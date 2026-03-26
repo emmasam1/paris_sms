@@ -91,7 +91,7 @@ const ClassManagement = () => {
         }
       );
 
-      console.log(res);
+      // console.log(res);
 
       const studentsWithFullName = (res?.data?.data || []).map((s) => ({
         ...s,
@@ -132,7 +132,7 @@ const ClassManagement = () => {
         key: cls._id,
       }));
 
-      console.log(res)
+      // console.log(res)
 
       setClasses(mapped);
       setPagination((prev) => ({

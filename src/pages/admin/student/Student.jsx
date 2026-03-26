@@ -625,48 +625,7 @@ const Student = () => {
     );
   };
 
-  // console.log(token, API_BASE_URL);
 
-  // const handlearchive = async (record) => {
-
-  //   if(!token) return
-  //   try {
-  //     // Optional: show a loading message
-  //     messageApi.open({
-  //       type: "loading",
-  //       content: "Archiving student...",
-  //       duration: 0,
-  //     });
-
-  //     const res = await axios.patch(
-  //       `${API_BASE_URL}/api/admin/student/${record._id}/status`,
-  //      {status: "archived"},
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       },
-  //     );
-
-  //     console.log(res)
-  //     // Close the loading message first
-  //     messageApi.destroy();
-
-  //     messageApi.success(res?.data?.message || "Student archived successfully");
-
-  //     // Update local state (remove deleted student)
-  //     setStudents((prev) => prev.filter((s) => s._id !== record._id));
-
-  //     // Refresh class list if needed
-  //     getClass?.();
-  //   } catch (error) {
-  //     console.error("Error deleting student:", error);
-  //     messageApi.destroy();
-  //     messageApi.error(
-  //       error?.response?.data?.message || "Failed to archive student",
-  //     );
-  //   }
-  // };
 
   const toggleStudentStatus = async (record) => {
     if (!token) return;

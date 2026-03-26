@@ -144,62 +144,83 @@ const Dashboard = () => {
   }, [token]);
 
   // ===== Stat Cards =====
-  const statCards = [
-    {
-      icon: <UserOutlined className="text-3xl text-blue-500" />,
-      label: "All Time Students",
-      value: allStudent ?? 0,
-      route: "/admin/dashboard/students",
-      tooltip: "View all time students",
-    },
-    {
-      icon: <UserOutlined className="text-3xl text-blue-500" />,
-      label: "Active Students",
-      value: activeStudent ?? 0,
-      route: "/admin/dashboard/students",
-      tooltip: "View active students",
-    },
-    {
-      icon: <UserOutlined className="text-3xl text-blue-500" />,
-      label: "Archived Students",
-      value: inactiveStudent ?? 0,
-      route: "/admin/dashboard/students",
-      tooltip: "View active students",
-    },
-    {
-      icon: <IdcardOutlined className="text-3xl text-orange-500" />,
-      label: "Staff",
-      value: analytics?.staff ?? 0,
-      route: "/admin/dashboard/teachers",
-      tooltip: "View staff",
-    },
-    {
-      icon: <BookOutlined className="text-3xl text-purple-500" />,
-      label: "Classes",
-      value: analytics?.classes ?? 0,
-      route: "/admin/dashboard/class-management",
-      tooltip: "View classes",
-    },
-    ...(user?.role === "principal"
-      ? [
-          {
-            icon: <KeyOutlined className="text-3xl text-yellow-500" />,
-            label: "PINs",
-            value: analytics?.pinsGenerated ?? 0,
-            route: "/admin/dashboard/pin-management",
-            tooltip: "Manage PINs",
-          },
-          {
-            icon: <DollarOutlined className="text-3xl text-green-500" />,
-            label: "Revenue",
-            value: analytics?.totalRevenue
-              ? `₦${analytics.totalRevenue.toLocaleString()}`
-              : "₦0",
-            tooltip: "View revenue",
-          },
-        ]
-      : []),
-  ];
+const statCards = [
+  {
+    icon: <UserOutlined />,
+    label: "All Time Students",
+    value: allStudent ?? 0,
+    route: "/admin/dashboard/students",
+    // Matured Slate/Navy
+    bgColor: "#f0f2f5", 
+    iconBg: "#d9e2ec",
+    iconColor: "#334e68", 
+  },
+  {
+    icon: <UserOutlined />,
+    label: "Active Students",
+    value: activeStudent ?? 0,
+    route: "/admin/dashboard/students",
+    // Matured Teal/Sage
+    bgColor: "#f1f7f6",
+    iconBg: "#cce0db",
+    iconColor: "#00695c",
+  },
+  {
+    icon: <UserOutlined />,
+    label: "Archived Students",
+    value: inactiveStudent ?? 0,
+    route: "/admin/dashboard/students",
+    // Matured Rose/Terracotta
+    bgColor: "#fff5f5",
+    iconBg: "#f7d6d6",
+    iconColor: "#a64452",
+  },
+  {
+    icon: <IdcardOutlined />,
+    label: "Staff",
+    value: analytics?.staff ?? 0,
+    route: "/admin/dashboard/teachers",
+    // Matured Ochre/Sand
+    bgColor: "#fdf8f3",
+    iconBg: "#f3e4d4",
+    iconColor: "#8d6e63",
+  },
+  {
+    icon: <BookOutlined />,
+    label: "Classes",
+    value: analytics?.classes ?? 0,
+    route: "/admin/dashboard/class-management",
+    // Matured Lavender/Steel
+    bgColor: "#f5f3ff",
+    iconBg: "#e0e0f7",
+    iconColor: "#5e5ce6",
+  },
+  ...(user?.role === "principal"
+    ? [
+        {
+          icon: <KeyOutlined />,
+          label: "PINs",
+          value: analytics?.pinsGenerated ?? 0,
+          route: "/admin/dashboard/pin-management",
+          // Matured Bronze/Olive
+          bgColor: "#fcfaf2",
+          iconBg: "#f0e6c1",
+          iconColor: "#85754e",
+        },
+        {
+          icon: <DollarOutlined />,
+          label: "Revenue",
+          value: analytics?.totalRevenue
+            ? `₦${analytics.totalRevenue.toLocaleString()}`
+            : "₦0",
+          // Matured Emerald/Forest
+          bgColor: "#f2fcf5",
+          iconBg: "#c6e9d1",
+          iconColor: "#2d6a4f",
+        },
+      ]
+    : []),
+];
 
   // ===== Dummy Charts =====
   useEffect(() => {
@@ -231,43 +252,41 @@ const Dashboard = () => {
       {user?.needsPasswordChange && <ChangePassword />}
 
       {/* ===== Stat Cards ===== */}
-      <Row gutter={[16, 16]}>
-        {statCards.map((item, i) => (
-          <Col xs={24} sm={12} md={6} key={i}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-            >
-              <Tooltip title={item.tooltip}>
-                <Card
-                  hoverable
-                  onClick={() => navigate(item.route)}
-                  className="rounded-xl shadow-md cursor-pointer hover:shadow-lg transition-all duration-200"
-                >
-                  {loading ? (
-                    <Skeleton.Input
-                      active
-                      size="small"
-                      style={{ width: "100%" }}
-                    />
-                  ) : (
-                    <div className="flex items-center space-x-4">
-                      {item.icon}
-                      <div>
-                        <Text type="secondary">{item.label}</Text>
-                        <Title level={4} className="!m-0">
-                          {item.value}
-                        </Title>
-                      </div>
-                    </div>
-                  )}
-                </Card>
-              </Tooltip>
-            </motion.div>
-          </Col>
-        ))}
-      </Row>
+<Row gutter={[16, 16]}>
+  {statCards.map((card, index) => (
+    <Col xs={24} sm={12} lg={8} xl={6} key={index}>
+      <Card
+        hoverable
+        style={{ backgroundColor: card.bgColor, borderRadius: '12px', border: 'none' }}
+        onClick={() => card.route && navigate(card.route)}
+      >
+        <div className="flex items-center gap-4">
+          {/* Circular Icon Container */}
+          <div 
+            style={{ 
+              backgroundColor: card.iconBg, 
+              color: card.textColor,
+              width: '50px', 
+              height: '50px', 
+              borderRadius: '50%' 
+            }}
+            className="flex items-center justify-center text-2xl"
+          >
+            {card.icon}
+          </div>
+
+          {/* Text Content */}
+          <div>
+            <p style={{ color: '#595959', marginBottom: 0 }}>{card.label}</p>
+            <Title level={4} style={{ margin: 0, color: card.textColor }}>
+              {card.value}
+            </Title>
+          </div>
+        </div>
+      </Card>
+    </Col>
+  ))}
+</Row>
 
       {/* ===== Quick Actions ===== */}
       {user?.role === "principal" && (

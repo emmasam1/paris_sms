@@ -431,25 +431,45 @@ const Teacher = () => {
     setIsAssignModalOpen(true);
   };
 
-  const resetPassword = async (record) => {
-    const userId = record?._id;
+const resetPassword = async (record) => {
+  // 1. Safety check: ensure record and _id exist
+  const userId = record?._id || record?.id;
+  
+  if (!userId) {
+    return messageApi.error("User ID is missing from the record.");
+  }
 
-    try {
-      setResetPass(true);
-      const res = await axios.post(
-        `${API_BASE_URL}/api/admin/reset-password/${userId}`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
+  try {
+    setResetPass(true);
+    
+    // 2. Perform the POST request
+    const res = await axios.post(
+      `${API_BASE_URL}/api/admin/staff/${userId}/reset-password`,
+      {}, // Sending empty body as required
+      {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
         },
-      );
-      messageApi.success(res.data.message);
-    } catch (error) {
-      messageApi.error(error);
-    } finally {
-      setResetPass(false);
-    }
-  };
+      }
+    );
+
+    // 3. Success handling
+    console.log("Response:", res.data);
+    messageApi.success(res.data.message || "Password reset successful");
+    
+  } catch (error) {
+    // 4. Improved Error Handling
+    console.error("API Error:", error);
+    
+    // Extract server message if available, otherwise use default
+    const errorMessage = error.response?.data?.message || error.message || "Failed to reset password";
+    messageApi.error(errorMessage);
+    
+  } finally {
+    setResetPass(false);
+  }
+};
   const columns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
     {

@@ -150,7 +150,7 @@ const Dashboard = () => {
       label: "All Time Students",
       value: allStudent ?? 0,
       route: "/admin/dashboard/students",
-      tooltip: "View active students",
+      tooltip: "View all time students",
     },
     {
       icon: <UserOutlined className="text-3xl text-blue-500" />,

@@ -25,13 +25,34 @@ const ParentResult = () => {
   const [result, setResult] = useState([]);
   const { API_BASE_URL, token, loading, setLoading, initialized } = useApp();
   const [classes, setClasses] = useState([]);
-  const location = useLocation();
-  const { term } = location.state || {};
+
   const [messageApi, contextHolder] = message.useMessage();
   const [printLoading, setPrintLoading] = useState(false);
   const [schTerm, setSchTerm] = useState(null);
 
-  // console.log(term)
+  const location = useLocation();
+  const auth = JSON.parse(sessionStorage.getItem("auth"));
+
+  const term = location.state?.term || auth?.allowedTerms?.[0];
+
+  useEffect(() => {
+    if (!initialized || !token || !term) return;
+
+    getStudentsResult();
+  }, [initialized, token, term]);
+
+  if (!term) {
+    navigate("/home");
+    return null;
+  }
+
+  const termDates = {
+    1: "12th December, 2025",
+    2: "30th March, 2026",
+    3: "", // add when ready
+  };
+
+  const date = termDates[term] || "";
 
   //Get Student Result
   const getStudentsResult = async () => {
@@ -423,8 +444,13 @@ const ParentResult = () => {
                     </p>
 
                     <p className="font-bold mt-1 leading-tight">
-                      END OF {term === 1 ? "FIRST TERM" : term === 2 ? "SECOND TERM" : "THIRD TERM"}  RESULT FOR {result?.session} ACADEMIC
-                      SESSION
+                      END OF{" "}
+                      {term === 1
+                        ? "FIRST TERM"
+                        : term === 2
+                          ? "SECOND TERM"
+                          : "THIRD TERM"}{" "}
+                      RESULT FOR {result?.session} ACADEMIC SESSION
                     </p>
                   </div>
 
@@ -673,8 +699,7 @@ const ParentResult = () => {
                       </span>
                     </p>
                     <p>
-                      DATE:{" "}
-                      <span className="font-bold">12th December, 2025</span>
+                      DATE: <span className="font-bold">{date}</span>
                     </p>
                   </div>
                   <div>
@@ -690,8 +715,7 @@ const ParentResult = () => {
                       />
                     </p>
                     <p>
-                      DATE:{" "}
-                      <span className="font-bold">12th December, 2025</span>
+                      DATE: <span className="font-bold">{date}</span>
                     </p>
                   </div>
                 </div>

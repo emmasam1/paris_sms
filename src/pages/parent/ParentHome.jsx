@@ -34,14 +34,24 @@ const { Option } = Select;
 const ParentDashboard = () => {
   const navigate = useNavigate();
   const { logout, user, token, API_BASE_URL, initialized } = useApp();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTerm, setSelectedTerm] = useState(null);
-  const [result, setResult] = useState(null);
+  // const [isModalOpen, setIsModalOpen] = useState(false);
+  // const [selectedTerm, setSelectedTerm] = useState(null);
+  // const [result, setResult] = useState(null);
 
   // console.log(user);
+  const auth = JSON.parse(sessionStorage.getItem("auth"));
+  const allowedTerms = auth?.allowedTerms || [];
+  const termValue = allowedTerms[0];
 
   const child = {
-    term: "2nd Term, 2026",
+    term:
+  termValue === 1
+    ? "1st Term"
+    : termValue === 2
+    ? "2nd Term"
+    : termValue === 3
+    ? "3rd Term"
+    : "",
     avatar: null,
     // performance: 82,
     attendance: 90,
@@ -55,43 +65,50 @@ const ParentDashboard = () => {
   };
 
   const handleViewResult = () => {
-    if (!selectedTerm) return;
-    setIsModalOpen(false);
-    navigate("/parent/result", { state: { term: selectedTerm } }); // Pass term via state
-  };
+    const allowedTerms = auth?.allowedTerms || [];
 
-  const getStudentsResult = async () => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/api/parent/results?${selectedTerm}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      // Store result in state
-      setResult(res);
-    } catch (error) {
-      const msg = error?.response?.data?.message;
-
-      if (msg === "Invalid or expired parent token") {
-        console.warn("Token invalid or expired. Logging out...");
-        logout(); // Replace with your actual logout function
-        return;
-      }
-
-      console.log("Error get result", error);
-      console.error(msg || "No result yet");
+    if (!allowedTerms.length) {
+      message.error("No allowed term found");
+      return;
     }
+
+    const term = allowedTerms[0]; // 👈 pick the first allowed term
+
+    navigate("/parent/result", { state: { term } });
   };
+
+  // const getStudentsResult = async () => {
+  //   try {
+  //     const res = await axios.get(`${API_BASE_URL}/api/parent/results?${selectedTerm}`, {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+
+  //     // Store result in state
+  //     setResult(res);
+  //   } catch (error) {
+  //     const msg = error?.response?.data?.message;
+
+  //     if (msg === "Invalid or expired parent token") {
+  //       console.warn("Token invalid or expired. Logging out...");
+  //       logout(); // Replace with your actual logout function
+  //       return;
+  //     }
+
+  //     console.log("Error get result", error);
+  //     console.error(msg || "No result yet");
+  //   }
+  // };
 
   // const getStudentById = async()=>{
 
   // }
 
-  useEffect(() => {
-    if (!initialized || !token) return;
+  // useEffect(() => {
+  //   if (!initialized || !token) return;
 
-    getStudentsResult();
-    // getClass();
-  }, [initialized, token]);
+  //   getStudentsResult();
+  //   // getClass();
+  // }, [initialized, token]);
 
   const handleDownloadAssignment = () => {
     if (!user?.class) {
@@ -142,7 +159,7 @@ const ParentDashboard = () => {
       attachment: "/docs/SS3_Holiday_Assignment.pdf",
     },
   ];
-  
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen relative">
       {/* Welcome / Hero Section */}
@@ -213,10 +230,7 @@ const ParentDashboard = () => {
                 icon={<FileSearchOutlined />}
                 type="primary"
                 className="bg-blue-600 mt-2"
-                onClick={() => {
-                  setSelectedTerm(null); // reset term selection
-                  setIsModalOpen(true);
-                }}
+               onClick={handleViewResult}
               >
                 View Result
               </Button>
@@ -233,7 +247,7 @@ const ParentDashboard = () => {
         </Col>
 
         {/* Modal for term selection */}
-        <Modal
+        {/* <Modal
           title="Select Term"
           open={isModalOpen}
           onCancel={() => setIsModalOpen(false)}
@@ -257,7 +271,7 @@ const ParentDashboard = () => {
               Continue
             </Button>
           </div>
-        </Modal>
+        </Modal> */}
 
         {/* Academic Performance */}
         <Col xs={24} md={8}>

@@ -244,6 +244,7 @@ const Attendance = ({ className }) => {
 
   //Get student result
   const getResult = async (record) => {
+    // console.log(record)
     const id = record?.id
     try {
       const res = await axios.get(

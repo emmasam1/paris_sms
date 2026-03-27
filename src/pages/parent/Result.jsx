@@ -43,7 +43,7 @@ const ParentResult = () => {
         },
       );
       setSchTerm(res?.data?.term);
-      console.log(res)
+      // console.log(res)
 
       setResult(res?.data || []);
       // messageApi.success(res.data.message);

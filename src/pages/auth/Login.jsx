@@ -110,40 +110,46 @@ const Login = () => {
     }
   };
 
-  /* ================= PARENT LOGIN ================= */
-  const handleParentLogin = async (values) => {
-    try {
-      if (isSlowNetwork) {
-        messageApi.info(TEXT.slowNetwork);
-      }
-
-      setLoading(true);
-
-      const res = await http.post(`${API_BASE_URL}/api/parent/login`, {
-        pinCode: values.pinCode,
-      });
-
-      console.log(res)
-
-      const user = res.data.student;
-      const token = res.data.token;
-
-      setUser({ ...user, role: "parent" });
-      setToken(token);
-
-      sessionStorage.setItem(
-        "auth",
-        JSON.stringify({ token, user: { ...user, role: "parent" } }),
-      );
-
-      messageApi.success(res.data.message || TEXT.loginSuccess);
-      navigate("/home");
-    } catch (err) {
-      messageApi.error(err.response?.data?.message || TEXT.loginError);
-    } finally {
-      setLoading(false);
+ const handleParentLogin = async (values) => {
+  try {
+    if (isSlowNetwork) {
+      messageApi.info(TEXT.slowNetwork);
     }
-  };
+
+    setLoading(true);
+
+    const res = await http.post(`${API_BASE_URL}/api/parent/login`, {
+      pinCode: values.pinCode,
+    });
+
+    // console.log(res);
+
+    const user = res.data.student;
+    const token = res.data.token;
+    const allowedTerms = res.data.allowedTerms; // 👈 add this
+
+    const authData = {
+      token,
+      user: { ...user, role: "parent" },
+      allowedTerms, // 👈 include it
+    };
+
+    setUser(authData.user);
+    setToken(token);
+
+    // optionally create a state for it
+    // setAllowedTerms(allowedTerms);
+
+    sessionStorage.setItem("auth", JSON.stringify(authData)); // 👈 save everything
+
+    messageApi.success(res.data.message || TEXT.loginSuccess);
+    navigate("/home");
+  } catch (err) {
+    messageApi.error(err.response?.data?.message || TEXT.loginError);
+  } finally {
+    setLoading(false);
+  }
+};
 
   /* ================= ANIMATION ================= */
   const formVariants = {

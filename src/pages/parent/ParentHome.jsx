@@ -38,7 +38,7 @@ const ParentDashboard = () => {
   const [selectedTerm, setSelectedTerm] = useState(null);
   const [result, setResult] = useState(null);
 
-  console.log(user);
+  // console.log(user);
 
   const child = {
     term: "2nd Term, 2026",

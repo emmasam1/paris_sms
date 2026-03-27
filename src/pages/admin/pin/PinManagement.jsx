@@ -86,7 +86,7 @@ const PinManagement = () => {
               min-height:120px;
             ">
               <h3 style="margin:0 0 5px 0; font-size:16px;">PIN: ${p.pin}</h3>
-              <p><b>Name:</b> ${p.studentName}</p>
+              <p><b>Name:</b> ${p.firstName} ${p.lastName}</p>
               <p><b>Class:</b> ${p.class} - ${p.arm}</p>
               <p><b>Session:</b> ${p.session} (1st Term)</p>
               <p><b>Website:</b> https://paris-sms.vercel.app</p>
@@ -165,6 +165,8 @@ const PinManagement = () => {
       });
 
       const pinsArray = res.data?.data || [];
+
+      // console.log(res)
 
       const mappedPins = pinsArray.map((item, idx) => ({
         key: item._id || idx,

@@ -29,6 +29,7 @@ const ParentResult = () => {
   const { term } = location.state || {};
   const [messageApi, contextHolder] = message.useMessage();
   const [printLoading, setPrintLoading] = useState(false);
+  const [schTerm, setSchTerm] = useState(null);
 
   //Get Student Result
   const getStudentsResult = async () => {
@@ -39,9 +40,9 @@ const ParentResult = () => {
         `${API_BASE_URL}/api/parent/results?term=${term}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
-      console.log("RESULT:", res);
+      setSchTerm(res?.data?.term);
 
       setResult(res?.data || []);
       // messageApi.success(res.data.message);
@@ -52,7 +53,6 @@ const ParentResult = () => {
       setLoading(false);
     }
   };
-
 
   useEffect(() => {
     if (!initialized || !token) return;
@@ -171,11 +171,25 @@ const ParentResult = () => {
     },
   ];
 
-
   const studentInfo = {
-    termStarted: "12TH JANUARY, 2026",
-    termEnded: "27TH MARCH, 2026",
-    nextTermBegins: "20TH APRIL, 2026",
+    termStarted:
+      schTerm === 1
+        ? "15TH JANUARY, 2025"
+        : schTerm === 2
+          ? "5TH MAY, 2026" // put correct date here
+          : "",
+    termEnded:
+      schTerm === 1
+        ? "5TH DECEMBER 2025"
+        : schTerm === 2
+          ? "27TH MARCH, 2026"
+          : "",
+    nextTermBegins:
+      schTerm === 1
+        ? "12TH JANUARY 2026"
+        : schTerm === 2
+          ? "20TH APRIL, 2026"
+          : "",
     schoolOpened: result?.student?.opened,
     present: result?.student?.present,
     absent: result?.student?.absent,
@@ -287,7 +301,6 @@ const ParentResult = () => {
       setPrintLoading(false);
     }
   };
-
 
   const customTableStyle =
     "[&_.ant-table-cell]:text-[15px] [&_.ant-table-cell]:p-1 [&_.ant-table-thead>tr>th]:font-bold [&_.ant-table-thead>tr>th]:text-[13px] [&_.ant-table]:border-black [&_.ant-table-tbody>tr>td]:border-black [&_.ant-table-thead>tr>th]:border-black [&_.ant-table-cell]:text-[13px]";
@@ -434,8 +447,8 @@ const ParentResult = () => {
                         "ODEH EFFIONG ISABELLA DANIEL OKENENI"
                           ? "ODEH DANIEL OKENENI"
                           : result?.student?.fullName === "NWANKWO ONYINUECHI"
-                          ? "NWANKWO ONYINYECHI"
-                          : result?.student?.fullName || "--"}
+                            ? "NWANKWO ONYINYECHI"
+                            : result?.student?.fullName || "--"}
                       </span>
                     </div>
                     <div className="">

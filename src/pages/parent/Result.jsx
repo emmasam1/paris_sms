@@ -31,6 +31,8 @@ const ParentResult = () => {
   const [printLoading, setPrintLoading] = useState(false);
   const [schTerm, setSchTerm] = useState(null);
 
+  // console.log(term)
+
   //Get Student Result
   const getStudentsResult = async () => {
     try {
@@ -421,7 +423,7 @@ const ParentResult = () => {
                     </p>
 
                     <p className="font-bold mt-1 leading-tight">
-                      END OF FIRST TERM RESULT FOR {result?.session} ACADEMIC
+                      END OF {term === 1 ? "FIRST TERM" : term === 2 ? "SECOND TERM" : "THIRD TERM"}  RESULT FOR {result?.session} ACADEMIC
                       SESSION
                     </p>
                   </div>

@@ -104,7 +104,7 @@ const Dashboard = () => {
       const res = await axios.get(`${API_BASE_URL}/api/admin/activity-logs`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(res);
+      // console.log(res);
       const activities = Array.isArray(res?.data?.data) ? res.data.data : [];
       setRecentActivities(activities);
     } catch (error) {

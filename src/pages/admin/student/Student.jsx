@@ -383,16 +383,6 @@ const Student = () => {
     }
   }, [selectedClass]);
 
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setSelectedStudent(null);
-  };
-
-  // const openAddModal = () => {
-  //   setEditingStudent(null);
-  //   form.resetFields();
-  //   setIsModalOpen(true);
-  // };
 
   const sessions = generateSessions();
 
@@ -451,7 +441,7 @@ const Student = () => {
   const openDetails = (record) => {
     setDetailsStudent(record);
     setIsDetailsOpen(true);
-    console.log(record);
+    // console.log(record);
   };
 
   //Get student subjects

@@ -200,7 +200,7 @@ const ParentResult = () => {
       schTerm === 1
         ? "15TH JANUARY, 2025"
         : schTerm === 2
-          ? "5TH MAY, 2026" // put correct date here
+          ? "12TH JANUARY, 2026" // put correct date here
           : "",
     termEnded:
       schTerm === 1

@@ -88,7 +88,7 @@ const PinManagement = () => {
               <h3 style="margin:0 0 5px 0; font-size:16px;">PIN: ${p.pin}</h3>
               <p><b>Name:</b> ${p.firstName} ${p.lastName}</p>
               <p><b>Class:</b> ${p.class} - ${p.arm}</p>
-              <p><b>Session:</b> ${p.session} (1st Term)</p>
+              <p><b>Session:</b> ${p.session} (2nd Term)</p>
               <p><b>Website:</b> https://paris-sms.vercel.app</p>
             </div>
           `,

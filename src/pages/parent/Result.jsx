@@ -317,7 +317,8 @@ const ParentResult = () => {
         heightLeft -= pdfHeight;
       }
 
-      pdf.save("Paris Africana.pdf");
+      // pdf.save("Paris Africana.pdf");
+      pdf.save(`${result?.student?.fullName || "student-result"} RESULT.pdf`);
       setPrintLoading(false);
     } catch (err) {
       console.error("PDF generation failed:", err);
@@ -472,12 +473,13 @@ const ParentResult = () => {
                     <div className="text-[15px]">
                       NAME:{" "}
                       <span className="font-bold">
-                        {result?.student?.fullName ===
+                        {result?.student?.fullName || "--"}
+                        {/* {result?.student?.fullName ===
                         "ODEH EFFIONG ISABELLA DANIEL OKENENI"
                           ? "ODEH DANIEL OKENENI"
                           : result?.student?.fullName === "NWANKWO ONYINUECHI"
                             ? "NWANKWO ONYINYECHI"
-                            : result?.student?.fullName || "--"}
+                            : result?.student?.fullName || "--"} */}
                       </span>
                     </div>
                     <div className="">
@@ -711,7 +713,7 @@ const ParentResult = () => {
                       <img
                         src={principalSignature}
                         alt=""
-                        className="w-25 -mt-3 left-30 absolute"
+                        className="w-25 left-30 absolute"
                       />
                     </p>
                     <p>

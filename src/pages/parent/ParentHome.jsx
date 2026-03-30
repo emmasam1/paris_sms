@@ -234,14 +234,14 @@ const ParentDashboard = () => {
               >
                 View Result
               </Button>
-              <Button
+             {user?.class === "SS1" || user?.class === "SS2" || user?.class === "JSS1" || user?.class === "JSS2"  ? <Button
                 icon={<FilePdfOutlined />}
                 type="primary"
                 className="bg-blue-600 mt-2"
                 onClick={handleDownloadAssignment}
               >
                 Download Holiday Assignment
-              </Button>
+              </Button> :  ""} 
             </div>
           </Card>
         </Col>

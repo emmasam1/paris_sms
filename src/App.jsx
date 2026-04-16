@@ -28,9 +28,15 @@ import NotFound from "./components/notfound/NotFound";
 import Attendance from "./pages/teacher/attendance/Attendance";
 import StudentProgress from "./pages/admin/progress/StudentProgress";
 import BroadSheet from "./pages/admin/broadsheet/BroadSheet";
+import QuestionBank from "./pages/admin/cbt/QuestionBank";
+import AssessmentCreator from "./pages/admin/cbt/AssessmentCreator";
+import InstallPWA from "./components/pwaInstaller/InstallPWA";
 
 const App = () => {
   return (
+     <>
+      <InstallPWA />
+      {/* "testing" */}
     <Routes>
       {/* Auth */}
       <Route path="/" element={<Login />} />
@@ -71,6 +77,8 @@ const App = () => {
           <Route path="progress" element={<StudentProgress />} />
           <Route path="pin-management" element={<PinManagement />} />
           <Route path="result-broadsheet" element={<BroadSheet />} />
+          <Route path="cbt/question-bank" element={<QuestionBank />} />
+          <Route path="cbt/assessment-creator" element={<AssessmentCreator />} />
         </Route>
       </Route>
 
@@ -106,6 +114,7 @@ const App = () => {
       {/* ===== Catch-All (404) ===== */}
       <Route path="*" element={<NotFound />} />
     </Routes>
+     </>
   );
 };
 

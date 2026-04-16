@@ -106,6 +106,7 @@ const ClassManagement = () => {
 
       // messageApi.success(res.data?.message);
       setStudents(studentsWithFullName);
+      // console.log(studentsWithFullName)
     } catch (error) {
       console.error("Error fetching students:", error);
       messageApi.error(
@@ -398,6 +399,11 @@ const ClassManagement = () => {
     // console.log(record);
   };
 
+  const moveClass = async (record)  => {
+    setIsMigrateOpen(true);
+    setSelectedClass(record);
+  }
+
   // Table columns
   const columns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
@@ -495,7 +501,7 @@ const ClassManagement = () => {
 
             <Menu.Item
               icon={<SwapOutlined />}
-              onClick={() => setIsMigrateOpen(true)}
+              onClick={() => moveClass(record)}
             >
               Migrate Class
             </Menu.Item>
@@ -759,9 +765,10 @@ const ClassManagement = () => {
         onClose={() => setIsMigrateOpen(false)}
         students={students}
         onMigrate={handleMigrate}
-        currentClass={selectedClass?.name} // pass name
-        currentSession="2025/2026" // or dynamic session
-        classes={classes} // pass all classes
+        selectedClass={selectedClass} // pass the selected class object
+        // currentClass={selectedClass?.name} // pass name
+        // currentSession="2025/2026" // or dynamic session
+        // classes={classes} // pass all classes
       />
     </div>
   );

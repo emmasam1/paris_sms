@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "react-quill-new/dist/quill.snow.css";
+@import "katex/dist/katex.min.css";
 
 /* Default menu item text (not selected) */
 .ant-menu-item {
@@ -11,7 +13,7 @@
   background-color: white !important; /* optional: give it a white background */
 }
 
-.ant-layout-sider-trigger{
+.ant-layout-sider-trigger {
   background-color: transparent !important;
 }
 
@@ -25,14 +27,12 @@
 }
 
 .ant-table-wrapper .ant-table-pagination {
-  border-radius: 50% !important; 
+  border-radius: 50% !important;
 }
 
 .custom-table .ant-table-tbody > tr > td {
   padding: 8px; /* Adjust the padding to reduce row height */
 }
-
-
 
 .custom-pagination {
   border-radius: 20px; /* Makes it round */
@@ -48,11 +48,11 @@
 }
 
 .custom-pagination .ant-pagination-item-active {
-  background-color: #0F172B; /* Active item color */
+  background-color: #0f172b; /* Active item color */
   color: white; /* Active text color */
 }
 .ant-pagination-item-active a {
-  color: #FFFFFF !important;
+  color: #ffffff !important;
   font-weight: bold;
 }
 
@@ -76,9 +76,10 @@
   background: #ececec !important;
 }
 
-
-
-
+.ql-tooltip .ql-editing {
+  left: 5px !important;
+  top: 28px !important;
+}
 
 /* 
 

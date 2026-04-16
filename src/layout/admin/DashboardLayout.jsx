@@ -11,7 +11,10 @@ import {
   MessageOutlined,
   ReadOutlined,
   LineChartOutlined,
-  TableOutlined 
+  TableOutlined,
+  FileDoneOutlined, // Exams
+  DatabaseOutlined, // Question Bank
+  BarChartOutlined, // CBT Results
 } from "@ant-design/icons";
 import { Layout, Menu, theme, Grid, Dropdown, Avatar, message } from "antd";
 import { Outlet, useLocation, useNavigate } from "react-router";
@@ -55,7 +58,7 @@ const DashboardLayout = () => {
     getItem(
       "Subjects",
       "/admin/dashboard/subject-management",
-      <ReadOutlined />
+      <ReadOutlined />,
     ),
 
     ...(user?.role === "principal"
@@ -63,18 +66,41 @@ const DashboardLayout = () => {
           getItem(
             "Progress",
             "/admin/dashboard/progress",
-            <LineChartOutlined />
+            <LineChartOutlined />,
           ),
           getItem(
             "Broadsheet",
             "/admin/dashboard/result-broadsheet",
-            <TableOutlined  />
+            <TableOutlined />,
           ),
           getItem(
             "PIN Management",
             "/admin/dashboard/pin-management",
-            <KeyOutlined />
+            <KeyOutlined />,
           ),
+          // getItem("CBT Management", "cbt", <BookOutlined />, [
+          //   getItem(
+          //     "Exams",
+          //     "/admin/dashboard/cbt/exams",
+          //     <FileDoneOutlined />,
+          //   ),
+
+          //   getItem(
+          //     "Create Question",
+          //     "/admin/dashboard/cbt/assessment-creator",
+          //     <FileDoneOutlined />,
+          //   ),
+          //   getItem(
+          //     "Question Bank",
+          //     "/admin/dashboard/cbt/question-bank",
+          //     <DatabaseOutlined />,
+          //   ),
+          //   getItem(
+          //     "Results",
+          //     "/admin/dashboard/cbt/results",
+          //     <BarChartOutlined />,
+          //   ),
+          // ]),
         ]
       : []),
 
@@ -93,6 +119,10 @@ const DashboardLayout = () => {
     "/admin/dashboard/pin-management": "PIN Management",
     "/admin/dashboard/result-broadsheet": "Result Broadsheet",
     "/admin/dashboard/settings": "Settings",
+    "/admin/dashboard/cbt/assessment-creator": "CBT Questions",
+    "/admin/dashboard/cbt/exams": "CBT Exams",
+    "/admin/dashboard/cbt/question-bank": "Question Bank",
+    "/admin/dashboard/cbt/results": "CBT Results",
   };
   // const [user, setUser] = useState([])
 
@@ -162,6 +192,13 @@ const DashboardLayout = () => {
     }
   };
 
+  const getOpenKeys = () => {
+    if (location.pathname.includes("/admin/dashboard/cbt")) {
+      return ["cbt"];
+    }
+    return [];
+  };
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       {/* Sidebar */}
@@ -176,6 +213,7 @@ const DashboardLayout = () => {
           top: 0,
           bottom: 0,
           height: "100vh",
+          color: "#fff",
         }}
       >
         <div
@@ -208,9 +246,14 @@ const DashboardLayout = () => {
         <Menu
           className="!bg-slate-900 !text-white border-r-0"
           selectedKeys={[location.pathname]}
+          defaultOpenKeys={getOpenKeys()}
           mode="inline"
           items={items}
-          onClick={({ key }) => navigate(key)}
+          onClick={({ key }) => {
+            if (!key.startsWith("cbt")) {
+              navigate(key);
+            }
+          }}
         />
       </Sider>
 
@@ -272,7 +315,7 @@ const DashboardLayout = () => {
               minHeight: "calc(100vh - 60px)",
               borderRadius: borderRadiusLG,
               position: "relative",
-              overflow: "hidden",
+              // overflow: "hidden",
             }}
           >
             <div

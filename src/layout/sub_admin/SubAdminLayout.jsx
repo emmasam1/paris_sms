@@ -260,7 +260,7 @@ const SubAdminLayout = () => {
               minHeight: "calc(100vh - 60px)",
               borderRadius: borderRadiusLG,
               position: "relative",
-              overflow: "hidden",
+              // overflow: "hidden",
             }}
           >
             <div

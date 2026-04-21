@@ -16,11 +16,17 @@ import {
   DatabaseOutlined, // Question Bank
   BarChartOutlined, // CBT Results
 } from "@ant-design/icons";
+import {
+  RiArrowLeftLine, // Added for PWA
+  RiRefreshLine, // Added for PWA
+} from "react-icons/ri";
 import { Layout, Menu, theme, Grid, Dropdown, Avatar, message } from "antd";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { useApp } from "../../context/AppContext";
 import logo from "../../assets/logo.jpeg";
 import axios from "axios";
+import { motion } from "framer-motion";
+import Time from "../../components/time/Time";
 
 const menu_items = [
   { key: "profile", label: "Profile" },
@@ -39,6 +45,41 @@ const DashboardLayout = () => {
   const screens = useBreakpoint();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+
+  useEffect(() => {
+    const checkStandalone = () => {
+      const isPWA =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone === true;
+
+      setIsStandalone(isPWA);
+      setCanGoBack(window.history.length > 1);
+    };
+
+    checkStandalone();
+
+    const mediaQuery = window.matchMedia("(display-mode: standalone)");
+    mediaQuery.addEventListener("change", checkStandalone);
+
+    window.addEventListener("popstate", checkStandalone);
+
+    return () => {
+      mediaQuery.removeEventListener("change", checkStandalone);
+      window.removeEventListener("popstate", checkStandalone);
+    };
+  }, []);
+
+  const handleRefresh = () => {
+    // soft reload effect
+    document.body.style.opacity = "0.6";
+
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
+  };
 
   const {
     API_BASE_URL,
@@ -276,35 +317,65 @@ const DashboardLayout = () => {
             justifyContent: "space-between",
           }}
         >
-          <h1 className="text-lg font-bold text-white m-0">{pageTitle}</h1>
+          <div className="flex items-center gap-4">
+            {isStandalone && (
+              <button
+                onClick={() => {
+                  if (window.history.length > 1) {
+                    navigate(-1);
+                  } else {
+                    navigate("/dashboard"); // fallback
+                  }
+                }}
+                className="cursor-pointer p-2 hover:bg-black/5 rounded-full text-white transition-all active:scale-90 border border-blue-50"
+                title="Go Back"
+              >
+                <RiArrowLeftLine size={20} />
+              </button>
+            )}
+            <h1 className="text-lg font-bold text-white m-0">{pageTitle}</h1>
+          </div>
 
-          <Dropdown menu={{ items: menu_items, onClick: handleMenuClick }}>
-            <div
-              className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-slate-800 cursor-pointer"
-              onClick={(e) => e.preventDefault()}
-            >
-              {user?.avatar ? (
-                <Avatar size="large" src={user.avatar} />
-              ) : (
-                <Avatar
-                  size="large"
-                  style={{
-                    backgroundColor: "#1677ff",
-                    color: "#fff",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {getInitials()}
-                </Avatar>
-              )}
+          <div className="flex items-center gap-4">
+            <Time />
+            {isStandalone && (
+              <motion.button
+                onClick={handleRefresh}
+                whileTap={{ scale: 0.85 }}
+                whileHover={{ rotate: 180 }}
+                className="p-2 bg-blue-50 rounded-full text-blue-600 shadow-sm cursor-pointer"
+              >
+                <RiRefreshLine size={20} />
+              </motion.button>
+            )}
+            <Dropdown menu={{ items: menu_items, onClick: handleMenuClick }}>
+              <div
+                className="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-slate-800 cursor-pointer"
+                onClick={(e) => e.preventDefault()}
+              >
+                {user?.avatar ? (
+                  <Avatar size="large" src={user.avatar} />
+                ) : (
+                  <Avatar
+                    size="large"
+                    style={{
+                      backgroundColor: "#1677ff",
+                      color: "#fff",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {getInitials()}
+                  </Avatar>
+                )}
 
-              <span className="text-sm font-medium text-gray-200">
-                {user?.firstName && user?.lastName
-                  ? `${user.title} ${user.firstName}`
-                  : user?.firstName || ""}
-              </span>
-            </div>
-          </Dropdown>
+                <span className="text-sm font-medium text-gray-200">
+                  {user?.firstName && user?.lastName
+                    ? `${user.title} ${user.firstName}`
+                    : user?.firstName || ""}
+                </span>
+              </div>
+            </Dropdown>
+          </div>
         </Header>
 
         <Content style={{ margin: "60px 0 0 0", position: "relative" }}>

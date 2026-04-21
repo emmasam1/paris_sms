@@ -91,7 +91,7 @@ const Student = () => {
   const [subjects, setSubjects] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedSubjects, setSelectedSubjects] = useState([]);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+ 
   const { API_BASE_URL, token, initialized, loading, setLoading, user } =
     useApp();
   const [messageApi, contextHolder] = message.useMessage();
@@ -102,6 +102,7 @@ const Student = () => {
   const [unassignLoader, setUnassignLoader] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
   const [fliteredStd, setFeliteredStd] = useState("active");
+
 
   const [form] = Form.useForm();
   const [pagination, setPagination] = useState({
@@ -383,7 +384,6 @@ const Student = () => {
     }
   }, [selectedClass]);
 
-
   const sessions = generateSessions();
 
   const openAddModal = () => {
@@ -615,8 +615,6 @@ const Student = () => {
     );
   };
 
-
-
   const toggleStudentStatus = async (record) => {
     if (!token) return;
 
@@ -721,6 +719,7 @@ const Student = () => {
     {
       title: "Subject",
       dataIndex: "subjects",
+      align: 'center',
       key: "subjects",
       render: (_, students) => (
         <Tag color={students.subjects?.length > 0 ? "green" : "red"}>
@@ -728,6 +727,16 @@ const Student = () => {
         </Tag>
       ),
     },
+    {
+    title: 'No. of Sub',
+    key: 'no_of_subjects',
+    align: 'center',
+    render: (_, record) => (
+      <Tag color="geekblue">
+        {record.subjects?.length || 0}
+      </Tag>
+    ),
+  },
     {
       title: "Arm",
       dataIndex: "arm",
@@ -761,6 +770,7 @@ const Student = () => {
             icon: <EyeOutlined />,
             label: "View Details",
             onClick: () => openDetails(record),
+            
           },
           {
             key: "2",

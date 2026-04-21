@@ -1,14 +1,3 @@
-// import { defineConfig } from 'vite'
-// import react from '@vitejs/plugin-react-swc'
-// import tailwindcss from '@tailwindcss/vite'
-
-// export default defineConfig({
-//   plugins: [tailwindcss(), react()],
-//   build: {
-//     outDir: 'build',
-//   },
-// })
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
@@ -19,7 +8,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
 
-     VitePWA({
+    VitePWA({
       registerType: "autoUpdate",
 
       // ✅ Enable in dev to test without building
@@ -31,9 +20,9 @@ export default defineConfig({
       includeAssets: ["favicon.svg", "robots.txt"],
 
       manifest: {
-        name: "Smart Schola",
-        short_name: "Smart Schola",
-        description: "School Management System",
+        name: "Hospital Management System",
+        short_name: "HMS",
+        description: "Hospital Management System",
         theme_color: "#2563eb",
         background_color: "#ffffff",
         display: "standalone",
@@ -71,7 +60,7 @@ export default defineConfig({
             urlPattern: ({ request }) => request.destination === "image",
             handler: "CacheFirst",
             options: {
-              cacheName: "school-images",
+              cacheName: "hospital-images",
               expiration: { maxEntries: 50 },
             },
           },
@@ -82,14 +71,11 @@ export default defineConfig({
               request.destination === "style",
             handler: "StaleWhileRevalidate",
             options: {
-              cacheName: "school-assets",
+              cacheName: "hospital-assets",
             },
           },
         ],
       },
     }),
   ],
-  build: {
-    outDir: "build",
-  },
 });

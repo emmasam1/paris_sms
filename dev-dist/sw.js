@@ -79,7 +79,7 @@ define(['./workbox-0d7dea0d'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.18v28bsbm88"
+    "revision": "0.efbqsl903k"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
@@ -88,7 +88,7 @@ define(['./workbox-0d7dea0d'], (function (workbox) { 'use strict';
   workbox.registerRoute(({
     request
   }) => request.destination === "image", new workbox.CacheFirst({
-    "cacheName": "school-images",
+    "cacheName": "hospital-images",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 50
     })]
@@ -96,7 +96,7 @@ define(['./workbox-0d7dea0d'], (function (workbox) { 'use strict';
   workbox.registerRoute(({
     request
   }) => request.destination === "script" || request.destination === "style", new workbox.StaleWhileRevalidate({
-    "cacheName": "school-assets",
+    "cacheName": "hospital-assets",
     plugins: []
   }), 'GET');
 

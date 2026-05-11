@@ -57,6 +57,37 @@ const SupportWidget = () => {
   // ================= PERSONALITY & CHAT LOGIC =================
   const personalityResponses = [
     {
+      // 1. IDENTITY (Who are you)
+      keywords: [
+        "who are you",
+        "what is your name",
+        "what are you",
+        "introduce yourself",
+      ],
+      answers: [
+        "I am Smart Schola AI, your dedicated assistant for the Smart Schola portal. I'm here to help you navigate features, troubleshoot issues, and connect you with our human support team when needed! 🤖",
+        "I'm your virtual assistant! I specialize in helping users manage their school tasks and technical portal questions. How can I assist you right now?",
+      ],
+    },
+    {
+      // 2. NEGATIVE EMOTIONS (Respond bad to "how are you today")
+      keywords: [
+        "bad",
+        "not good",
+        "sad",
+        "unhappy",
+        "terrible",
+        "stressed",
+        "feeling down",
+        "struggling",
+      ],
+      answers: [
+        "I'm very sorry to hear that. 😔 I might just be an AI, but I'm here to help make your portal tasks a little easier today. Is there anything specific bothering you that I can assist with?",
+        "I'm sorry you're having a rough day. Sending you some positive energy! ✨ Would you like to talk to a human agent on WhatsApp to help lighten your load?",
+        "That doesn't sound good at all. I'm here to help in any way I can with your school tasks. Take a deep breath—we can figure this out together. 👍",
+      ],
+    },
+    {
       // 1. FAREWELLS
       keywords: ["bye", "goodbye", "see ya", "talk later", "exit", "quit"],
       answers: [
@@ -125,6 +156,44 @@ const SupportWidget = () => {
     },
   ];
   const knowledgeBase = [
+    {
+      // GENERAL PORTAL HELP
+      keywords: ["how to use", "guide", "tutorial", "help me", "manual"],
+      answer:
+        "You can find a full user guide in the 'Resources' section of your sidebar. If you need a quick walkthrough of a specific page, just let me know which one!",
+    },
+    {
+      // FEES & PAYMENTS
+      keywords: ["fees", "payment", "tuition", "receipt", "invoice", "bank"],
+      answer:
+        "Currently, fee payments are not processed through this portal. Please visit the school's administrative office or the bursary in person to make enquiries and complete your payments. 🏫",
+    },
+    // {
+    //   // ASSIGNMENTS & HOMEWORK
+    //   keywords: ["assignment", "homework", "submission", "upload", "task"],
+    //   answer: "To submit work, go to the 'Academic' section and select 'Assignments'. Click on the specific subject to upload your files. Make sure your file is under 5MB!",
+    // },
+    // {
+    //   // TIMETABLE
+    //   keywords: ["timetable", "schedule", "classes", "time table"],
+    //   answer: "Your weekly class schedule is available on the Dashboard 'Overview' and under the 'Academic > Timetable' menu.",
+    // },
+    {
+      // PROFILE UPDATES
+      keywords: [
+        "update profile",
+        "change photo",
+        "edit info",
+        "phone number",
+        "profile",
+        "update"
+      ],
+      answer:
+        "How you update your profile depends on your role:\n\n" +
+        "• **Staff:** Click your profile icon at the top right, select 'Profile', and then click 'Edit' to update your information.\n" +
+        "• **Students:** Please visit the school admin office to request any updates to your profile.\n\n" +
+        "**Note:** For security reasons, your email address cannot be changed by users. Only the School Admin has the authority to edit email addresses.",
+    },
     {
       keywords: ["login", "sign in", "access", "password", "wrong", "account"],
       answer:
@@ -410,7 +479,11 @@ const SupportWidget = () => {
                   className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed max-w-[85%] shadow-sm ${msg.type === "user" ? "bg-[#0F172A] text-white rounded-tr-none" : "bg-white border border-gray-100 text-gray-700 rounded-tl-none"}`}
+                    className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed max-w-[85%] shadow-sm ${
+                      msg.type === "user"
+                        ? "bg-[#0F172A] text-white rounded-tr-none"
+                        : "bg-white border border-gray-100 text-gray-700 rounded-tl-none whitespace-pre-wrap" // <--- ADD 'whitespace-pre-wrap' HERE
+                    }`}
                   >
                     {msg.text}
                   </div>

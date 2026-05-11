@@ -706,8 +706,8 @@ const MyClasses = () => {
             allowClear
           >
             {/* <Option value="1">First Term</Option> */}
-            <Option value="2">Second Term</Option>
-            {/* <Option value="3">Third Term</Option> */}
+            {/* <Option value="2">Second Term</Option> */}
+            <Option value="3">Third Term</Option>
           </Select>
 
           {/* BUTTON */}

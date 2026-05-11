@@ -748,6 +748,7 @@ const Attendance = ({ className }) => {
                       display: "flex !important",
                       gap: "8px",
                       width: "100%",
+                      gap: "5px !important"
                     }}
                   >
                     <InputNumber
@@ -779,15 +780,17 @@ const Attendance = ({ className }) => {
             ]}
           />
 
-          <Button
+          <div className="flex justify-end">
+            <Button
             type="primary"
             onClick={submitBulkAttendance}
-            className="mt-4 rounded-lg py-2"
+            className="mt-4 rounded-lg py-2 w-45!"
             block
             loading={loading}
           >
             Submit Bulk Attendance
           </Button>
+          </div>
         </Tabs.TabPane>
 
         {/* ======================= VIEW ATTENDANCE ======================= */}

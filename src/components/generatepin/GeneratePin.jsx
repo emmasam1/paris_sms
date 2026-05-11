@@ -9,7 +9,7 @@ const GeneratePin = ({ open, onClose }) => {
   const [messageApi, contextHolder] = message.useMessage();
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
-   const [loader, setLoader] = useState(false);
+  const [loader, setLoader] = useState(false);
   const [mode, setMode] = useState("individual");
   const { API_BASE_URL, token, initialized } = useApp();
 
@@ -17,7 +17,7 @@ const GeneratePin = ({ open, onClose }) => {
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/student-management/student?limit=1000`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setStudents(res.data.data);
     } catch (error) {
@@ -29,7 +29,7 @@ const GeneratePin = ({ open, onClose }) => {
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/class-management/classes?limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setClasses(res.data.data);
     } catch (error) {
@@ -37,14 +37,40 @@ const GeneratePin = ({ open, onClose }) => {
     }
   };
 
-   useEffect(() => {
-      if (!initialized || !token) return;
-      getStudents();
-      getClass();
-    }, [initialized, token]);
+  const generateSessions = (num = 2) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0 - 11
 
+    // Assume session starts around September
+    const startYear = month >= 8 ? year : year - 1;
 
-   const generation = async (values) => {
+    return Array.from({ length: num }, (_, i) => {
+      const start = startYear - i;
+      const end = start + 1;
+
+      return {
+        id: `${start}/${end}`,
+        name: `${start}/${end}`,
+      };
+    });
+  };
+
+  const sessions = generateSessions(2);
+
+  const terms = [
+    { id: 1, name: "First Term" },
+    { id: 2, name: "Second Term" },
+    { id: 3, name: "Third Term" },
+  ];
+
+  useEffect(() => {
+    if (!initialized || !token) return;
+    getStudents();
+    getClass();
+  }, [initialized, token]);
+
+  const generation = async (values) => {
     try {
       setLoader(true);
 
@@ -91,81 +117,85 @@ const GeneratePin = ({ open, onClose }) => {
         destroyOnClose
       >
         <Form layout="vertical" onFinish={generation}>
-                <Form.Item>
-                  <Radio.Group value={mode} onChange={(e) => setMode(e.target.value)}>
-                    <Radio value="individual">Individual Student</Radio>
-                    <Radio value="whole class">Whole Class</Radio>
-                  </Radio.Group>
-                </Form.Item>
-      
-                {mode === "whole class" && (
-                  <Form.Item
-                    label="Class"
-                    name="classId"
-                    rules={[{ required: true, message: "Select a class" }]}
-                  >
-                    <Select placeholder="Select class">
-                      {classes.map((cls) => (
-                        <Option key={cls._id} value={cls._id}>
-                          {cls.name} {cls.arm}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                )}
-      
-                <Form.Item
-                  label="Session"
-                  name="session"
-                  rules={[{ required: true, message: "Select session" }]}
-                >
-                  <Select>
-                    <Option value="2024/2025">2024/2025</Option>
-                    <Option value="2025/2026">2025/2026</Option>
-                    <Option value="2026/2027">2026/2027</Option>
-                  </Select>
-                </Form.Item>
-      
-                <Form.Item
-                  label="Term"
-                  name="term"
-                  rules={[{ required: true, message: "Select term" }]}
-                >
-                  <Select>
-                    <Option value="1">1</Option>
-                  </Select>
-                </Form.Item>
-      
-                {mode === "individual" && (
-                  <Form.Item
-                    label="Student"
-                    name="student"
-                    rules={[{ required: true, message: "Select a student" }]}
-                  >
-                    <Select
-                      showSearch
-                      placeholder="Search student by name"
-                      optionFilterProp="label"
-                      filterOption={(input, option) =>
-                        option.label.toLowerCase().includes(input.toLowerCase())
-                      }
-                      options={students.map((std) => ({
-                        value: std._id,
-                        label: `${std.fullName} - ${std.class?.name || ""} ${
-                          std.class?.arm || ""
-                        }`,
-                      }))}
-                    />
-                  </Form.Item>
-                )}
-      
-                <div className="flex justify-end gap-3">
-                  <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                  <Button type="primary" htmlType="submit" loading={loader}>
-                    Generate
-                  </Button>
-                </div>
-              </Form>
+          <Form.Item>
+            <Radio.Group value={mode} onChange={(e) => setMode(e.target.value)}>
+              <Radio value="individual">Individual Student</Radio>
+              <Radio value="whole class">Whole Class</Radio>
+            </Radio.Group>
+          </Form.Item>
+
+          {mode === "whole class" && (
+            <Form.Item
+              label="Class"
+              name="classId"
+              rules={[{ required: true, message: "Select a class" }]}
+            >
+              <Select placeholder="Select class">
+                {classes.map((cls) => (
+                  <Option key={cls._id} value={cls._id}>
+                    {cls.name} {cls.arm}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
+
+          <Form.Item
+            label="Session"
+            name="session"
+            rules={[{ required: true, message: "Select session" }]}
+          >
+            <Select placeholder="Select Session">
+              {sessions.map((session) => (
+                <Option key={session.id} value={session.id}>
+                  {session.name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="Term"
+            name="term"
+            rules={[{ required: true, message: "Select term" }]}
+          >
+            <Select placeholder="Select Term">
+              <Option value="1">First Term</Option>
+              <Option value="2">Second Term</Option>
+              <Option value="3">Third Term</Option>
+            </Select>
+          </Form.Item>
+
+          {mode === "individual" && (
+            <Form.Item
+              label="Student"
+              name="student"
+              rules={[{ required: true, message: "Select a student" }]}
+            >
+              <Select
+                showSearch
+                placeholder="Search student by name"
+                optionFilterProp="label"
+                filterOption={(input, option) =>
+                  option.label.toLowerCase().includes(input.toLowerCase())
+                }
+                options={students.map((std) => ({
+                  value: std._id,
+                  label: `${std.fullName} - ${std.class?.name || ""} ${
+                    std.class?.arm || ""
+                  }`,
+                }))}
+              />
+            </Form.Item>
+          )}
+
+          <div className="flex justify-end gap-3">
+            <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button type="primary" htmlType="submit" loading={loader}>
+              Generate
+            </Button>
+          </div>
+        </Form>
       </Modal>
     </>
   );

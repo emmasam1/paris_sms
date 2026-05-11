@@ -110,10 +110,23 @@ const SupportWidget = () => {
       ],
     },
 
-    {
-      keywords: ["thank", "thanks", "thank you", "tnx"],
-      answers: ["You're welcome 😊", "Happy to help 👍", "Anytime 😄"],
-    },
+   {
+  keywords: [
+    "thank",
+    "thanks",
+    "thank you",
+    "thanks you",
+    "thanks alot",
+    "thank you so much",
+    "appreciate",
+  ],
+  answers: [
+    "You're welcome 😊",
+    "Happy to help 👍",
+    "Anytime 😄",
+    "Glad I could help 🚀",
+  ],
+},
 
     {
       keywords: ["bye", "goodbye", "see you", "later"],
@@ -178,10 +191,24 @@ const SupportWidget = () => {
     },
 
     {
-      keywords: ["forgot password", "reset password", "password reset"],
+      keywords: [
+        "forgot password",
+        "forget password",
+        "reset password",
+        "password reset",
+        "change password",
+        "update password",
+        "recover password",
+        "cant remember password",
+        "cannot remember password",
+        "password problem",
+        "password issue",
+        "change my password",
+        "reset my password",
+      ],
       topic: "Password Reset",
       answer:
-        "Passwords can only be reset by the School Administrator for security reasons.",
+        "Passwords can only be reset or changed by the School Administrator for security reasons.",
     },
 
     {
@@ -351,9 +378,19 @@ const SupportWidget = () => {
   ];
 
   const findMatch = (text, dataSource) => {
-    const msg = text.toLowerCase().trim();
+    const msg = text
+      .toLowerCase()
+      .replace(/[^\w\s]/g, "")
+      .trim();
+
+    const msgWords = msg.split(/\s+/);
+
     return dataSource.find((item) =>
-      item.keywords.some((k) => msg.includes(k)),
+      item.keywords.some((keyword) => {
+        const keywordWords = keyword.toLowerCase().split(/\s+/);
+
+        return keywordWords.every((word) => msgWords.includes(word));
+      }),
     );
   };
 

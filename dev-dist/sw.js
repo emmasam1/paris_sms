@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-0d7dea0d'], (function (workbox) { 'use strict';
+define(['./workbox-2ae722a1'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -79,7 +79,7 @@ define(['./workbox-0d7dea0d'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.egpkm4jhpa"
+    "revision": "0.j3e1soss3g8"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
@@ -90,14 +90,9 @@ define(['./workbox-0d7dea0d'], (function (workbox) { 'use strict';
   }) => request.destination === "image", new workbox.CacheFirst({
     "cacheName": "hospital-images",
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 50
+      maxEntries: 50,
+      maxAgeSeconds: 2592000
     })]
-  }), 'GET');
-  workbox.registerRoute(({
-    request
-  }) => request.destination === "script" || request.destination === "style", new workbox.StaleWhileRevalidate({
-    "cacheName": "hospital-assets",
-    plugins: []
   }), 'GET');
 
 }));

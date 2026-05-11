@@ -31,11 +31,13 @@ import BroadSheet from "./pages/admin/broadsheet/BroadSheet";
 import QuestionBank from "./pages/admin/cbt/QuestionBank";
 import AssessmentCreator from "./pages/admin/cbt/AssessmentCreator";
 import InstallPWA from "./components/pwaInstaller/InstallPWA";
+import SupportWidget from "./components/support/SupportWidget";
 
 const App = () => {
   return (
      <>
       <InstallPWA />
+      <SupportWidget />
       {/* "testing" */}
     <Routes>
       {/* Auth */}

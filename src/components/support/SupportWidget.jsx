@@ -89,7 +89,7 @@ const SupportWidget = () => {
     },
     {
       // 1. FAREWELLS
-      keywords: ["bye", "goodbye", "see ya", "talk later", "exit", "quit"],
+      keywords: ["bye", "goodbye", "see ya", "talk later", "exit", "quit", "that's all", "that is all", "thats all"],
       answers: [
         "Goodbye! It was a pleasure chatting with you. Have a productive day! 👋",
         "See you later! I'm here whenever you need more help with the portal. 👋",
@@ -418,14 +418,22 @@ const SupportWidget = () => {
           text: "I'm still learning and don't quite have the answer for that yet. 😅 Would you like me to connect you with our support team on WhatsApp? (yes / no)",
         },
       ]);
-    }, 1000);
+    }, 1500);
   };
 
   const openWhatsApp = () => {
-    // Updated the default message to be more descriptive for school registration
-    const message = encodeURIComponent(
-      "Hello Smart Schola Support, I would like to inquire about registering my school.",
-    );
+    // Check if the user was discussing registration or a general issue
+    const lastBotMsg = messages[messages.length - 2]?.text?.toLowerCase() || "";
+    const userQueries = messages.filter(m => m.type === "user");
+    const lastUserQuery = userQueries.length > 0 ? userQueries[userQueries.length - 1].text : "General Inquiry";
+
+    let reason = `I have a question about: "${lastUserQuery}"`;
+    
+    if (lastBotMsg.includes("register") || lastBotMsg.includes("school")) {
+      reason = "I would like to inquire about registering my school with Smart Schola";
+    }
+
+    const message = encodeURIComponent(`Hello Smart Schola Support, ${reason}.`);
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, "_blank");
   };
 
@@ -491,7 +499,7 @@ const SupportWidget = () => {
               ))}
               {isTyping && (
                 <div className="text-[11px] text-gray-400 font-medium animate-pulse ml-1">
-                  AI is thinking...
+                  AI is typeing...
                 </div>
               )}
               <div ref={messagesEndRef} />

@@ -622,7 +622,7 @@ const SupportWidget = () => {
             initial={{ opacity: 0, y: 40, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="w-[300px] sm:w-[350px] bg-white rounded-md shadow-2xl overflow-hiddenflex flex-col mb-4"
+            className="w-[300px] sm:w-[350px] bg-white rounded-2xl shadow-sm overflow-hiddenflex flex-col mb-4"
           >
             {/* HEADER */}
             <div className="bg-[#0F172A] p-4 text-white flex justify-between items-center shadow-lg">

@@ -103,6 +103,42 @@ export const emotionalResponses = [
 // ======================================================
 
 export const personalityResponses = [
+  {
+    keywords: [
+      "what is your name",
+      "who are you",
+      "your name",
+      "tell me about yourself",
+      "what are you",
+    ],
+
+    answers: [
+      `I’m ${BOT_NAME} 🤖 your virtual support assistant.`,
+      `My name is ${BOT_NAME} 😊 I’m here to help with portal-related issues.`,
+      `I’m ${BOT_NAME} 🤖 built to assist students, teachers, parents, and administrators.`,
+    ],
+  },
+
+  {
+    keywords: [
+      "what can you do",
+      "what do you do",
+      "how can you help",
+      "what are the things you can do",
+      "what are your functions",
+      "what help can you provide",
+      "what can i ask you",
+      "things you can do",
+    ],
+
+    answers: [
+      "I can help with login issues, results, subject assignments, attendance, result PINs, score entry, and connecting you with support 😊",
+
+      "I assist students, teachers, parents, and administrators with portal-related questions and issues 🤖",
+
+      "You can ask me about results, login problems, attendance, subject assignments, registration, and more 👍",
+    ],
+  },
   // GREETINGS
   {
     keywords: [
@@ -827,7 +863,7 @@ const searchableKnowledge = knowledgeBase.flatMap((item) =>
 
 const fuse = new Fuse(searchableKnowledge, {
   keys: ["keyword"],
-  threshold: 0.55,
+  threshold: 0.32,
   includeScore: true,
   ignoreLocation: true,
   minMatchCharLength: 3,
@@ -837,7 +873,7 @@ export const findBestMatch = (message) => {
   const cleaned = message.toLowerCase().trim();
 
   // ==========================================
-  // EXACT KEYWORD MATCH FIRST
+  // EXACT MATCH FIRST
   // ==========================================
 
   for (const item of knowledgeBase) {
@@ -849,13 +885,46 @@ export const findBestMatch = (message) => {
   }
 
   // ==========================================
-  // FUZZY MATCH FALLBACK
+  // FUZZY SEARCH
   // ==========================================
 
   const results = fuse.search(cleaned);
 
-  return results.length ? results[0].item.data : null;
+  if (!results.length) return null;
+
+  const best = results[0];
+
+  // STRICT CONFIDENCE FILTER
+  if (best.score > 0.32) {
+    return null;
+  }
+
+  return best.item.data;
 };
+
+// export const findBestMatch = (message) => {
+//   const cleaned = message.toLowerCase().trim();
+
+//   // ==========================================
+//   // EXACT KEYWORD MATCH FIRST
+//   // ==========================================
+
+//   for (const item of knowledgeBase) {
+//     for (const keyword of item.keywords) {
+//       if (containsKeyword(cleaned, keyword)) {
+//         return item;
+//       }
+//     }
+//   }
+
+//   // ==========================================
+//   // FUZZY MATCH FALLBACK
+//   // ==========================================
+
+//   const results = fuse.search(cleaned);
+
+//   return results.length ? results[0].item.data : null;
+// };
 
 // export const findBestMatch = (message) => {
 //   const cleaned = message.toLowerCase().trim();

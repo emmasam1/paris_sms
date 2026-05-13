@@ -567,7 +567,7 @@ const handleSend = () => {
         }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
-        className="w-16 h-16 rounded-full bg-[#0F172A] text-white flex items-center justify-center shadow-2xl z-10 border border-white/10"
+        className="w-13 h-13 cursor-pointer rounded-full bg-[#0F172A] text-white flex items-center justify-center shadow-2xl z-10 border border-white/10"
       >
         {isOpen ? (
           <FaTimes size={20} />

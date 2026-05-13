@@ -36,13 +36,26 @@ export const getGreeting = () => {
 // ======================================================
 
 export const smartReplies = [
-  "Interesting 🤔 Tell me more.",
+  "Interesting 🤔 Tell me a little more.",
   "I understand 👍",
-  "That’s a good question 😊",
-  "Let me think about that 🤖",
+  "That’s a really good question 😊",
+  "Let me think about that for a second 🤖",
   "I’m listening 👂",
-  "Haha 😄 okay go on...",
+  "Haha 😄 okay, go on...",
   "You’re keeping me busy today 😂",
+  "Alright 👍 I’m with you.",
+  "Okay 😊 I understand what you mean.",
+  "Hmm 🤔 that’s interesting.",
+  "I see 👀",
+  "Got it 👍",
+  "Makes sense 😊",
+  "Thanks for explaining that 😄",
+  "Alright 🚀 let’s figure this out together.",
+  "I’m here to help 🤖",
+  "Okay 👍 tell me more about the issue.",
+  "That helps a lot 😊",
+  "Understood 👌",
+  "I’ve got you 👍",
 ];
 
 // ======================================================
@@ -63,14 +76,19 @@ export const emotionalResponses = [
       "terrible",
       "idiot",
       "nonsense",
+      "this app is bad",
+      "this is annoying",
+      "this is frustrating",
     ],
     answers: [
-      "I'm really sorry you're feeling that way 😔 I’m here to help.",
-      "Let’s fix it together 👍 tell me what happened.",
-      "I understand… take your time, I’ve got you 🤖",
+      "I’m really sorry you’re dealing with that 😔 Let’s fix it together.",
+      "I understand your frustration 👍 tell me exactly what happened.",
+      "That sounds stressful 😔 I’ll do my best to help.",
+      "I’m here with you 🤖 let’s solve it step by step.",
+      "I understand why that would be upsetting 😔",
+      "Let’s get this sorted out together 👍",
     ],
   },
-
   {
     keywords: [
       "sad",
@@ -80,20 +98,37 @@ export const emotionalResponses = [
       "depressed",
       "exhausted",
       "not happy",
+      "worried",
+      "overwhelmed",
+      "confusing",
     ],
     answers: [
-      "That sounds heavy 😔 I’m here with you.",
-      "Let’s take it step by step 👍",
-      "You’ll be okay 😊 I’ll help you through it.",
+      "That sounds difficult 😔 I’m here to help.",
+      "Let’s take it one step at a time 👍",
+      "You’re not alone 😊 we’ll work through it together.",
+      "I understand 😔 tell me what’s confusing you.",
+      "No worries 👍 I’ll guide you through it.",
+      "Take your time 😊 I’m listening.",
     ],
   },
-
   {
-    keywords: ["happy", "excited", "awesome", "great news"],
+    keywords: [
+      "happy",
+      "excited",
+      "awesome",
+      "great news",
+      "amazing",
+      "nice",
+      "good",
+      "perfect",
+    ],
     answers: [
       "That’s amazing 🎉",
       "Love that energy 🚀",
       "Nice 😄 keep it going!",
+      "Glad to hear that 😊",
+      "Awesome 👍",
+      "That’s really good news 😄",
     ],
   },
 ];
@@ -103,6 +138,10 @@ export const emotionalResponses = [
 // ======================================================
 
 export const personalityResponses = [
+  // ======================================================
+  // BOT IDENTITY
+  // ======================================================
+
   {
     keywords: [
       "what is your name",
@@ -110,14 +149,21 @@ export const personalityResponses = [
       "your name",
       "tell me about yourself",
       "what are you",
+      "who made you",
     ],
 
     answers: [
       `I’m ${BOT_NAME} 🤖 your virtual support assistant.`,
       `My name is ${BOT_NAME} 😊 I’m here to help with portal-related issues.`,
       `I’m ${BOT_NAME} 🤖 built to assist students, teachers, parents, and administrators.`,
+      `You can call me ${BOT_NAME} 😄`,
+      `I’m ${BOT_NAME} 🤖 always ready to help.`,
     ],
   },
+
+  // ======================================================
+  // WHAT CAN YOU DO
+  // ======================================================
 
   {
     keywords: [
@@ -129,17 +175,26 @@ export const personalityResponses = [
       "what help can you provide",
       "what can i ask you",
       "things you can do",
+      "help options",
     ],
 
     answers: [
-      "I can help with login issues, results, subject assignments, attendance, result PINs, score entry, and connecting you with support 😊",
+      "I can help with login issues, results, attendance, subject assignments, score entry, result PINs, and support requests 😊",
 
-      "I assist students, teachers, parents, and administrators with portal-related questions and issues 🤖",
+      "I assist students, teachers, parents, and school administrators with portal-related questions and issues 🤖",
 
-      "You can ask me about results, login problems, attendance, subject assignments, registration, and more 👍",
+      "You can ask me about results, login problems, attendance, registration, subjects, grading, and more 👍",
+
+      "I’m here to help you solve common portal problems quickly 🚀",
+
+      "I can also connect you with human support if needed 👍",
     ],
   },
+
+  // ======================================================
   // GREETINGS
+  // ======================================================
+
   {
     keywords: [
       "hi",
@@ -152,14 +207,20 @@ export const personalityResponses = [
       "good evening",
       "hey there",
     ],
+
     answers: [
-      `Hey 👋 I’m ${BOT_NAME}. What’s up?`,
-      `${getGreeting()} 😊 How can I help?`,
+      `Hey 👋 I’m ${BOT_NAME}. How can I help today?`,
+      `${getGreeting()} 😊 What can I do for you?`,
       "Hello 😄 talk to me.",
+      `Hi there 👋 I’m ${BOT_NAME} 🤖`,
+      "Hey 😄 how’s your day going?",
     ],
   },
 
+  // ======================================================
   // HOW ARE YOU
+  // ======================================================
+
   {
     keywords: [
       "how are you",
@@ -167,24 +228,28 @@ export const personalityResponses = [
       "how are you doing",
       "how far",
       "whats up",
+      "what's up",
     ],
+
     answers: [
-      "I’m good 🤖 just waiting to help you.",
+      "I’m doing great 🤖 thanks for asking.",
       "Running smoothly 😄 what about you?",
-      "I’m here and ready 👍",
+      "I’m here and ready to help 👍",
+      "Doing well 😊 how can I assist you today?",
+      "Everything’s working perfectly on my side 🚀",
     ],
   },
 
+  // ======================================================
   // USER IS FINE
+  // ======================================================
+
   {
     keywords: [
       "i am fine",
       "im fine",
       "fine",
-      "good",
-      "great",
       "doing well",
-      "okay",
       "not bad",
       "i am okay",
       "i'm okay",
@@ -196,10 +261,14 @@ export const personalityResponses = [
       "Nice 😄 How can I help you today?",
       "Glad you're doing well 👍",
       "Awesome 🚀 What can I do for you?",
+      "Love to hear that 😄",
     ],
   },
 
-  // USER NOT FINE
+  // ======================================================
+  // USER HAS ISSUES
+  // ======================================================
+
   {
     keywords: [
       "not fine",
@@ -216,10 +285,15 @@ export const personalityResponses = [
       "I’m sorry to hear that 😔 Tell me what happened.",
       "Let’s try to fix it together 👍",
       "I’m listening 👂 explain the issue for me.",
+      "Okay 👍 tell me exactly what’s happening.",
+      "No worries 😊 I’ll do my best to help.",
     ],
   },
 
-  // CHAT MODE (IMPORTANT)
+  // ======================================================
+  // CHAT MODE
+  // ======================================================
+
   {
     keywords: [
       "i just want to talk",
@@ -228,71 +302,68 @@ export const personalityResponses = [
       "let's chat",
       "are you there",
       "talk to me",
+      "chat with me",
     ],
+
     answers: [
       "Of course 😄 I’m here. What’s on your mind?",
       "Sure 👍 I’m listening.",
       "Go ahead 🤖 I’ve got time.",
+      "Absolutely 😊 let’s chat.",
+      "I’m here 👂 talk to me.",
     ],
   },
 
-  // NAME MEMORY
-  {
-    keywords: ["my name is", "i am called", "call me"],
-    answers: ["Nice to meet you 😄 I’ll remember that!"],
-  },
+  // ======================================================
+  // JOKES
+  // ======================================================
 
-  {
-    keywords: ["what is my name", "do you know my name"],
-    answers: [
-      "I don’t think you told me yet 🤔 want me to remember it?",
-      "Not yet 😄 tell me and I’ll keep it in memory.",
-    ],
-  },
-
-  // FUN / HUMOR
   {
     keywords: ["joke", "funny", "make me laugh", "tell me a joke"],
+
     answers: [
       "Why don’t programmers like nature? It has too many bugs 😂",
       "I told my computer I needed a break… it froze 😄",
-      "Why was the student happy? Because no homework 😂",
+      "Why was the math book sad? It had too many problems 😂",
+      "Why do Java developers wear glasses? Because they don’t C# 😂",
+      "I’m reading a book about anti-gravity… it’s impossible to put down 😄",
     ],
   },
 
-  // ROAST MODE
-  {
-    keywords: ["roast me", "insult me"],
-    answers: [
-      "I would roast you… but I like you too much 😄",
-      "You’re lucky I’m a friendly AI 🤖😂",
-      "Nice try 😎 I’m not activated for violence.",
-    ],
-  },
-
+  // ======================================================
   // MOTIVATION
+  // ======================================================
+
   {
     keywords: ["motivate me", "i am tired", "give me advice"],
+
     answers: [
-      "Small progress every day wins 🚀",
+      "Small progress every day adds up 🚀",
       "You’re doing better than you think 👍",
       "Don’t stop now 😄",
+      "One step at a time 😊",
+      "Keep going 🚀 you’ve got this.",
     ],
   },
 
+  // ======================================================
   // LOVE
+  // ======================================================
+
   {
     keywords: ["love you", "i love you"],
-    answers: ["Aww 😄 I appreciate that.", "That’s sweet 😊"],
+
+    answers: [
+      "Aww 😄 I appreciate that.",
+      "That’s sweet 😊",
+      "You’re awesome too 🚀",
+    ],
   },
 
-  // OK
-  {
-    keywords: ["ok", "okay", "alright", "cool", "nice"],
-    answers: ["👍", "Okay 😄", "Got it"],
-  },
-
+  // ======================================================
   // THANK YOU
+  // ======================================================
+
   {
     keywords: [
       "thanks",
@@ -309,10 +380,14 @@ export const personalityResponses = [
       "Happy to help 👍",
       "Anytime 😄",
       "Glad I could help 🚀",
+      "Always here if you need me 🤖",
     ],
   },
 
-  // CONVERSATION ENDING
+  // ======================================================
+  // GOODBYE
+  // ======================================================
+
   {
     keywords: [
       "thats all",
@@ -330,6 +405,8 @@ export const personalityResponses = [
       "Alright 😊 Have a wonderful day 👋",
       "Take care 🚀 I’m here anytime you need help.",
       "Glad I could help 😄",
+      "See you later 👋",
+      "Bye for now 😊",
     ],
   },
 ];
@@ -344,6 +421,19 @@ export const knowledgeBase = [
       "why cant i see my students",
       "student not showing",
       "missing students",
+      "student not showing",
+      "cant see student",
+      "can't see student",
+      "student missing",
+      "student not appearing",
+      "why cant i see a student",
+      "student not in my list",
+      "cant find student",
+      "can't find student",
+      "not seeing students",
+      "missing students",
+      "students not showing",
+      "students not appearing",
     ],
     intent: "STUDENT_VISIBILITY",
     topic: "Student Visibility",
@@ -434,6 +524,8 @@ export const knowledgeBase = [
       "average is low",
       "incorrect result",
       "calculation issue",
+      "average is not correct",
+      "average is worng",
     ],
 
     intent: "RESULT_CALCULATION",
@@ -441,7 +533,7 @@ export const knowledgeBase = [
     topic: "Result Calculation Issue",
 
     answer:
-      "The student's average is calculated using the total number of subjects assigned to the student, not just the number of scores entered.\n\nFor example, if 11 subjects were assigned but only 10 scores were entered, the system will still divide the total score by 11.\n\nOnce results have been generated, any changes made (such as removing or adjusting subjects) will not automatically update the calculation. In such cases, the result must be regenerated by the system administrators for corrections to reflect.",
+      "The system calculates the student's average using the total number of subjects assigned to the student.\n\nFor example, if a student is assigned 11 subjects but scores were entered for only 10 subjects, the system will still divide the total score by 11. This can make the average appear lower than expected.",
   },
   {
     keywords: ["who assigns subjects", "why cant i see all students"],
@@ -1290,6 +1382,30 @@ export const getBotResponse = (message) => {
   }
 
   // ======================================================
+  // PRIORITY: STUDENT VISIBILITY + SCORE ENTRY
+  // ======================================================
+
+  if (
+    lower.includes("cant find") ||
+    lower.includes("can't find") ||
+    lower.includes("not seeing") ||
+    lower.includes("student not showing") ||
+    lower.includes("missing student") ||
+    lower.includes("students not appearing")
+  ) {
+    const res = {
+      type: "knowledge",
+      intent: "STUDENT_NOT_VISIBLE",
+      topic: "Student Visibility",
+      text: "If some students are not showing in your subject list, it usually means the subject has not been assigned to those students yet 😊 Please contact the school administrator to verify the subject assignment.",
+    };
+
+    updateMemory(message, res, "STUDENT_NOT_VISIBLE");
+
+    return res;
+  }
+
+  // ======================================================
   // 3. PERSONALITY / CASUAL CHAT
   // ======================================================
 
@@ -1374,6 +1490,97 @@ export const getBotResponse = (message) => {
     updateMemory(message, res, match.intent);
 
     return res;
+  }
+
+  // ======================================================
+  // FIX / SOLUTION FOLLOW-UP HANDLER
+  // ======================================================
+
+  const solutionKeywords = [
+    "what do i do",
+    "what should i do",
+    "how do i fix it",
+    "how can i fix it",
+    "can you fix it",
+    "help me fix it",
+    "tell me how to fix it",
+    "what next",
+    "how can i solve it",
+    "solve it",
+    "fix it",
+  ];
+
+  if (solutionKeywords.some((k) => lower.includes(k))) {
+    // LOGIN ISSUES
+    if (memory.lastIntent === "LOGIN_ISSUE") {
+      return {
+        type: "solution",
+        text: "Please double-check your username and password carefully 😊 If the issue continues, contact the school administrator to reset your login details.",
+      };
+    }
+
+    // RESULT CALCULATION
+    if (memory.lastIntent === "RESULT_CALCULATION") {
+      return {
+        type: "solution",
+        text: "You should contact the school administrator 👍 They may need to review the student's assigned subjects and regenerate the result if corrections are required.",
+      };
+    }
+
+    // STUDENT VISIBILITY
+    if (
+      memory.lastIntent === "STUDENT_VISIBILITY" ||
+      memory.lastIntent === "STUDENT_NOT_VISIBLE"
+    ) {
+      return {
+        type: "solution",
+        text: "Please contact the school administrator to confirm that the student has been assigned to the correct subject 😊",
+      };
+    }
+
+    // PASSWORD RESET
+    if (memory.lastIntent === "PASSWORD_RESET") {
+      return {
+        type: "solution",
+        text: "Please contact the school administrator 👍 Only administrators can reset portal passwords.",
+      };
+    }
+
+    // RESULT PIN
+    if (
+      memory.lastIntent === "RESULT_PIN" ||
+      memory.lastIntent === "INVALID_RESULT_PIN"
+    ) {
+      return {
+        type: "solution",
+        text: "Please contact the school administrator or school office for assistance with the result PIN 😊",
+      };
+    }
+
+    // ATTENDANCE
+    if (
+      memory.lastIntent === "ATTENDANCE_ISSUE" ||
+      memory.lastIntent === "DAILY_ATTENDANCE"
+    ) {
+      return {
+        type: "solution",
+        text: "You can continue using bulk attendance for now 👍 If the issue persists, please report it to the school administrator.",
+      };
+    }
+
+    // SCORE SAVING
+    if (memory.lastIntent === "SAVE_ISSUE") {
+      return {
+        type: "solution",
+        text: "Please check your internet connection and ensure all score fields are filled correctly 😊 If the issue continues, contact the school administrator.",
+      };
+    }
+
+    // GENERAL FALLBACK SOLUTION
+    return {
+      type: "solution",
+      text: "Please contact the school administrator or support team if the issue continues 👍",
+    };
   }
 
   // ======================================================

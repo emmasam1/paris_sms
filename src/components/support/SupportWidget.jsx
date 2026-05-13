@@ -8,6 +8,8 @@ import {
   FaChevronRight,
 } from "react-icons/fa";
 
+import { getBotResponse, BOT_NAME, getGreeting } from "../../services/aiEngine";
+
 import support from "../../assets/customer-support.png";
 
 const SupportWidget = () => {
@@ -27,6 +29,8 @@ const SupportWidget = () => {
 
   const BOT_NAME = "Mahvion AI";
 
+  const [currentIntent, setCurrentIntent] = useState(null);
+
   const getGreeting = () => {
     const h = new Date().getHours();
 
@@ -40,7 +44,7 @@ const SupportWidget = () => {
     setMessages([
       {
         type: "bot",
-        text: `${getGreeting()} I’m ${BOT_NAME} 🤖. I was just checking some portal logs—how is your day going so far?`,
+        text: `${getGreeting()} I’m ${BOT_NAME} 🤖. How can I help you today?`,
       },
     ]);
 
@@ -67,540 +71,328 @@ const SupportWidget = () => {
     });
   }, [messages, isTyping]);
 
-  // ======================================================
-  // SMART RANDOM REPLIES
-  // ======================================================
-
-  const smartReplies = [
-    "Interesting 🤔 Tell me more.",
-    "I understand 👍",
-    "That’s a good question 😊",
-    "Let me think about that for a second 🤖",
-    "I’m listening 👂",
-  ];
-
-  // ======================================================
-  // EMOTIONAL RESPONSES
-  // ======================================================
-
-  const emotionalResponses = [
-    {
-      keywords: [
-        "angry",
-        "annoyed",
-        "frustrated",
-        "upset",
-        "useless",
-        "stupid",
-        "hate",
-        "wtf",
-        "terrible",
-        "idiot",
-        "nonsense",
-      ],
-
-      answers: [
-        "I'm really sorry you're frustrated 😔 Let me try to help.",
-        "I understand this can be upsetting. Let's fix it together 👍",
-        "I apologize for the inconvenience 🙏 Please explain the issue a little more.",
-        "I'm here to help 😊 Tell me what happened.",
-      ],
-    },
-
-    {
-      keywords: [
-        "sad",
-        "tired",
-        "confused",
-        "stress",
-        "depressed",
-        "exhausted",
-        "not happy"
-      ],
-
-      answers: [
-        "That sounds stressful 😔 I'm here to help however I can.",
-        "Hopefully I can make things easier for you 😊",
-        "Let's solve it together 👍",
-      ],
-    },
-
-    {
-      keywords: ["happy", "excited", "awesome", "great news"],
-
-      answers: [
-        "That's wonderful 🎉",
-        "Awesome 🚀",
-        "I love hearing good news 😄",
-      ],
-    },
-  ];
-
-  // ======================================================
-  // PERSONALITY RESPONSES
-  // ======================================================
-
-  const personalityResponses = [
-    {
-      keywords: [
-        "hi",
-        "hello",
-        "hey",
-        "yo",
-        "sup",
-        "good morning",
-        "good afternoon",
-        "good evening",
-      ],
-
-      answers: [
-        `Hey there 👋 Welcome to ${BOT_NAME}. How can I assist you today?`,
-        `${getGreeting()} 😊 What can I help you with today?`,
-        "Hello 👋 Need help with results, login, fees, or portal access?",
-      ],
-    },
-
-    {
-      keywords: [
-        "how are you",
-        "how are u",
-        "how far",
-        "how is it going",
-        "whats up",
-      ],
-
-      answers: [
-        "I'm doing great 🤖 Thanks for asking! How can I assist you today?",
-        "Everything is running smoothly on my side 🚀 What can I help you with?",
-      ],
-    },
-
-    {
-      keywords: [
-        "thank",
-        "thanks",
-        "thank you",
-        "thanks you",
-        "appreciate",
-      ],
-
-      answers: [
-        "You're welcome 😊",
-        "Happy to help 👍",
-        "Anytime 😄",
-        "Glad I could help 🚀",
-      ],
-    },
-
-    {
-      keywords: ["bye", "goodbye", "later", "see you"],
-
-      answers: [
-        "Goodbye 👋 Have a wonderful day!",
-        "Take care 😊",
-        "See you later 🚀",
-      ],
-    },
-
-    {
-      keywords: ["who are you", "your name", "what are you"],
-
-      answers: [
-        `I'm ${BOT_NAME} 🤖 Your intelligent school assistant.`,
-        `I'm ${BOT_NAME}. I help students, parents, and staff with portal support.`,
-      ],
-    },
-
-    {
-      keywords: ["joke", "funny"],
-
-      answers: [
-        "Why did the student bring a ladder to school? 📚 Because they wanted higher grades 😄",
-        "I would tell you a school joke... but I might get suspended 🤖😂",
-      ],
-    },
-
-    {
-      keywords: ["love you", "i love you"],
-
-      answers: [
-        "Aww 😊 I'm always happy to help.",
-        "That's sweet 😄",
-      ],
-    },
-
-    {
-      keywords: ["what can you do", "help me", "features"],
-
-      answers: [
-        "I can help with login issues, password problems, results, fees, portal access, and school support 😊",
-      ],
-    },
-
-    {
-      keywords: ["who created you", "who made you"],
-
-      answers: [
-        `I was created to assist students, parents, and school staff 🤖`,
-      ],
-    },
-
-    {
-      keywords: ["are you smart", "can you learn"],
-
-      answers: [
-        "I'm continuously improving 😊 The more conversations I handle, the smarter I become.",
-      ],
-    },
-
-    {
-      keywords: ["tell me something"],
-
-      answers: [
-        "Did you know? Consistency beats talent when talent doesn't stay consistent 🚀",
-      ],
-    },
-
-    {
-      keywords: ["ok", "okay", "alright", "cool"],
-
-      answers: ["Alright 👍", "Okay 🚀", "Got it 😊"],
-    },
-  ];
-
-  // ======================================================
-  // KNOWLEDGE BASE
-  // ======================================================
-
-  const knowledgeBase = [
-    {
-      keywords: [
-        "login",
-        "cannot login",
-        "cant login",
-        "sign in",
-        "signin",
-      ],
-
-      topic: "Login Issue",
-
-      answer:
-        "Please check your email and password carefully. If the issue continues, contact your school administrator.",
-    },
-
-    {
-      keywords: [
-        "forgot password",
-        "forget password",
-        "reset password",
-        "password reset",
-        "change password",
-        "update password",
-        "recover password",
-        "cant remember password",
-        "cannot remember password",
-        "change my password",
-        "reset my password",
-      ],
-
-      topic: "Password Reset",
-
-      answer:
-        "Passwords can only be reset or changed by the School Administrator for security reasons.",
-    },
-
-    {
-      keywords: ["wrong password", "incorrect password"],
-
-      topic: "Invalid Credentials",
-
-      answer:
-        "Your login credentials may be incorrect. Please double-check your details.",
-    },
-
-    {
-      keywords: [
-        "result",
-        "results",
-        "exam result",
-        "check result",
-        "grade",
-        "score",
-      ],
-
-      topic: "Results",
-
-      answer:
-        "To check results, go to the Parent/Guardian portal and enter the result PIN provided by the school.",
-    },
-
-    {
-      keywords: ["fees", "school fees", "payment", "tuition"],
-
-      topic: "School Fees",
-
-      answer:
-        "For school fee inquiries, please contact the bursary department or school administration.",
-    },
-
-    {
-      keywords: [
-        "portal down",
-        "portal not loading",
-        "website down",
-        "site not opening",
-      ],
-
-      topic: "Portal Error",
-
-      answer:
-        "Try refreshing the page, clearing your browser cache, or changing your internet connection.",
-    },
-
-    {
-      keywords: ["slow", "lagging", "loading slowly"],
-
-      topic: "Slow Portal",
-
-      answer:
-        "A slow internet connection may affect portal speed. Try using a stronger network.",
-    },
-
-    {
-      keywords: ["attendance", "present", "absent"],
-
-      topic: "Attendance",
-
-      answer:
-        "Attendance records are managed by teachers and school administrators.",
-    },
-
-    {
-      keywords: ["support", "contact admin", "technical issue"],
-
-      topic: "Support",
-
-      answer:
-        "You can contact your school administrator or continue to WhatsApp support for assistance.",
-    },
-
-    {
-      keywords: ["register", "admission", "enrollment"],
-
-      topic: "Registration",
-
-      answer:
-        "For admissions and registration inquiries, please contact the school office.",
-    },
-
-    {
-      keywords: ["certificate", "transcript"],
-
-      topic: "Certificate",
-
-      answer:
-        "Certificates and transcripts are issued directly by the school administration.",
-    },
-  ];
-
-  // ======================================================
-  // SMART MATCHER
-  // ======================================================
-
-  const findMatch = (text, dataSource) => {
-    const msg = text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, "")
-      .trim();
-
-    const msgWords = msg.split(/\s+/);
-
-    return dataSource.find((item) =>
-      item.keywords.some((keyword) => {
-        const keywordWords = keyword.toLowerCase().split(/\s+/);
-
-        return keywordWords.every((word) =>
-          msgWords.includes(word),
-        );
-      }),
-    );
-  };
-
-  // ======================================================
-  // HANDLE SEND
-  // ======================================================
-
-  const handleSend = () => {
-    const currentInput = input.trim();
-
-    if (!currentInput || showWhatsappCard) return;
-
-    const lower = currentInput.toLowerCase();
 
+
+ // ======================================================
+// HANDLE SEND
+// ======================================================
+
+const handleSend = () => {
+  const currentInput = input.trim();
+  if (!currentInput || showWhatsappCard) return;
+
+  const lower = currentInput.toLowerCase();
+
+  // add user message
+  setMessages((prev) => [
+    ...prev,
+    { type: "user", text: currentInput },
+  ]);
+
+  setInput("");
+  setIsTyping(true);
+
+  setTimeout(() => {
+    setIsTyping(false);
+
+    // ======================================================
+    // 1. HANDLE CONFIRMATION FIRST (YES/NO/OK FLOW FIX)
+    // ======================================================
+    if (awaitingConfirmation) {
+      const yes = ["yes", "yeah", "yup", "ok", "okay", "sure", "proceed"];
+      const no = ["no", "nah", "nope", "later"];
+
+      setAwaitingConfirmation(false);
+
+      if (yes.some((w) => lower.includes(w))) {
+        setShowWhatsappCard(true);
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "bot",
+            text: "Excellent 👍 Click below to chat with our human support team 👇",
+          },
+        ]);
+
+        return;
+      }
+
+      if (no.some((w) => lower.includes(w))) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "bot",
+            text: "No problem 😊 I’m still here if you need help.",
+          },
+        ]);
+
+        return;
+      }
+    }
+
+    // ======================================================
+    // 2. GET BOT RESPONSE
+    // ======================================================
+    const response = getBotResponse(currentInput, currentIntent);
+
+    if (response.intent) setCurrentIntent(response.intent);
+    if (response.topic) setLastTopic(response.topic);
+
+    // ======================================================
+    // 3. HUMAN ESCALATION FIX (SINGLE SOURCE OF TRUTH)
+    // ======================================================
+    if (response.type === "human_request") {
+      setAwaitingConfirmation(true);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "bot",
+          text:
+            response.text ||
+            "Do you want me to connect you to WhatsApp support? (Yes / No)",
+        },
+      ]);
+
+      return;
+    }
+
+    // ======================================================
+    // 4. FALLBACK HANDLING
+    // ======================================================
+    if (response.type === "fallback") {
+      setAwaitingConfirmation(true);
+    }
+
+    // ======================================================
+    // 5. NORMAL RESPONSE
+    // ======================================================
     setMessages((prev) => [
       ...prev,
-      {
-        type: "user",
-        text: currentInput,
-      },
+      { type: "bot", text: response.text },
     ]);
+  }, 900);
+};
 
-    setInput("");
+// const handleSend = () => {
+//   const currentInput = input.trim();
+//   if (!currentInput || showWhatsappCard) return;
 
-    setIsTyping(true);
+//   const lower = currentInput.toLowerCase();
 
-    setTimeout(() => {
-      setIsTyping(false);
+//   // USER MESSAGE
+//   setMessages((prev) => [
+//     ...prev,
+//     { type: "user", text: currentInput },
+//   ]);
 
-      // ==========================================
-      // WHATSAPP CONFIRMATION
-      // ==========================================
+//   setInput("");
+//   setIsTyping(true);
 
-      if (awaitingConfirmation) {
-        setAwaitingConfirmation(false);
+//   setTimeout(() => {
+//     setIsTyping(false);
 
-        if (
-          ["yes", "yeah", "yup", "sure", "ok", "okay"].includes(lower)
-        ) {
-          setShowWhatsappCard(true);
+//     // ======================================================
+//     // 1. HANDLE YES / NO FIRST (IMPORTANT FIX)
+//     // ======================================================
+//     if (awaitingConfirmation) {
+//       setAwaitingConfirmation(false);
 
-          setMessages((prev) => [
-            ...prev,
-            {
-              type: "bot",
-              text: "Excellent choice! Click the button below to chat with our human support team 👇",
-            },
-          ]);
-        } else {
-          setMessages((prev) => [
-            ...prev,
-            {
-              type: "bot",
-              text: "No worries 😊 I'm still here to help.",
-            },
-          ]);
-        }
+//       const yesWords = ["yes", "yeah", "yup", "sure", "ok", "okay"];
+//       const noWords = ["no", "nah", "nope", "later"];
 
-        return;
-      }
+//       if (yesWords.includes(lower)) {
+//         setShowWhatsappCard(true);
 
-      // ==========================================
-      // EMOTIONS
-      // ==========================================
+//         setMessages((prev) => [
+//           ...prev,
+//           {
+//             type: "bot",
+//             text: "Excellent choice! Click the button below to chat with our human support team 👇",
+//           },
+//         ]);
+//         return;
+//       }
 
-      const eMatch = findMatch(lower, emotionalResponses);
+//       if (noWords.includes(lower)) {
+//         setMessages((prev) => [
+//           ...prev,
+//           {
+//             type: "bot",
+//             text: "No worries 😊 I'm still here whenever you need help.",
+//           },
+//         ]);
+//         return;
+//       }
+//     }
 
-      if (eMatch) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "bot",
-            text: eMatch.answers[
-              Math.floor(Math.random() * eMatch.answers.length)
-            ],
-          },
-        ]);
+//     // ======================================================
+//     // 2. GET AI RESPONSE
+//     // ======================================================
+//     const response = getBotResponse(currentInput, currentIntent);
 
-        return;
-      }
+//     if (response.intent) setCurrentIntent(response.intent);
+//     if (response.topic) setLastTopic(response.topic);
 
-      // ==========================================
-      // KNOWLEDGE BASE
-      // ==========================================
+//     // ======================================================
+//     // 3. HUMAN REQUEST HANDLING (CLEANED + FIXED)
+//     // ======================================================
+//     if (response.type === "human_request") {
+//       setAwaitingConfirmation(true);
 
-      const kMatch = findMatch(lower, knowledgeBase);
+//       setMessages((prev) => [
+//         ...prev,
+//         {
+//           type: "bot",
+//           text:
+//             response.text ||
+//             "Do you want me to connect you to WhatsApp support? (Yes / No)",
+//         },
+//       ]);
 
-      if (kMatch) {
-        setLastTopic(kMatch.topic);
+//       return; // 🔥 STOP HERE (VERY IMPORTANT FIX)
+//     }
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "bot",
-            text: kMatch.answer,
-          },
-        ]);
+//     // ======================================================
+//     // 4. FALLBACK HANDLING
+//     // ======================================================
+//     if (response.type === "fallback") {
+//       setAwaitingConfirmation(true);
+//     }
 
-        return;
-      }
+//     // ======================================================
+//     // 5. NORMAL BOT RESPONSE
+//     // ======================================================
+//     setMessages((prev) => [
+//       ...prev,
+//       { type: "bot", text: response.text },
+//     ]);
+//   }, 1300);
+// };
+// const handleSend = () => {
+//   const currentInput = input.trim();
 
-      // ==========================================
-      // PERSONALITY
-      // ==========================================
+//   if (!currentInput || showWhatsappCard) return;
 
-      const pMatch = findMatch(lower, personalityResponses);
+//   const lower = currentInput.toLowerCase();
 
-      if (pMatch) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "bot",
-            text: pMatch.answers[
-              Math.floor(Math.random() * pMatch.answers.length)
-            ],
-          },
-        ]);
+//   // ==========================================
+//   // ADD USER MESSAGE
+//   // ==========================================
 
-        return;
-      }
+//   setMessages((prev) => [
+//     ...prev,
+//     {
+//       type: "user",
+//       text: currentInput,
+//     },
+//   ]);
 
-      // ==========================================
-      // HUMAN SUPPORT
-      // ==========================================
+//   setInput("");
+//   setIsTyping(true);
 
-      const humanWords = [
-        "human",
-        "person",
-        "agent",
-        "representative",
-        "talk",
-        "speak",
-      ];
+//   setTimeout(() => {
+//     setIsTyping(false);
 
-      if (humanWords.some((w) => lower.includes(w))) {
-        setAwaitingConfirmation(true);
+//     // ==========================================
+//     // WHATSAPP CONFIRMATION
+//     // ==========================================
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "bot",
-            text: "Would you like to continue with our WhatsApp support team? (yes/no)",
-          },
-        ]);
+//     if (awaitingConfirmation) {
+//       setAwaitingConfirmation(false);
 
-        return;
-      }
+//       const yesWords = ["yes", "yeah", "yup", "sure", "ok", "okay"];
 
-      // ==========================================
-      // FALLBACK
-      // ==========================================
+//       const noWords = ["no", "nah", "nope", "later"];
 
-      if (lower.length > 3) {
-        setLastTopic(currentInput);
+//       if (yesWords.includes(lower)) {
+//         setShowWhatsappCard(true);
 
-        setAwaitingConfirmation(true);
+//         setMessages((prev) => [
+//           ...prev,
+//           {
+//             type: "bot",
+//             text: "Excellent choice! Click the button below to chat with our human support team 👇",
+//           },
+//         ]);
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "bot",
-            text: "I may not fully understand that yet 🤖 but I’m learning every day. Would you like me to connect you with our support team on WhatsApp?",
-          },
-        ]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "bot",
-            text: smartReplies[
-              Math.floor(Math.random() * smartReplies.length)
-            ],
-          },
-        ]);
-      }
-    }, 1100);
-  };
+//         return;
+//       }
 
+//       if (noWords.includes(lower)) {
+//         setMessages((prev) => [
+//           ...prev,
+//           {
+//             type: "bot",
+//             text: "No worries 😊 I'm still here whenever you need help.",
+//           },
+//         ]);
+
+//         return;
+//       }
+//     }
+
+//     // ==========================================
+//     // AI ENGINE RESPONSE
+//     // ==========================================
+
+//    const response = getBotResponse(currentInput, currentIntent);
+
+// // SAVE CONTEXT
+// if (response.intent) {
+//   setCurrentIntent(response.intent);
+// }
+
+// if (response.topic) {
+//   setLastTopic(response.topic);
+// }
+
+// // ======================================================
+// // 🔥 HUMAN REQUEST DETECTION FIX
+// // ======================================================
+
+// if (response.type === "human_request") {
+//   setShowWhatsappCard(true);
+// }
+
+// if (
+//   response.type === "human_request" ||
+//   lower.includes("human") ||
+//   lower.includes("agent") ||
+//   lower.includes("real person")
+// ) {
+//   setAwaitingConfirmation(true);
+
+//   setMessages((prev) => [
+//     ...prev,
+//     {
+//       type: "bot",
+//       text: response.text || "Do you want me to connect you to WhatsApp support? (Yes / No)",
+//     },
+//   ]);
+
+//   return;
+// }
+
+// // ======================================================
+// // WHATSAPP FALLBACK
+// // ======================================================
+
+// if (response.type === "fallback") {
+//   setAwaitingConfirmation(true);
+// }
+
+//     // SHOW BOT RESPONSE
+//     setMessages((prev) => [
+//       ...prev,
+//       {
+//         type: "bot",
+//         text: response.text,
+//       },
+//     ]);
+//   }, 1300);
+// };
   // ======================================================
   // OPEN WHATSAPP
   // ======================================================
@@ -670,9 +462,7 @@ const SupportWidget = () => {
                     x: 0,
                   }}
                   className={`flex ${
-                    msg.type === "user"
-                      ? "justify-end"
-                      : "justify-start"
+                    msg.type === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
                   <div
@@ -745,11 +535,9 @@ const SupportWidget = () => {
                     <input
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" && handleSend()
-                      }
+                      onKeyDown={(e) => e.key === "Enter" && handleSend()}
                       placeholder="Type a message..."
-                      className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none border border-transparent focus:border-gray-200 transition-all placeholder:text-gray-400"
+                      className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm outline-none border border-gray-300 focus:border-gray-200 transition-all placeholder:text-gray-400"
                     />
 
                     <button

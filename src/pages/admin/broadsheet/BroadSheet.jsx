@@ -63,8 +63,6 @@ const BroadSheet = () => {
     }
   };
 
-
-
   const subjects = data?.metadata?.columns || [];
 
   const students = useMemo(() => {
@@ -76,18 +74,22 @@ const BroadSheet = () => {
     });
   }, [data]);
 
-  // Find the highest total score achieved for each subject
+  // Find the top 3 unique highest total scores achieved for each subject
   const highestSubjectTotals = useMemo(() => {
     const highest = {};
     subjects.forEach((sub) => {
-      let maxScore = -1;
-      students.forEach((item) => {
-        const score = item.scores?.[sub]?.total;
-        if (score !== undefined && score !== null && score > maxScore) {
-          maxScore = score;
-        }
-      });
-      highest[sub] = maxScore > -1 ? maxScore : null;
+      const scores = students
+        .map((item) => item.scores?.[sub]?.total)
+        .filter((score) => score !== undefined && score !== null);
+      
+      // Remove duplicates and sort descending
+      const uniqueSorted = Array.from(new Set(scores)).sort((a, b) => b - a);
+      
+      highest[sub] = {
+        first: uniqueSorted[0] ?? null,
+        second: uniqueSorted[1] ?? null,
+        third: uniqueSorted[2] ?? null,
+      };
     });
     return highest;
   }, [students, subjects]);
@@ -199,19 +201,35 @@ const BroadSheet = () => {
             render: (v) => {
               if (v === undefined || v === null) return "-";
 
-              // Highlight rule: check if this matches the highest value for this subject
-              const isHighest = v === highestSubjectTotals[sub];
+              const tops = highestSubjectTotals[sub] || {};
+              let bgColor = "transparent";
+              let textColor = "#1890ff";
+              let isTop = false;
+
+              if (v === tops.first && tops.first !== null) {
+                bgColor = "#004225"; // 1st Highest (Gold Accent)
+                textColor = "#ffffff";
+                isTop = true;
+              } else if (v === tops.second && tops.second !== null) {
+                bgColor = "#003262"; // 2nd Highest (Silver Accent)
+                textColor = "#ffffff";
+                isTop = true;
+              } else if (v === tops.third && tops.third !== null) {
+                bgColor = "#3D0C02"; // 3rd Highest (Bronze Accent)
+                textColor = "#ffffff";
+                isTop = true;
+              }
 
               return (
                 <div
                   style={{
-                    backgroundColor: isHighest ? "#ffe58f" : "transparent",
-                    fontWeight: isHighest ? "bold" : "normal",
+                    backgroundColor: bgColor,
+                    fontWeight: isTop ? "bold" : "normal",
                     borderRadius: "4px",
                     padding: "2px 4px",
                   }}
                 >
-                  <b style={{ color: isHighest ? "#d46b08" : "#1890ff" }}>
+                  <b style={{ color: textColor }}>
                     {v}
                   </b>
                 </div>
@@ -303,10 +321,22 @@ const BroadSheet = () => {
           border: borderStyle,
           alignment: { horizontal: "center", vertical: "center" },
         },
-        highlightCell: {
+        highlight1st: {
           border: borderStyle,
-          fill: { fgColor: { rgb: "FFE58F" } }, // Highlight color for Excel
+          fill: { fgColor: { rgb: "FFE58F" } },
           font: { bold: true, color: { rgb: "D46B08" } },
+          alignment: { horizontal: "center", vertical: "center" },
+        },
+        highlight2nd: {
+          border: borderStyle,
+          fill: { fgColor: { rgb: "E6F7FF" } },
+          font: { bold: true, color: { rgb: "096DD9" } },
+          alignment: { horizontal: "center", vertical: "center" },
+        },
+        highlight3rd: {
+          border: borderStyle,
+          fill: { fgColor: { rgb: "F6FFED" } },
+          font: { bold: true, color: { rgb: "389E0D" } },
           alignment: { horizontal: "center", vertical: "center" },
         },
       };
@@ -358,15 +388,22 @@ const BroadSheet = () => {
           studentRow.push({ v: s.second_ca ?? "-", s: styles.cell });
           studentRow.push({ v: s.exam ?? "-", s: styles.cell });
 
-          const isHighest =
-            s.total !== undefined &&
-            s.total !== null &&
-            s.total === highestSubjectTotals[sub];
+          const tops = highestSubjectTotals[sub] || {};
+          let targetStyle = { ...styles.cell, font: { bold: true } };
+
+          if (s.total !== undefined && s.total !== null) {
+            if (s.total === tops.first && tops.first !== null) {
+              targetStyle = styles.highlight1st;
+            } else if (s.total === tops.second && tops.second !== null) {
+              targetStyle = styles.highlight2nd;
+            } else if (s.total === tops.third && tops.third !== null) {
+              targetStyle = styles.highlight3rd;
+            }
+          }
+
           studentRow.push({
             v: s.total ?? "-",
-            s: isHighest
-              ? styles.highlightCell
-              : { ...styles.cell, font: { bold: true } },
+            s: targetStyle,
           });
         });
 

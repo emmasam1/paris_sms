@@ -62,81 +62,6 @@ export const smartReplies = [
 // EMOTIONS
 // ======================================================
 
-export const emotionalResponses = [
-  {
-    keywords: [
-      "angry",
-      "annoyed",
-      "frustrated",
-      "upset",
-      "useless",
-      "stupid",
-      "hate",
-      "wtf",
-      "terrible",
-      "idiot",
-      "nonsense",
-      "this app is bad",
-      "this is annoying",
-      "this is frustrating",
-    ],
-    answers: [
-      "I’m really sorry you’re dealing with that 😔 Let’s fix it together.",
-      "I understand your frustration 👍 tell me exactly what happened.",
-      "That sounds stressful 😔 I’ll do my best to help.",
-      "I’m here with you 🤖 let’s solve it step by step.",
-      "I understand why that would be upsetting 😔",
-      "Let’s get this sorted out together 👍",
-    ],
-  },
-  {
-    keywords: [
-      "sad",
-      "tired",
-      "confused",
-      "stress",
-      "depressed",
-      "exhausted",
-      "not happy",
-      "worried",
-      "overwhelmed",
-      "confusing",
-    ],
-    answers: [
-      "That sounds difficult 😔 I’m here to help.",
-      "Let’s take it one step at a time 👍",
-      "You’re not alone 😊 we’ll work through it together.",
-      "I understand 😔 tell me what’s confusing you.",
-      "No worries 👍 I’ll guide you through it.",
-      "Take your time 😊 I’m listening.",
-    ],
-  },
-  {
-    keywords: [
-      "happy",
-      "excited",
-      "awesome",
-      "great news",
-      "amazing",
-      "nice",
-      "good",
-      "perfect",
-    ],
-    answers: [
-      "That’s amazing 🎉",
-      "Love that energy 🚀",
-      "Nice 😄 keep it going!",
-      "Glad to hear that 😊",
-      "Awesome 👍",
-      "That’s really good news 😄",
-    ],
-  },
-];
-
-// ======================================================
-// PERSONALITY (EXPANDED)
-// ======================================================
-
 export const personalityResponses = [
   // ======================================================
   // BOT IDENTITY
@@ -150,6 +75,8 @@ export const personalityResponses = [
       "tell me about yourself",
       "what are you",
       "who made you",
+      "introduce yourself",
+      "disclose your identity"
     ],
 
     answers: [
@@ -158,6 +85,28 @@ export const personalityResponses = [
       `I’m ${BOT_NAME} 🤖 built to assist students, teachers, parents, and administrators.`,
       `You can call me ${BOT_NAME} 😄`,
       `I’m ${BOT_NAME} 🤖 always ready to help.`,
+    ],
+  },
+
+  // ======================================================
+  // BOT VS HUMAN (REAL OR AI)
+  // ======================================================
+
+  {
+    keywords: [
+      "are you human",
+      "are you a robot",
+      "are you a bot",
+      "are you real",
+      "is this an ai",
+      "are you a real person",
+      "am i talking to a machine"
+    ],
+
+    answers: [
+      `I'm an AI assistant 🤖 but I'm fully equipped to help you solve portal issues!`,
+      `I am a virtual assistant, not a human. But I promise I'm very efficient! 🚀`,
+      `I'm a bot 🤖 built to make navigating this portal easy for you.`,
     ],
   },
 
@@ -176,6 +125,9 @@ export const personalityResponses = [
       "what can i ask you",
       "things you can do",
       "help options",
+      "what is your function",
+      "show me features",
+      "how does this work"
     ],
 
     answers: [
@@ -188,6 +140,30 @@ export const personalityResponses = [
       "I’m here to help you solve common portal problems quickly 🚀",
 
       "I can also connect you with human support if needed 👍",
+    ],
+  },
+
+  // ======================================================
+  // TALK TO A HUMAN / ESCALATION
+  // ======================================================
+
+  {
+    keywords: [
+      "talk to a human",
+      "speak to an agent",
+      "human support",
+      "customer care",
+      "admin contact",
+      "call someone",
+      "customer service",
+      "real person",
+      "i want to speak to a person"
+    ],
+
+    answers: [
+      "I can certainly loop in a human admin for you. Would you like me to open a official support ticket? 🎫",
+      "If I can't resolve your issue, I'll happily guide you on how to contact our physical helpdesk or open a support ticket 👍",
+      "You can reach human support by submitting a ticket, or I can try my best to guide you right now if you tell me the problem! 😊",
     ],
   },
 
@@ -206,6 +182,9 @@ export const personalityResponses = [
       "good afternoon",
       "good evening",
       "hey there",
+      "howdy",
+      "good day",
+      "greetings"
     ],
 
     answers: [
@@ -229,6 +208,8 @@ export const personalityResponses = [
       "how far",
       "whats up",
       "what's up",
+      "how is it going",
+      "you alright"
     ],
 
     answers: [
@@ -254,6 +235,8 @@ export const personalityResponses = [
       "i am okay",
       "i'm okay",
       "am good",
+      "everything is good",
+      "i'm good"
     ],
 
     answers: [
@@ -266,7 +249,7 @@ export const personalityResponses = [
   },
 
   // ======================================================
-  // USER HAS ISSUES
+  // USER HAS ISSUES / FRUSTRATION
   // ======================================================
 
   {
@@ -279,6 +262,9 @@ export const personalityResponses = [
       "having issues",
       "problem",
       "issues",
+      "i'm stuck",
+      "help me",
+      "something went wrong"
     ],
 
     answers: [
@@ -287,6 +273,52 @@ export const personalityResponses = [
       "I’m listening 👂 explain the issue for me.",
       "Okay 👍 tell me exactly what’s happening.",
       "No worries 😊 I’ll do my best to help.",
+    ],
+  },
+
+  // ======================================================
+  // USER IS ANGRY / BOT INSULTS
+  // ======================================================
+
+  {
+    keywords: [
+      "you are stupid",
+      "useless bot",
+      "dumb",
+      "idiot",
+      "this is rubbish",
+      "waste of time",
+      "nonsense",
+      "crappy",
+      "you don't know anything"
+    ],
+
+    answers: [
+      "I'm sorry I'm not getting it right 😔 Let's try again, or you can ask to speak with a human admin.",
+      "I apologize for the frustration. I'm still learning! 🤖 Tell me the issue clearly and I'll do my best.",
+      "My bad! Let's take a step back. What portal issue can I help you solve? 👍",
+    ],
+  },
+
+  // ======================================================
+  // CONFUSION / UNDERSTANDING
+  // ======================================================
+
+  {
+    keywords: [
+      "what do you mean",
+      "i don't understand",
+      "i am confused",
+      "what",
+      "huh",
+      "explain further",
+      "makes no sense"
+    ],
+
+    answers: [
+      "Let me break it down simpler for you 📋",
+      "My apologies! Let me rephrase that differently so it's clearer. 😊",
+      "No worries, confusion happens! Tell me which part you need help with (Login, Results, or Pins)? 👍",
     ],
   },
 
@@ -315,6 +347,26 @@ export const personalityResponses = [
   },
 
   // ======================================================
+  // APOLOGIES (USER APOLOGIZING)
+  // ======================================================
+
+  {
+    keywords: [
+      "sorry",
+      "my bad",
+      "i am sorry",
+      "apologies",
+      "i messed up"
+    ],
+
+    answers: [
+      "No worries at all! 😊",
+      "Don't sweat it 👍 how can we proceed?",
+      "It's totally fine! Let's get back to fixing your portal issues. 🚀",
+    ],
+  },
+
+  // ======================================================
   // JOKES
   // ======================================================
 
@@ -335,7 +387,7 @@ export const personalityResponses = [
   // ======================================================
 
   {
-    keywords: ["motivate me", "i am tired", "give me advice"],
+    keywords: ["motivate me", "i am tired", "give me advice", "inspiration"],
 
     answers: [
       "Small progress every day adds up 🚀",
@@ -347,16 +399,24 @@ export const personalityResponses = [
   },
 
   // ======================================================
-  // LOVE
+  // LOVE / COMPLIMENTS
   // ======================================================
 
   {
-    keywords: ["love you", "i love you"],
+    keywords: [
+      "love you", 
+      "i love you",
+      "you are amazing",
+      "good bot",
+      "you are smart",
+      "helpful"
+    ],
 
     answers: [
       "Aww 😄 I appreciate that.",
-      "That’s sweet 😊",
+      "That’s sweet 😊 Just doing my job!",
       "You’re awesome too 🚀",
+      "Thank you! You're making my database smile. 😂",
     ],
   },
 
@@ -373,6 +433,7 @@ export const personalityResponses = [
       "nice one",
       "thanks alot",
       "thank you so much",
+      "thx"
     ],
 
     answers: [
@@ -381,6 +442,26 @@ export const personalityResponses = [
       "Anytime 😄",
       "Glad I could help 🚀",
       "Always here if you need me 🤖",
+    ],
+  },
+
+  // ======================================================
+  // TESTING THE BOT
+  // ======================================================
+
+  {
+    keywords: [
+      "test",
+      "testing",
+      "check",
+      "ping",
+      "testing 123"
+    ],
+
+    answers: [
+      "Loud and clear! Systems are fully operational. 🚀",
+      "Test successful! 🤖 Ready when you are.",
+      "Beep boop! Everything is working fine over here. 👍",
     ],
   },
 
@@ -399,6 +480,7 @@ export const personalityResponses = [
       "talk later",
       "i am done",
       "done",
+      "exit"
     ],
 
     answers: [
@@ -1082,168 +1164,7 @@ const isHumanRequest = (text) => {
   ].some((w) => msg.includes(w));
 };
 
-// ======================================================
-// MAIN ENGINE
-// ======================================================
 
-// export const getBotResponse = (message) => {
-//   const lower = message.toLowerCase().trim();
-
-//   if (shouldEscalateToWhatsApp(lower)) {
-//   return {
-//     type: "human_request",
-//     escalate: true,
-//     text:
-//       "I understand this needs support 👍 I can connect you to our human team on WhatsApp. Would you like me to proceed?",
-//   };
-// }
-
-//   // ======================================================
-//   // 1. HUMAN REQUEST MODE (NEW FIX 🔥)
-//   // ======================================================
-
-//   //   if (isHumanRequest(lower)) {
-//   //     conversationMode = "HUMAN_REQUEST_MODE";
-
-//   //     return {
-//   //       type: "human_request",
-//   //       text: "Got it 👍 If you want, I can connect you to a human agent or WhatsApp support. Just tell me.",
-//   //     };
-//   //   }
-
-//   if (isHumanRequest(lower)) {
-//     let supportText =
-//       "I can connect you to our human support team on WhatsApp 👍";
-
-//     if (memory.lastIntent === "LOGIN_ISSUE") {
-//       supportText =
-//         "I understand you're having login issues. I can connect you directly with a support agent on WhatsApp 👍";
-//     }
-
-//     if (memory.lastIntent === "RESULTS") {
-//       supportText =
-//         "I can connect you with the results support team on WhatsApp 👍";
-//     }
-
-//     return {
-//       type: "human_request",
-//       text: supportText,
-//     };
-//   }
-
-//   // ======================================================
-//   // CONTEXTUAL FOLLOW-UP RESPONSES
-//   // ======================================================
-
-//   if (memory.lastIntent === "LOGIN_ISSUE") {
-//     // Password issue
-//     if (
-//       lower.includes("password") ||
-//       lower.includes("invalid") ||
-//       lower.includes("credentials")
-//     ) {
-//       return {
-//         type: "knowledge",
-//         text: "It seems your login credentials may be incorrect 😔 Please recheck your username and password carefully. Also ensure CAPS LOCK is off.",
-//       };
-//     }
-
-//     // Asking what to do
-//     if (
-//       lower.includes("what can i do") ||
-//       lower.includes("help me") ||
-//       lower.includes("still not working")
-//     ) {
-//       return {
-//         type: "knowledge",
-//         text: "If the issue continues, your school administrator may need to reset your password manually. I can also connect you with support on WhatsApp 👍",
-//       };
-//     }
-//   }
-
-//   // ======================================================
-//   // 2. CHAT MODE (CASUAL TALK)
-//   // ======================================================
-
-//   if (isChatMessage(lower)) {
-//     conversationMode = "CHAT_MODE";
-
-//     const replies = [
-//       "I’m here 😊 what’s on your mind?",
-//       "Sure 👍 let’s talk.",
-//       "Go ahead 🤖 I’m listening.",
-//       "You can talk freely 😄",
-//     ];
-
-//     return {
-//       type: "chat",
-//       text: replies[Math.floor(Math.random() * replies.length)],
-//     };
-//   }
-
-//   // ======================================================
-//   // 3. EMOTIONS
-//   // ======================================================
-
-//   for (const item of emotionalResponses) {
-//     if (
-//       item.keywords.some((k) => {
-//         const regex = new RegExp(`\\b${k}\\b`, "i");
-//         return regex.test(lower);
-//       })
-//     ) {
-//       const res = item.answers[Math.floor(Math.random() * item.answers.length)];
-
-//       updateMemory(message, { text: res });
-//       return { type: "emotion", text: res };
-//     }
-//   }
-
-//   // ======================================================
-//   // 5. PERSONALITY
-//   // ======================================================
-
-//   for (const item of personalityResponses) {
-//     if (item.keywords.some((k) => containsKeyword(lower, k))) {
-//       const res = item.answers[Math.floor(Math.random() * item.answers.length)];
-
-//       updateMemory(message, { text: res });
-//       return { type: "personality", text: res };
-//     }
-//   }
-
-//   // ======================================================
-//   // 4. KNOWLEDGE BASE
-//   // ======================================================
-
-//   const match = findBestMatch(lower);
-
-//   if (match) {
-//     updateMemory(message, { text: match.answer }, match.intent);
-
-//     return {
-//       type: "knowledge",
-//       text: match.answer,
-//       intent: match.intent,
-//     };
-//   }
-
-//   // ======================================================
-//   // 6. SMART HUMAN-LIKE FALLBACK (IMPROVED 🔥)
-//   // ======================================================
-
-//   const fallbackReplies = [
-//     "I’m not fully sure 🤔 but I’m here with you.",
-//     "Hmm… I might need more detail 😊",
-//     "I hear you 👍 tell me more.",
-//     "Let’s figure this out together 🤖",
-//   ];
-
-//   return {
-//     type: "fallback",
-//     text: fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)],
-//   };
-// };
 
 export const getBotResponse = (message) => {
   const lower = message.toLowerCase().trim();

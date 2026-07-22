@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Table, InputNumber, Tag, message, Select, Input } from "antd";
+import { Modal, Table, InputNumber, Tag, message, Input } from "antd";
 import axios from "axios";
 import { useApp } from "../../context/AppContext";
 
@@ -24,7 +24,7 @@ const EnterResult = ({
   selectedLevel,
   selectedSession,
   subjectId,
-  selectedTerm
+  selectedTerm,
 }) => {
   const [studentScores, setStudentScores] = useState([]);
   const { API_BASE_URL, token, loading, setLoading } = useApp();
@@ -34,8 +34,6 @@ const EnterResult = ({
   const [selectedSubject, setSelectedSubject] = useState(
     teacherSubject || null,
   );
- 
-  const [term, setTerm] = useState(null);
 
   // ------------------------------------------------------
   // Fetch all subjects
@@ -49,7 +47,6 @@ const EnterResult = ({
         },
       );
       const result = res.data;
-      // console.log("All subjects:", result.data);
       setSubjects(result.data || []);
     } catch (error) {
       console.error(error);
@@ -69,15 +66,16 @@ const EnterResult = ({
   // Set limits dynamically based on level
   const limits = isSenior
     ? {
-        firstAssignment: 5,
-        secondAssignment: 5,
+        attendance: 5,
+        note: 5,
         firstCATest: 10,
-        secondCATest: 10,
-        exam: 70,
+        secondCATest: 20,
+        exam: 60,
       }
     : {
+        attendance: 5,
+        note: 5,
         firstAssignment: 10,
-        secondAssignment: 10,
         firstCATest: 20,
         secondCATest: 20,
         exam: 40,
@@ -90,9 +88,11 @@ const EnterResult = ({
     if (selectedSubject) {
       setStudentScores([
         {
-          key: selectedSubject._id,
+          key: selectedSubject._id || "subject-key",
           subject: selectedSubject,
           subjectId: subjectId,
+          attendance: 0,
+          note: 0,
           firstAssignment: 0,
           secondAssignment: 0,
           firstCATest: 0,
@@ -103,13 +103,13 @@ const EnterResult = ({
         },
       ]);
     }
-  }, [selectedSubject]);
+  }, [selectedSubject, subjectId]);
 
   // ------------------------------------------------------
   // Handle score changes
   // ------------------------------------------------------
   const handleScoreChange = (key, field, value) => {
-    const max = limits[field];
+    const max = limits[field] || 0;
 
     setStudentScores((prev) =>
       prev.map((row) => {
@@ -121,17 +121,21 @@ const EnterResult = ({
           setHasError(true);
         } else {
           const stillInvalid = prev.some((r) =>
-            Object.keys(limits).some((f) => r[f] > limits[f]),
+            Object.keys(limits).some((f) => {
+              const currentVal = f === field ? (value || 0) : (r[f] || 0);
+              return currentVal > (limits[f] || 0);
+            }),
           );
           setHasError(stillInvalid);
         }
 
         updated.total =
-          updated.firstAssignment +
-          updated.secondAssignment +
-          updated.firstCATest +
-          updated.secondCATest +
-          updated.exam;
+          (updated.attendance || 0) +
+          (updated.note || 0) +
+          (isSenior ? 0 : (updated.firstAssignment || 0)) +
+          (updated.firstCATest || 0) +
+          (updated.secondCATest || 0) +
+          (updated.exam || 0);
 
         updated.grade = getGrade(updated.total);
 
@@ -144,24 +148,25 @@ const EnterResult = ({
   // Submit score
   // ------------------------------------------------------
   const enterScore = async () => {
-    // if (!student?._id) return message.error("No student selected");
     if (hasError) return message.error("Correct invalid score inputs");
 
     const score = studentScores[0];
 
+    // Construct backend payload directly matching API schema
     const payload = {
-      studentId: student._id,
+      studentId: student?._id,
       subjectId: subjectId,
       session: selectedSession,
-      term: selectedTerm,
-      firstAssignment: score.firstAssignment,
-      secondAssignment: score.secondAssignment,
+      term: Number(selectedTerm),
+      attendance: score.attendance,
+      note: score.note,
       firstCA: score.firstCATest,
       secondCA: score.secondCATest,
       exam: score.exam,
+      ...(!isSenior && { assignment: score.firstAssignment }),
     };
 
-    console.log(payload)
+    // console.log(payload)
 
     try {
       setLoading(true);
@@ -172,6 +177,7 @@ const EnterResult = ({
           headers: { Authorization: `Bearer ${token}` },
         },
       );
+      // console.log(res)
 
       onClick && onClick(res.data);
       messageApi.success("Result saved successfully!");
@@ -188,14 +194,14 @@ const EnterResult = ({
   };
 
   const resetForm = () => {
-    
-    setTerm(null);
     if (selectedSubject) {
       setStudentScores([
         {
-          key: selectedSubject._id,
+          key: selectedSubject._id || "subject-key",
           subject: selectedSubject,
           subjectId: subjectId,
+          attendance: 0,
+          note: 0,
           firstAssignment: 0,
           secondAssignment: 0,
           firstCATest: 0,
@@ -213,8 +219,40 @@ const EnterResult = ({
   // Table columns
   // ------------------------------------------------------
   const scoreColumns = [
-    { title: "Subject", dataIndex: "subject" },
+    { 
+      title: "Subject", 
+      dataIndex: "subject",
+      render: (val) => typeof val === "object" ? (val?.name || "-") : (val || "-")
+    },
     {
+      title: `Attendance (${limits.attendance}%)`,
+      render: (_, r) => (
+        <InputNumber
+          min={0}
+          value={r.attendance}
+          onChange={(v) => handleScoreChange(r.key, "attendance", v)}
+          style={{
+            background: r.attendance > limits.attendance ? "#ffccc7" : "white",
+            borderColor: r.attendance > limits.attendance ? "red" : "",
+          }}
+        />
+      ),
+    },
+    {
+      title: `Notes (${limits.note}%)`,
+      render: (_, r) => (
+        <InputNumber
+          min={0}
+          value={r.note}
+          onChange={(v) => handleScoreChange(r.key, "note", v)}
+          style={{
+            background: r.note > limits.note ? "#ffccc7" : "white",
+            borderColor: r.note > limits.note ? "red" : "",
+          }}
+        />
+      ),
+    },
+    ...(!isSenior ? [{
       title: `1st Ass (${limits.firstAssignment}%)`,
       render: (_, r) => (
         <InputNumber
@@ -222,32 +260,12 @@ const EnterResult = ({
           value={r.firstAssignment}
           onChange={(v) => handleScoreChange(r.key, "firstAssignment", v)}
           style={{
-            background:
-              r.firstAssignment > limits.firstAssignment ? "#ffccc7" : "white",
-            borderColor:
-              r.firstAssignment > limits.firstAssignment ? "red" : "",
+            background: r.firstAssignment > limits.firstAssignment ? "#ffccc7" : "white",
+            borderColor: r.firstAssignment > limits.firstAssignment ? "red" : "",
           }}
         />
       ),
-    },
-    {
-      title: `2nd Ass (${limits.secondAssignment}%)`,
-      render: (_, r) => (
-        <InputNumber
-          min={0}
-          value={r.secondAssignment}
-          onChange={(v) => handleScoreChange(r.key, "secondAssignment", v)}
-          style={{
-            background:
-              r.secondAssignment > limits.secondAssignment
-                ? "#ffccc7"
-                : "white",
-            borderColor:
-              r.secondAssignment > limits.secondAssignment ? "red" : "",
-          }}
-        />
-      ),
-    },
+    }] : []),
     {
       title: `1st CA (${limits.firstCATest}%)`,
       render: (_, r) => (
@@ -256,8 +274,7 @@ const EnterResult = ({
           value={r.firstCATest}
           onChange={(v) => handleScoreChange(r.key, "firstCATest", v)}
           style={{
-            background:
-              r.firstCATest > limits.firstCATest ? "#ffccc7" : "white",
+            background: r.firstCATest > limits.firstCATest ? "#ffccc7" : "white",
             borderColor: r.firstCATest > limits.firstCATest ? "red" : "",
           }}
         />
@@ -271,8 +288,7 @@ const EnterResult = ({
           value={r.secondCATest}
           onChange={(v) => handleScoreChange(r.key, "secondCATest", v)}
           style={{
-            background:
-              r.secondCATest > limits.secondCATest ? "#ffccc7" : "white",
+            background: r.secondCATest > limits.secondCATest ? "#ffccc7" : "white",
             borderColor: r.secondCATest > limits.secondCATest ? "red" : "",
           }}
         />
@@ -301,13 +317,13 @@ const EnterResult = ({
           color={
             g === "A"
               ? "green"
-              : g === "B"
+              : g?.startsWith("B")
                 ? "blue"
-                : g === "C"
+                : g?.startsWith("C")
                   ? "orange"
-                  : g === "D"
+                  : g === "D7"
                     ? "volcano"
-                    : g === "E"
+                    : g === "E8"
                       ? "purple"
                       : "red"
           }
@@ -320,7 +336,7 @@ const EnterResult = ({
 
   return (
     <Modal
-      title={`Enter Result – ${student?.fullName}`}
+      title={`Enter Result – ${student?.fullName || student?.name || ""}`}
       open={open}
       okButtonProps={{ disabled: hasError }}
       onCancel={() => {
@@ -330,7 +346,7 @@ const EnterResult = ({
       okText="Enter Record"
       confirmLoading={loading}
       onOk={enterScore}
-      width={900}
+      width={1000}
     >
       {contextHolder}
 
@@ -338,53 +354,20 @@ const EnterResult = ({
       <div className="flex gap-4 mb-4">
         <div className="flex flex-col w-40 -mt-1">
           <label className="font-semibold mb-1">Term</label>
-          {/* <Select value={term} onChange={setTerm} placeholder="Term">
-            <Select.Option value="1">First Term</Select.Option>
-            <Select.Option value="2">Second Term</Select.Option>
-            <Select.Option value="3">Third Term</Select.Option>
-          </Select> */}
-           <Input value={selectedTerm} disabled />
+          <Input value={selectedTerm || ""} disabled />
         </div>
 
-        <div className="">
+        <div>
           <label className="font-semibold mb-1">Session</label>
-          <Input value={selectedSession} disabled />
+          <Input value={selectedSession || ""} disabled />
         </div>
 
-        <div className="">
+        <div>
           <label className="font-semibold mb-1">Subject</label>
-          <Input value={selectedSubject} disabled />
-          {/* <Select
-          value={selectedSubject?._id}
-          onChange={(id) => {
-            const fullSub = subjects.find((s) => s._id === id);
-            setSelectedSubject(fullSub);
-
-            if (fullSub) {
-              setStudentScores([
-                {
-                  key: fullSub._id,
-                  subject: fullSub.name,
-                  subjectId: fullSub._id,
-                  firstAssignment: 0,
-                  secondAssignment: 0,
-                  firstCATest: 0,
-                  secondCATest: 0,
-                  exam: 0,
-                  total: 0,
-                  grade: "F",
-                },
-              ]);
-            }
-          }}
-          placeholder="Select Subject"
-        >
-          {subjects?.map((sub) => (
-            <Select.Option key={sub._id} value={sub._id}>
-              {sub.name}
-            </Select.Option>
-          ))}
-        </Select> */}
+          <Input 
+            value={typeof selectedSubject === "object" ? (selectedSubject?.name || "") : (selectedSubject || "")} 
+            disabled 
+          />
         </div>
       </div>
 

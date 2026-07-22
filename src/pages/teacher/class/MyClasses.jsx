@@ -1,4 +1,4 @@
-// MyClasses.jsx (cleaned version)
+// MyClasses.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import {
   Card,
@@ -14,8 +14,8 @@ import {
   Input,
   Row,
   Col,
+  Spin,
 } from "antd";
-import { Spin } from "antd";
 import {
   EditOutlined,
   BarChartOutlined,
@@ -25,7 +25,6 @@ import {
   FormOutlined,
 } from "@ant-design/icons";
 import EnterResult from "../../../components/result/EnterResult";
-// import ProgressChart from "../../../components/progress/ProgressChart";
 import ResultSheet from "../../../components/resultSheet/ResultSheet";
 import axios from "axios";
 import { useApp } from "../../../context/AppContext";
@@ -64,7 +63,7 @@ const MyClasses = () => {
 
   // loading & messages
   const [loading, setLoading] = useState(false);
-  const [tableLoading, setTableLoading] = useState(false); // UI loading
+  const [tableLoading, setTableLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
   const [isEditRecordModalOpen, setIsEditRecordModalOpen] = useState(false);
@@ -79,51 +78,75 @@ const MyClasses = () => {
   const generateSessions = () => {
     const now = new Date();
     const year = now.getFullYear();
-    const month = now.getMonth(); // 0–11
+    const month = now.getMonth();
 
-    // session starts around September (month 8)
     const startYear = month >= 8 ? year : year - 1;
 
     return [`${startYear}/${startYear + 1}`];
   };
 
-  const sessions = useMemo(() => generateSessions(1), []);
+  const sessions = useMemo(() => generateSessions(), []);
 
   useEffect(() => {
     setAcademicSessions(sessions);
   }, [sessions]);
 
-  // safe guard: editStudentRecord may be null
-  const isJSS = !!editStudentRecord?.class?.name
-    ?.toLowerCase?.()
-    .includes?.("jss");
+  // Robust check for JSS vs SS level
+  const classNameStr = (
+    editStudentRecord?.class?.name ||
+    selectedLevel ||
+    ""
+  ).toLowerCase();
+
+  const isJSS = classNameStr.includes("jss") || !classNameStr.includes("ss");
 
   const maxScores = isJSS
     ? {
+        attendance: 5,
+        note: 5,
         firstAssignment: 10,
-        secondAssignment: 10,
         firstCA: 20,
         secondCA: 20,
         exam: 40,
       }
     : {
-        firstAssignment: 5,
-        secondAssignment: 5,
+        attendance: 5,
+        note: 5,
         firstCA: 10,
-        secondCA: 10,
-        exam: 70,
+        secondCA: 20,
+        exam: 60,
       };
 
   // LIVE VALIDATION for edit modal
   const validateScore = (changedValues, allValues) => {
     const newErrors = {};
     Object.keys(maxScores).forEach((key) => {
-      if (Number(allValues[key]) > maxScores[key]) {
+      if (
+        allValues[key] !== undefined &&
+        Number(allValues[key]) > maxScores[key]
+      ) {
         newErrors[key] = true;
       }
     });
     setErrors(newErrors);
   };
+
+  // Reset modal form whenever editStudentRecord changes
+  useEffect(() => {
+    if (editStudentRecord) {
+      form.setFieldsValue({
+        attendance: editStudentRecord?.record?.attendance ?? 0,
+        note: editStudentRecord?.record?.note ?? 0,
+        firstAssignment: editStudentRecord?.record?.firstAssignment ?? 0,
+        firstCA: editStudentRecord?.record?.firstCA ?? 0,
+        secondCA: editStudentRecord?.record?.secondCA ?? 0,
+        exam: editStudentRecord?.record?.exam ?? 0,
+        grade: editStudentRecord?.record?.grade ?? "",
+        teacherRemark: editStudentRecord?.record?.teacherRemark ?? "",
+      });
+      setErrors({});
+    }
+  }, [editStudentRecord, form]);
 
   // pagination
   const [page, setPage] = useState(1);
@@ -131,9 +154,8 @@ const MyClasses = () => {
   const [total, setTotal] = useState(0);
 
   // ---------------------------
-  // GET teacher class details (levels, classes, subjects, students)
+  // GET teacher class details
   // ---------------------------
-
   const getTeacherClassDetails = async () => {
     if (!token) return;
 
@@ -148,14 +170,11 @@ const MyClasses = () => {
 
       const allLevels = res?.data?.data || [];
 
-      // store raw payload
       setTeacherData(allLevels);
 
-      // LEVELS (no session filter here)
       const levelList = [...new Set(allLevels.map((item) => item.level))];
       setLevels(levelList);
 
-      // SUBJECTS
       const subjMap = new Map();
       allLevels.forEach((entry) => {
         if (entry.subject && entry.subject._id) {
@@ -167,7 +186,6 @@ const MyClasses = () => {
       });
       setSubjects(Array.from(subjMap.values()));
 
-      // RESET selections
       setSelectedAcademicSession(null);
       setSelectedLevel(null);
       setSelectedArm(null);
@@ -183,10 +201,8 @@ const MyClasses = () => {
     }
   };
 
-  // Init
   useEffect(() => {
     getTeacherClassDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -200,9 +216,6 @@ const MyClasses = () => {
     setLevels([...new Set(filtered.map((i) => i.level))]);
   }, [selectedAcademicSession, teacherData]);
 
-  // ---------------------------
-  // when selectedLevel changes -> compute arms for that level, reset downstream selects
-  // ---------------------------
   useEffect(() => {
     if (!selectedLevel) {
       setArms([]);
@@ -240,7 +253,7 @@ const MyClasses = () => {
     selectedLevel,
     selectedArm,
     selectedSubject,
-    selectedTerm, // ✅ ADD THIS
+    selectedTerm,
   ]);
 
   const fetchStudentsForClass = async (pageParam = 1, limitParam = limit) => {
@@ -273,9 +286,7 @@ const MyClasses = () => {
 
       const data = res?.data;
 
-      // ---------------- FILTER BY SUBJECT ----------------
       let filteredEntries = [];
-
       if (Array.isArray(data?.data)) {
         filteredEntries = data.data.filter(
           (entry) =>
@@ -284,7 +295,6 @@ const MyClasses = () => {
         );
       }
 
-      // ---------------- GET STUDENTS ----------------
       let classStudents = [];
       let classId = null;
 
@@ -302,7 +312,6 @@ const MyClasses = () => {
         }
       }
 
-      // fallback
       if (!classStudents.length && Array.isArray(data?.data)) {
         for (const entry of data.data) {
           const matchedClass = (entry.classes || []).find(
@@ -319,15 +328,13 @@ const MyClasses = () => {
         }
       }
 
-      // ---------------- NO DATA ----------------
       if (!classStudents.length) {
         setStudents([]);
         setTotal(0);
-        setTableLoading(false); // ✅ stop loader
+        setTableLoading(false);
         return;
       }
 
-      // ---------------- MERGE RESULT STATUS ----------------
       let mergedStudents = classStudents;
 
       if (classId && selectedSubject) {
@@ -360,27 +367,23 @@ const MyClasses = () => {
         }
       }
 
-      // ---------------- SET STATE (SMOOTH UX) ----------------
       setTimeout(() => {
         setStudents(mergedStudents);
         setTotal(mergedStudents.length);
         setPage(pageParam);
         setLimit(30);
 
-        setTableLoading(false); // ✅ stop loader AFTER data is ready
-      }, 500); // adjust 300–700ms if needed
+        setTableLoading(false);
+      }, 500);
     } catch (error) {
       console.error("ERROR:", error);
       messageApi.error(
         error?.response?.data?.message || "No students found for this subject",
       );
-      setTableLoading(false); // ✅ stop loader on error
+      setTableLoading(false);
     }
   };
 
-  // ---------------------------
-  // Get all subjects (simple listing) - kept but not used as primary source (we also populate from teacherData)
-  // ---------------------------
   const getSubjects = async () => {
     try {
       const res = await axios.get(
@@ -396,14 +399,11 @@ const MyClasses = () => {
       console.log(error);
     }
   };
+
   useEffect(() => {
     getSubjects();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---------------------------
-  // Get existing records (used in View & Edit tab)
-  // ---------------------------
   const getRecord = async (subjectIdParam) => {
     const subjectId = subjectIdParam || selectedSubject;
     if (!subjectId) return;
@@ -421,7 +421,6 @@ const MyClasses = () => {
 
       const results = res.data?.data?.results;
       if (!Array.isArray(results) || results.length === 0) {
-        // clear existing records
         setStudentsRecord([]);
         return;
       }
@@ -429,27 +428,27 @@ const MyClasses = () => {
       const mappedStudents = results.map((item) => ({
         key: item._id,
         recordId: item._id,
-        studentId: item.student._id, // <-- FIXED
+        studentId: item.student._id,
         fullName: `${item.student.firstName} ${item.student.lastName}`,
         admissionNumber: item.student.admissionNumber || "-",
         gender: item.gender || "-",
         class: item.student.class,
         record: {
-          firstAssignment: item.firstAssignment,
-          secondAssignment: item.secondAssignment,
-          firstCA: item.firstCA,
-          secondCA: item.secondCA,
-          exam: item.exam,
-          total: item.total,
-          grade: item.grade,
-          teacherRemark: item.teacherRemark,
+          attendance: item.attendance ?? 0,
+          note: item.note ?? 0,
+          firstAssignment: item.assignment ?? item.firstAssignment ?? 0,
+          firstCA: item.firstCA ?? 0,
+          secondCA: item.secondCA ?? 0,
+          exam: item.exam ?? 0,
+          total: item.total ?? 0,
+          grade: item.grade || "-",
+          teacherRemark: item.teacherRemark || "-",
         },
         subject: item.subject?.name || subjectId,
         status: item.status || "-",
       }));
 
       setStudentsRecord(mappedStudents);
-      // console.log(mappedStudents);
     } catch (error) {
       console.error(error);
       message.error("Failed to fetch records");
@@ -458,18 +457,12 @@ const MyClasses = () => {
     }
   };
 
-  // ---------------------------
-  // Pagination handler for students table
-  // ---------------------------
   const handlePageChange = (newPage, newPageSize) => {
     setPage(newPage);
     if (newPageSize && newPageSize !== limit) setLimit(newPageSize);
     fetchStudentsForClass(newPage, newPageSize || limit);
   };
 
-  // ---------------------------
-  // After entering result -> update UI
-  // ---------------------------
   const handleSubmit = (response) => {
     if (response?.success) {
       setStudents((prev) =>
@@ -483,7 +476,7 @@ const MyClasses = () => {
   };
 
   // ---------------------------
-  // Columns
+  // Dynamic Table Columns
   // ---------------------------
   const studentColumns = [
     {
@@ -538,7 +531,6 @@ const MyClasses = () => {
               setActiveStudent(record);
               setActiveSubjects(record.subjects || []);
               setIsResultModalOpen(true);
-              // console.log(record)
             }}
           >
             Enter
@@ -573,13 +565,21 @@ const MyClasses = () => {
       dataIndex: "subject",
     },
     {
-      title: "1st ASS",
-      render: (record) => record.record?.firstAssignment ?? 0,
+      title: "Att.",
+      render: (record) => record.record?.attendance ?? 0,
     },
     {
-      title: "2nd ASS",
-      render: (record) => record.record?.secondAssignment ?? 0,
+      title: "Note",
+      render: (record) => record.record?.note ?? 0,
     },
+    ...(isJSS
+      ? [
+          {
+            title: "1st ASS",
+            render: (record) => record.record?.firstAssignment ?? 0,
+          },
+        ]
+      : []),
     {
       title: "1st CA",
       render: (record) => record.record?.firstCA ?? 0,
@@ -621,14 +621,10 @@ const MyClasses = () => {
     },
   ];
 
-  // ---------------------------
-  // Render
-  // ---------------------------
   return (
     <div className="flex gap-6">
       {contextHolder}
       <div className="flex-1">
-        {/* <Card className="shadow-md rounded-xl"> */}
         <div className="flex flex-wrap gap-2 mb-4">
           {/* LEVEL */}
           <Select
@@ -705,9 +701,9 @@ const MyClasses = () => {
             onChange={setSelectedTerm}
             allowClear
           >
-            {/* <Option value="1">First Term</Option> */}
-            {/* <Option value="2">Second Term</Option> */}
-            <Option value="3">Third Term</Option>
+            <Option value="1">1st Term</Option>
+            <Option value="2">2nd Term</Option>
+            <Option value="3">3rd Term</Option>
           </Select>
 
           {/* BUTTON */}
@@ -747,7 +743,7 @@ const MyClasses = () => {
               rowKey={(r) => r._id || r.id}
               loading={{
                 spinning: tableLoading,
-                indicator: <Spin size="large" />, // custom loader
+                indicator: <Spin size="large" />,
               }}
               bordered
               size="small"
@@ -761,7 +757,7 @@ const MyClasses = () => {
                 position: ["bottomCenter"],
                 className: "custom-pagination",
               }}
-              scroll={{ x: "max-content" }} // ✅ horizontal scroll
+              scroll={{ x: "max-content" }}
             />
           </TabPane>
 
@@ -781,7 +777,7 @@ const MyClasses = () => {
               size="small"
               loading={{
                 spinning: tableLoading,
-                indicator: <Spin size="large" />, // custom loader
+                indicator: <Spin size="large" />,
               }}
               pagination={{
                 current: page,
@@ -832,7 +828,6 @@ const MyClasses = () => {
             }
             key="3"
           >
-            {/* Horizontal scroll wrapper for mobile */}
             <div className="w-full overflow-x-auto">
               <Table
                 columns={columns}
@@ -853,7 +848,6 @@ const MyClasses = () => {
             </div>
           </TabPane>
         </Tabs>
-        {/* </Card> */}
       </div>
 
       {/* EDIT RECORD MODAL */}
@@ -862,20 +856,11 @@ const MyClasses = () => {
         open={isEditRecordModalOpen}
         onCancel={() => setIsEditRecordModalOpen(false)}
         footer={null}
-        width={550}
+        width={600}
       >
         <Form
           form={form}
           layout="vertical"
-          initialValues={{
-            firstAssignment: editStudentRecord?.record?.firstAssignment,
-            secondAssignment: editStudentRecord?.record?.secondAssignment,
-            firstCA: editStudentRecord?.record?.firstCA,
-            secondCA: editStudentRecord?.record?.secondCA,
-            exam: editStudentRecord?.record?.exam,
-            grade: editStudentRecord?.record?.grade,
-            teacherRemark: editStudentRecord?.record?.teacherRemark,
-          }}
           onValuesChange={validateScore}
           onFinish={async (values) => {
             const id = editStudentRecord.recordId;
@@ -884,8 +869,9 @@ const MyClasses = () => {
 
               const payload = {
                 recordId: id,
-                firstAssignment: values.firstAssignment,
-                secondAssignment: values.secondAssignment,
+                attendance: values.attendance,
+                note: values.note,
+                ...(isJSS && { assignment: values.firstAssignment }),
                 firstCA: values.firstCA,
                 secondCA: values.secondCA,
                 exam: values.exam,
@@ -899,7 +885,6 @@ const MyClasses = () => {
                 },
               );
 
-              // UPDATE LOCAL UI
               setStudentsRecord((prev) =>
                 prev.map((stu) =>
                   stu.recordId === editStudentRecord.recordId
@@ -919,38 +904,51 @@ const MyClasses = () => {
           }}
         >
           <Row gutter={8}>
-            <Col>
-              <Form.Item label="1st ASS" name="firstAssignment">
+            <Col span={4}>
+              <Form.Item label="Att." name="attendance">
                 <Input
                   type="number"
                   style={{
-                    width: 70,
-                    borderColor: errors.firstAssignment ? "red" : undefined,
-                    background: errors.firstAssignment ? "#ffe5e5" : undefined,
+                    borderColor: errors.attendance ? "red" : undefined,
+                    background: errors.attendance ? "#ffe5e5" : undefined,
                   }}
-                  max={maxScores.firstAssignment}
+                  max={maxScores.attendance}
                 />
               </Form.Item>
             </Col>
-            <Col>
-              <Form.Item label="2nd ASS" name="secondAssignment">
+            <Col span={4}>
+              <Form.Item label="Note" name="note">
                 <Input
                   type="number"
                   style={{
-                    width: 70,
-                    borderColor: errors.secondAssignment ? "red" : undefined,
-                    background: errors.secondAssignment ? "#ffe5e5" : undefined,
+                    borderColor: errors.note ? "red" : undefined,
+                    background: errors.note ? "#ffe5e5" : undefined,
                   }}
-                  max={maxScores.secondAssignment}
+                  max={maxScores.note}
                 />
               </Form.Item>
             </Col>
-            <Col>
+            {isJSS && (
+              <Col span={4}>
+                <Form.Item label="1st ASS" name="firstAssignment">
+                  <Input
+                    type="number"
+                    style={{
+                      borderColor: errors.firstAssignment ? "red" : undefined,
+                      background: errors.firstAssignment
+                        ? "#ffe5e5"
+                        : undefined,
+                    }}
+                    max={maxScores.firstAssignment}
+                  />
+                </Form.Item>
+              </Col>
+            )}
+            <Col span={4}>
               <Form.Item label="1st CA" name="firstCA">
                 <Input
                   type="number"
                   style={{
-                    width: 70,
                     borderColor: errors.firstCA ? "red" : undefined,
                     background: errors.firstCA ? "#ffe5e5" : undefined,
                   }}
@@ -958,12 +956,11 @@ const MyClasses = () => {
                 />
               </Form.Item>
             </Col>
-            <Col>
+            <Col span={4}>
               <Form.Item label="2nd CA" name="secondCA">
                 <Input
                   type="number"
                   style={{
-                    width: 70,
                     borderColor: errors.secondCA ? "red" : undefined,
                     background: errors.secondCA ? "#ffe5e5" : undefined,
                   }}
@@ -971,27 +968,15 @@ const MyClasses = () => {
                 />
               </Form.Item>
             </Col>
-            <Col>
+            <Col span={4}>
               <Form.Item label="Exam" name="exam">
                 <Input
                   type="number"
                   style={{
-                    width: 70,
                     borderColor: errors.exam ? "red" : undefined,
                     background: errors.exam ? "#ffe5e5" : undefined,
                   }}
                   max={maxScores.exam}
-                />
-              </Form.Item>
-            </Col>
-            <Col>
-              <Form.Item label="Grade" name="grade">
-                <Input
-                  style={{
-                    width: 70,
-                    borderColor: errors.grade ? "red" : undefined,
-                    background: errors.grade ? "#ffe5e5" : undefined,
-                  }}
                 />
               </Form.Item>
             </Col>

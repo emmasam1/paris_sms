@@ -23,7 +23,6 @@ import {
   KeyOutlined,
   DollarOutlined,
   MessageOutlined,
-  BarChartOutlined,
   IdcardOutlined,
 } from "@ant-design/icons";
 
@@ -36,7 +35,6 @@ import {
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
-import { motion } from "framer-motion";
 import { useApp } from "../../../context/AppContext";
 import { useNavigate } from "react-router";
 import axios from "axios";
@@ -54,7 +52,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [isPinModalVisible, setIsPinModalVisible] = useState(false);
   const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
-  const [isCreateStaffOpen, setIsStaffClassOpen] = useState(false);
+  const [isCreateStaffOpen, setIsCreateStaffOpen] = useState(false);
   const [sendMessage, setSendMessage] = useState(false);
   const [analytics, setAnalytics] = useState(null);
   const [allStudent, setAllStudent] = useState(null);
@@ -75,6 +73,52 @@ const Dashboard = () => {
   const { API_BASE_URL, token, user } = useApp();
   const navigate = useNavigate();
 
+  // Helper function to format object keys into human-readable labels
+  const formatLabel = (key) => {
+    return key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (str) => str.toUpperCase());
+  };
+
+  // Render object properties as a clean Ant Design Descriptions grid
+  const renderFormattedDetails = (data) => {
+    if (!data || typeof data !== "object") {
+      return <Text type="secondary">No records found</Text>;
+    }
+
+    // Exclude assignment fields completely
+    const keysToExclude = ["firstAssignment", "secondAssignment"];
+    const entries = Object.entries(data).filter(
+      ([key]) => !keysToExclude.includes(key)
+    );
+
+    if (entries.length === 0) {
+      return <Text type="secondary">No relevant changes recorded</Text>;
+    }
+
+    return (
+      <Descriptions column={1} bordered size="small" className="bg-gray-50 rounded-md">
+        {entries.map(([key, value]) => {
+          let displayValue = value;
+
+          if (typeof value === "boolean") {
+            displayValue = <Tag color={value ? "green" : "red"}>{value ? "True" : "False"}</Tag>;
+          } else if (typeof value === "object" && value !== null) {
+            displayValue = JSON.stringify(value);
+          } else if (value === null || value === undefined || value === "") {
+            displayValue = <Text type="secondary">N/A</Text>;
+          }
+
+          return (
+            <Descriptions.Item key={key} label={formatLabel(key)}>
+              {displayValue}
+            </Descriptions.Item>
+          );
+        })}
+      </Descriptions>
+    );
+  };
+
   // ===== Fetch Analytics =====
   const getAnalyticsData = async () => {
     if (!token) return;
@@ -83,7 +127,6 @@ const Dashboard = () => {
       const res = await axios.get(`${API_BASE_URL}/api/analytics/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // console.log(res)
       setAnalytics(res.data.data.totals);
       setActiveStudent(res?.data?.data?.totals?.activeStudents);
       setInActiveStudent(res?.data?.data?.totals?.inactiveStudents);
@@ -104,12 +147,11 @@ const Dashboard = () => {
       const res = await axios.get(`${API_BASE_URL}/api/admin/activity-logs`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // console.log(res);
       const activities = Array.isArray(res?.data?.data) ? res.data.data : [];
       setRecentActivities(activities);
     } catch (error) {
       console.error("Failed to fetch recent activities:", error);
-      message.error("Failed to fetch recent activities");
+      messageApi.error("Failed to fetch recent activities");
       setRecentActivities([]);
     } finally {
       setLoading(false);
@@ -118,6 +160,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     getLog();
+    getAnalyticsData();
   }, [token]);
 
   // Fetch single activity by ID when button is clicked
@@ -130,12 +173,12 @@ const Dashboard = () => {
         `${API_BASE_URL}/api/admin/activity-logs/${activityId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        },
+        }
       );
       setSelectedActivity(res.data.data);
     } catch (error) {
       console.error("Failed to fetch activity details:", error);
-      message.error("Failed to fetch activity details");
+      messageApi.error("Failed to fetch activity details");
       setModalVisible(false);
     } finally {
       setModalLoading(false);
@@ -188,10 +231,6 @@ const Dashboard = () => {
     },
   ];
 
-  useEffect(() => {
-    getAnalyticsData();
-  }, [token]);
-
   // ===== Stat Cards =====
   const statCards = [
     {
@@ -199,50 +238,45 @@ const Dashboard = () => {
       label: "All Time Students",
       value: allStudent ?? 0,
       route: "/admin/dashboard/students",
-      // Matured Slate/Navy
       bgColor: "#f0f2f5",
       iconBg: "#d9e2ec",
-      iconColor: "#334e68",
+      textColor: "#334e68",
     },
     {
       icon: <UserOutlined />,
       label: "Active Students",
       value: activeStudent ?? 0,
       route: "/admin/dashboard/students",
-      // Matured Teal/Sage
       bgColor: "#f1f7f6",
       iconBg: "#cce0db",
-      iconColor: "#00695c",
+      textColor: "#00695c",
     },
     {
       icon: <UserOutlined />,
       label: "Archived Students",
       value: inactiveStudent ?? 0,
       route: "/admin/dashboard/students",
-      // Matured Rose/Terracotta
       bgColor: "#fff5f5",
       iconBg: "#f7d6d6",
-      iconColor: "#a64452",
+      textColor: "#a64452",
     },
     {
       icon: <IdcardOutlined />,
       label: "Staff",
       value: analytics?.staff ?? 0,
       route: "/admin/dashboard/teachers",
-      // Matured Ochre/Sand
       bgColor: "#fdf8f3",
       iconBg: "#f3e4d4",
-      iconColor: "#8d6e63",
+      textColor: "#8d6e63",
     },
     {
       icon: <BookOutlined />,
       label: "Classes",
       value: analytics?.classes ?? 0,
       route: "/admin/dashboard/class-management",
-      // Matured Lavender/Steel
       bgColor: "#f5f3ff",
       iconBg: "#e0e0f7",
-      iconColor: "#5e5ce6",
+      textColor: "#5e5ce6",
     },
     ...(user?.role === "principal"
       ? [
@@ -251,10 +285,9 @@ const Dashboard = () => {
             label: "PINs",
             value: analytics?.pinsGenerated ?? 0,
             route: "/admin/dashboard/pin-management",
-            // Matured Bronze/Olive
             bgColor: "#fcfaf2",
             iconBg: "#f0e6c1",
-            iconColor: "#85754e",
+            textColor: "#85754e",
           },
           {
             icon: <DollarOutlined />,
@@ -262,16 +295,15 @@ const Dashboard = () => {
             value: analytics?.totalRevenue
               ? `₦${analytics.totalRevenue.toLocaleString()}`
               : "₦0",
-            // Matured Emerald/Forest
             bgColor: "#f2fcf5",
             iconBg: "#c6e9d1",
-            iconColor: "#2d6a4f",
+            textColor: "#2d6a4f",
           },
         ]
       : []),
   ];
 
-  // ===== Dummy Charts =====
+  // ===== Charts Data =====
   useEffect(() => {
     if (user?.role !== "principal") return;
     setChartData({
@@ -323,19 +355,30 @@ const Dashboard = () => {
                     height: "50px",
                     borderRadius: "50%",
                   }}
-                  className="flex items-center justify-center text-2xl"
+                  className="flex items-center justify-center text-2xl shrink-0"
                 >
                   {card.icon}
                 </div>
 
-                {/* Text Content */}
-                <div>
+                {/* Text Content / Skeleton Loader */}
+                <div className="w-full">
                   <p style={{ color: "#595959", marginBottom: 0 }}>
                     {card.label}
                   </p>
-                  <Title level={4} style={{ margin: 0, color: card.textColor }}>
-                    {card.value}
-                  </Title>
+                  {loading ? (
+                    <Skeleton.Input
+                      active
+                      size="small"
+                      style={{ width: 80, marginTop: 4 }}
+                    />
+                  ) : (
+                    <Title
+                      level={4}
+                      style={{ margin: 0, color: card.textColor }}
+                    >
+                      {card.value}
+                    </Title>
+                  )}
                 </div>
               </div>
             </Card>
@@ -388,7 +431,7 @@ const Dashboard = () => {
             <Tooltip title="Manage teacher accounts">
               <Button
                 icon={<SolutionOutlined />}
-                onClick={() => setIsStaffClassOpen(true)}
+                onClick={() => setIsCreateStaffOpen(true)}
                 className="!bg-orange-500 hover:!bg-orange-600 !text-white !border-none"
               >
                 Register Staff
@@ -410,20 +453,24 @@ const Dashboard = () => {
                 bodyStyle={{ padding: 10 }}
                 headStyle={{ borderBottom: "none" }}
               >
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={chartData.studentGrowth}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="count"
-                      stroke="#3b82f6"
-                      strokeWidth={3}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {loading ? (
+                  <Skeleton active paragraph={{ rows: 6 }} />
+                ) : (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={chartData.studentGrowth}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <RechartsTooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#3b82f6"
+                        strokeWidth={3}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </Card>
             </Col>
             <Col xs={24} md={12}>
@@ -433,20 +480,24 @@ const Dashboard = () => {
                 bodyStyle={{ padding: 10 }}
                 headStyle={{ borderBottom: "none" }}
               >
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={chartData.revenueGrowth}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <RechartsTooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="amount"
-                      stroke="#10b981"
-                      strokeWidth={3}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {loading ? (
+                  <Skeleton active paragraph={{ rows: 6 }} />
+                ) : (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart data={chartData.revenueGrowth}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <RechartsTooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="amount"
+                        stroke="#10b981"
+                        strokeWidth={3}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </Card>
             </Col>
           </Row>
@@ -457,7 +508,9 @@ const Dashboard = () => {
       <Card className="rounded-xl shadow-md !mt-4">
         <Title level={4}>Recent Activity</Title>
         {loading ? (
-          <Spin tip="Loading recent activities..." />
+          <div className="p-4">
+            <Skeleton active avatar paragraph={{ rows: 5 }} />
+          </div>
         ) : (
           <Table
             columns={columns}
@@ -478,54 +531,57 @@ const Dashboard = () => {
 
         <Modal
           title="Activity Details"
-          visible={modalVisible}
+          open={modalVisible}
           footer={null}
+          width={600}
           onCancel={() => setModalVisible(false)}
         >
           {modalLoading ? (
-            <Spin tip="Loading activity details..." />
+            <Skeleton active paragraph={{ rows: 6 }} />
           ) : (
             selectedActivity && (
-              <Descriptions column={1} bordered size="small">
-                <Descriptions.Item label="Action">
-                  {selectedActivity.action}
-                </Descriptions.Item>
-                <Descriptions.Item label="Message">
-                  {selectedActivity.message}
-                </Descriptions.Item>
-                <Descriptions.Item label="By">
-                  {selectedActivity.actor?.fullName}
-                </Descriptions.Item>
-                <Descriptions.Item label="Email">
-                  {selectedActivity.actor?.email}
-                </Descriptions.Item>
-                <Descriptions.Item label="Role">
-                  {selectedActivity.actor?.role}
-                </Descriptions.Item>
-                <Descriptions.Item label="Created At">
-                  {moment(selectedActivity.createdAt).format(
-                    "YYYY-MM-DD HH:mm",
-                  )}
-                </Descriptions.Item>
-                {/* <Descriptions.Item label="IP Address">
-                  {selectedActivity.ipAddress}
-                </Descriptions.Item> */}
-                {/* <Descriptions.Item label="User Agent">
-                  {selectedActivity.userAgent}
-                </Descriptions.Item> */}
-                {/* <Descriptions.Item label="Target Model">
-                  {selectedActivity.targetModel}
-                </Descriptions.Item> */}
-                {/* <Descriptions.Item label="Target ID">
-                  {selectedActivity.targetId}
-                </Descriptions.Item> */}
-                <Descriptions.Item label="Changes Before">
-                  {JSON.stringify(selectedActivity.changes?.before)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Changes After">
-                  {JSON.stringify(selectedActivity.changes?.after)}
-                </Descriptions.Item>
-              </Descriptions>
+              <div className="space-y-4">
+                <Descriptions column={1} bordered size="small">
+                  <Descriptions.Item label="Action">
+                    <Tag color="blue">{selectedActivity.action}</Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Message">
+                    {selectedActivity.message}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="By">
+                    {selectedActivity.actor?.fullName || "N/A"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Email">
+                    {selectedActivity.actor?.email || "N/A"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Role">
+                    {selectedActivity.actor?.role || "N/A"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Created At">
+                    {moment(selectedActivity.createdAt).format(
+                      "YYYY-MM-DD HH:mm"
+                    )}
+                  </Descriptions.Item>
+                </Descriptions>
+
+                {selectedActivity.changes?.before && (
+                  <div>
+                    <Text strong className="block mb-1">
+                      Previous State
+                    </Text>
+                    {renderFormattedDetails(selectedActivity.changes.before)}
+                  </div>
+                )}
+
+                {selectedActivity.changes?.after && (
+                  <div>
+                    <Text strong className="block mb-1">
+                      Updated State
+                    </Text>
+                    {renderFormattedDetails(selectedActivity.changes.after)}
+                  </div>
+                )}
+              </div>
             )
           )}
         </Modal>
@@ -538,13 +594,16 @@ const Dashboard = () => {
       />
       <CreateTeacher
         open={isCreateStaffOpen}
-        onClose={() => setIsStaffClassOpen(false)}
+        onClose={() => setIsCreateStaffOpen(false)}
       />
       <CreateClass
         open={isCreateClassOpen}
         onClose={() => setIsCreateClassOpen(false)}
       />
-      <CreateMessage open={sendMessage} onClose={() => setSendMessage(false)} />
+      <CreateMessage
+        open={sendMessage}
+        onClose={() => setSendMessage(false)}
+      />
     </div>
   );
 };

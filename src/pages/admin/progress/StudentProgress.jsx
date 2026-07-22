@@ -20,7 +20,6 @@ const { Option } = Select;
 
 const StudentProgress = () => {
   const { API_BASE_URL, token } = useApp();
-  // console.log(token);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -34,35 +33,51 @@ const StudentProgress = () => {
   const [selectedTerm, setSelectedTerm] = useState(null);
   const [progressData, setProgressData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [loadingClasses, setLoadingClasses] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(false);
   const [loadingRows, setLoadingRows] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [classes, setClasses] = useState([]);
 
-  // 🔹 Dynamic max values based on class
-  const getMaxValues = (className) => {
-    if (className?.toLowerCase().includes("jss")) {
+  // ------------------------------------------------------
+  // Helper to determine if student/class is SS (Senior Secondary)
+  // Prevents JSS classes from falsely being flagged as senior
+  // ------------------------------------------------------
+  const checkIsSenior = (student) => {
+    if (!student) return false;
+    const name = (typeof student === "string" ? student : student?.className || "").toUpperCase();
+    const level = (student?.level || "").toUpperCase();
+
+    const isSeniorName = (name.includes("SS") || name.includes("SENIOR")) && !name.includes("JSS");
+    const isSeniorLevel = (level.includes("SS") || level.includes("SENIOR")) && !level.includes("JSS");
+
+    return isSeniorName || isSeniorLevel;
+  };
+
+  // ------------------------------------------------------
+  // Dynamic Max Limits Based on Class Level
+  // ------------------------------------------------------
+  const getMaxValues = (student) => {
+    const isSenior = checkIsSenior(student);
+    if (isSenior) {
       return {
-        firstCA: 20,
-        secondCA: 20,
-        firstAssignment: 10,
-        secondAssignment: 10,
-        exam: 40,
-      };
-    } else {
-      return {
+        attendance: 5,
+        note: 5,
         firstCA: 10,
-        secondCA: 10,
-        firstAssignment: 5,
-        secondAssignment: 5,
-        exam: 70,
+        secondCA: 20,
+        exam: 60,
       };
     }
+    return {
+      attendance: 5,
+      note: 5,
+      assignment: 10,
+      firstCA: 20,
+      secondCA: 20,
+      exam: 40,
+    };
   };
 
   const showModal = (record) => {
-    // console.log(record);
     const subjectsWithKey = record.subjects.map((sub, index) => ({
       key: index,
       recordId: sub.recordId,
@@ -100,31 +115,41 @@ const StudentProgress = () => {
   };
 
   const isRowValid = (record) => {
-    const max = getMaxValues(selectedStudent?.className || "");
-    return (
-      record.firstCA <= max.firstCA &&
-      record.secondCA <= max.secondCA &&
-      record.firstAssignment <= max.firstAssignment &&
-      record.secondAssignment <= max.secondAssignment &&
-      record.exam <= max.exam
-    );
+    const isSenior = checkIsSenior(selectedStudent);
+    const max = getMaxValues(selectedStudent);
+
+    const validBase =
+      (record.attendance ?? 0) <= max.attendance &&
+      (record.note ?? 0) <= max.note &&
+      (record.firstCA ?? 0) <= max.firstCA &&
+      (record.secondCA ?? 0) <= max.secondCA &&
+      (record.exam ?? 0) <= max.exam;
+
+    if (isSenior) return validBase;
+
+    return validBase && (record.assignment ?? 0) <= max.assignment;
   };
 
   const handleRowUpdate = async (record) => {
     if (!isRowValid(record)) return;
     setLoadingRows((prev) => [...prev, record.key]);
 
+    const isSenior = checkIsSenior(selectedStudent);
+
+    const payload = {
+      recordId: record.recordId,
+      attendance: record.attendance ?? 0,
+      note: record.note ?? 0,
+      firstCA: record.firstCA ?? 0,
+      secondCA: record.secondCA ?? 0,
+      exam: record.exam ?? 0,
+      ...(!isSenior && { assignment: record.assignment ?? 0 }),
+    };
+
     try {
       const res = await axios.put(
         `${API_BASE_URL}/api/records/admin/update-score`,
-        {
-          recordId: record.recordId,
-          firstAssignment: record.firstAssignment,
-          secondAssignment: record.secondAssignment,
-          firstCA: record.firstCA,
-          secondCA: record.secondCA,
-          exam: record.exam,
-        },
+        payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -170,12 +195,7 @@ const StudentProgress = () => {
         value: cls._id,
       }));
 
-      // console.log(res);
-
       setClasses(mapped);
-
-      // console.log(mapped);
-
       messageApi.success(res?.data?.message || "Classes fetched successfully");
     } catch (error) {
       messageApi.error(
@@ -185,7 +205,7 @@ const StudentProgress = () => {
   };
 
   const fetchProgress = async () => {
-    if (!selectedClassArm) return messageApi.warning("Please select arm.");
+    if (!selectedClassArm) return messageApi.warning("Please select class arm.");
     if (!selectedSession) return messageApi.warning("Please select a session.");
     if (!selectedTerm) return messageApi.warning("Please select a term.");
 
@@ -197,25 +217,19 @@ const StudentProgress = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log(res);
-
       const cleanedData = (res.data.data || []).map((item) => ({
         studentId: item.student?.id,
         admissionNumber: item.student?.admissionNumber || "-",
-        studentName:
-          item.student?.fullName === "ODEH EFFIONG ISABELLA DANIEL OKENENI"
-            ? "ODEH DANIEL OKENENI"
-            : item.student?.fullName === "NWANKWO ONYINUECHI"
-            ? "NWANKWO ONYINYECHI"
-            : item.student?.fullName || "--",
+        studentName: item.student?.fullName || "--",
         className: item.student?.class || "-",
         level: item.student?.level || "-",
         subjects: (item.records || []).map((rec) => ({
           recordId: rec._id,
           subjectName: rec.subject?.name || "-",
           subjectCode: rec.subject?.code || "-",
-          firstAssignment: rec.firstAssignment ?? 0,
-          secondAssignment: rec.secondAssignment ?? 0,
+          attendance: rec.attendance ?? 0,
+          note: rec.note ?? 0,
+          assignment: rec.assignment ?? 0,
           firstCA: rec.firstCA ?? 0,
           secondCA: rec.secondCA ?? 0,
           exam: rec.exam ?? 0,
@@ -223,12 +237,6 @@ const StudentProgress = () => {
           grade: rec.grade || "-",
           remark: rec.teacherRemark || "-",
         })),
-        classAverage: "-",
-        finalAverage: "-",
-        noInClass: "-",
-        overallGrade: "-",
-        totalScoreObtainable: "-",
-        totalScoreObtained: "-",
         totalSubjects: item.records?.length || 0,
       }));
 
@@ -253,30 +261,17 @@ const StudentProgress = () => {
   };
 
   useEffect(() => {
-    // fetchClasses();
     getClass();
   }, []);
 
   const columns = [
     { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
-    {
-      title: "Student Name",
-      dataIndex: "studentName",
-      key: "studentName",
-      // width: 200,
-    },
-    {
-      title: "Admission No",
-      dataIndex: "admissionNumber",
-      key: "admissionNumber",
-      // width: 160,
-    },
+    { title: "Student Name", dataIndex: "studentName", key: "studentName" },
+    { title: "Admission No", dataIndex: "admissionNumber", key: "admissionNumber" },
     { title: "Class", dataIndex: "className", key: "className" },
-    // { title: "Arm", dataIndex: "classArm", key: "classArm" },
     {
       title: "Action",
       key: "action",
-      // width: 100,
       render: (_, record) => {
         const menu = (
           <Menu
@@ -298,37 +293,42 @@ const StudentProgress = () => {
     },
   ];
 
+  const isSenior = checkIsSenior(selectedStudent);
+
+  const fields = [
+    { field: "attendance", label: "Att. (5)" },
+    { field: "note", label: "Note (5)" },
+    ...(!isSenior ? [{ field: "assignment", label: "1st ASS (10)" }] : []),
+    { field: "firstCA", label: `1st CA (${isSenior ? 10 : 20})` },
+    { field: "secondCA", label: "2nd CA (20)" },
+    { field: "exam", label: `Exam (${isSenior ? 60 : 40})` },
+  ];
+
   const modalColumns = [
-    { title: "S/N", key: "sn", render: (_, __, index) => index + 1 },
-    { title: "Subject", dataIndex: "subjectName", key: "subjectName" },
-    ...[
-      "firstAssignment",
-      "secondAssignment",
-      "firstCA",
-      "secondCA",
-      "exam",
-    ].map((field) => ({
-      title:
-        field === "firstCA"
-          ? "1st CA"
-          : field === "secondCA"
-          ? "2nd CA"
-          : field === "firstAssignment"
-          ? "1st ASS"
-          : field === "secondAssignment"
-          ? "2nd ASS"
-          : "Exam",
+    { title: "S/N", key: "sn", width: 50, render: (_, __, index) => index + 1 },
+    { title: "Subject", dataIndex: "subjectName", key: "subjectName", width: 160 },
+    ...fields.map(({ field, label }) => ({
+      title: label,
       dataIndex: field,
       key: field,
+      align: "center",
       render: (text, record) => {
-        const max = getMaxValues(selectedStudent?.className || "");
+        const max = getMaxValues(selectedStudent);
         const value = record[field] ?? 0;
-        return editingKeys.includes(record.key) ? (
+        const isEditing = editingKeys.includes(record.key);
+
+        return isEditing ? (
           <Input
             type="number"
+            min={0}
+            max={max[field] || 0}
             value={value}
             onChange={(e) => handleChange(e.target.value, record.key, field)}
-            style={{ borderColor: value > max[field] ? "red" : undefined }}
+            style={{
+              width: 65,
+              textAlign: "center",
+              borderColor: value > (max[field] || 0) ? "#ff4d4f" : undefined,
+            }}
           />
         ) : (
           text
@@ -338,6 +338,8 @@ const StudentProgress = () => {
     {
       title: "Action",
       key: "action",
+      align: "center",
+      width: 130,
       render: (_, record) =>
         editingKeys.includes(record.key) ? (
           <Space>
@@ -360,9 +362,9 @@ const StudentProgress = () => {
           </Button>
         ),
     },
-    { title: "Total", dataIndex: "total", key: "total" },
-    { title: "Grade", dataIndex: "grade", key: "grade" },
-    { title: "Remark", dataIndex: "remark", key: "remark" },
+    { title: "Total", dataIndex: "total", key: "total", align: "center", width: 60 },
+    { title: "Grade", dataIndex: "grade", key: "grade", align: "center", width: 60 },
+    { title: "Remark", dataIndex: "remark", key: "remark", align: "center", width: 100 },
   ];
 
   return (
@@ -444,10 +446,10 @@ const StudentProgress = () => {
         )}
 
         <Modal
-          title={`${selectedStudent?.studentName} - Subjects`}
+          title={`${selectedStudent?.studentName || "Student"} - Subjects`}
           open={isModalOpen}
           onCancel={handleCancel}
-          width={900}
+          width={1100}
           footer={[
             <Button key="close" onClick={handleCancel}>
               Close
@@ -461,6 +463,7 @@ const StudentProgress = () => {
               pagination={false}
               size="small"
               bordered
+              scroll={{ x: "max-content" }}
             />
           ) : (
             <p>No subject data available</p>

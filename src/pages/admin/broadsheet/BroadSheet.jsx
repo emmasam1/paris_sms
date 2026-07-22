@@ -502,6 +502,36 @@ const BroadSheet = () => {
     }
   };
 
+   const getFullBroadSheet = async () => {
+  // 1. Check for token first! Don't let it run without it.
+  if (!token) return;
+
+  // 2. If you want this to run automatically on load with your hardcoded 
+  // JSS1 query, remove or comment out the state validation check here:
+  // if (!selectedClass || !selectedSession || !selectedTerm) { ... }
+
+  try {
+    console.log("start fetching full broadsheet...");
+    const res = await axios.get(
+      `${API_BASE_URL}/api/broadsheet?className=JSS1&session=2025/2026&term=2`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    console.log("this is for all:", res);
+  } catch (err) {
+    console.error("Error fetching full broadsheet:", err);
+    messageApi.error(err.response?.data?.message || err.message);
+  } finally {
+    console.log("end fetching full broadsheet");
+  }
+};
+
+// Listen for when the token becomes available
+useEffect(() => {
+  if (token) {
+    getFullBroadSheet();
+  }
+}, [token]); // <--- Added token dependency here
+
   return (
     <div className="p-4">
       {contextHolder}

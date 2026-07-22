@@ -5,7 +5,7 @@ import { useApp } from "../../context/AppContext";
 
 const { Option } = Select;
 
-const GeneratePin = ({ open, onClose }) => {
+const GeneratePin = ({ open, onClose, onSuccess }) => {
   const [messageApi, contextHolder] = message.useMessage();
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
@@ -17,7 +17,7 @@ const GeneratePin = ({ open, onClose }) => {
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/student-management/student?limit=1000`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setStudents(res.data.data);
     } catch (error) {
@@ -29,7 +29,7 @@ const GeneratePin = ({ open, onClose }) => {
     try {
       const res = await axios.get(
         `${API_BASE_URL}/api/class-management/classes?limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setClasses(res.data.data);
     } catch (error) {
@@ -58,17 +58,11 @@ const GeneratePin = ({ open, onClose }) => {
 
   const sessions = generateSessions(2);
 
-  const terms = [
-    { id: 1, name: "First Term" },
-    { id: 2, name: "Second Term" },
-    { id: 3, name: "Third Term" },
-  ];
-
   useEffect(() => {
-    if (!initialized || !token) return;
+    if (!initialized || !token || !open) return;
     getStudents();
     getClass();
-  }, [initialized, token]);
+  }, [initialized, token, open]);
 
   const generation = async (values) => {
     try {
@@ -97,10 +91,16 @@ const GeneratePin = ({ open, onClose }) => {
       });
 
       messageApi.success(res.data.message || "PIN generated successfully");
-      await getAllPins();
-      setIsModalOpen(false);
-    } catch {
-      messageApi.error("Failed to generate PIN");
+
+      // Optional callback to refresh parent list/dashboard if provided
+      if (onSuccess) await onSuccess();
+
+      onClose(); // Properly close modal
+    } catch (error) {
+      console.error(error);
+      messageApi.error(
+        error.response?.data?.message || "Failed to generate PIN"
+      );
     } finally {
       setLoader(false);
     }
@@ -118,7 +118,10 @@ const GeneratePin = ({ open, onClose }) => {
       >
         <Form layout="vertical" onFinish={generation}>
           <Form.Item>
-            <Radio.Group value={mode} onChange={(e) => setMode(e.target.value)}>
+            <Radio.Group
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+            >
               <Radio value="individual">Individual Student</Radio>
               <Radio value="whole class">Whole Class</Radio>
             </Radio.Group>
@@ -190,7 +193,7 @@ const GeneratePin = ({ open, onClose }) => {
           )}
 
           <div className="flex justify-end gap-3">
-            <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button onClick={onClose}>Cancel</Button>
             <Button type="primary" htmlType="submit" loading={loader}>
               Generate
             </Button>

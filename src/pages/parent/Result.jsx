@@ -36,10 +36,10 @@ const ParentResult = () => {
     return null;
   }
 
-  // Parse session year (e.g., "2025/2026" -> 2025) to preserve historical structure
+  // Parse session year (e.g., "2025/2026" -> 2025)
   const currentSessionYear = result?.session ? parseInt(result.session.split('/')[0]) : 2025;
   
-  // New template applies from 2025 Term 3 onwards, and ALL terms for future sessions (2026+)
+  // New template applies starting from 2025 Term 3 onwards, and ALL terms for future sessions (2026+)
   const isNewTemplate = currentSessionYear > 2025 || (currentSessionYear === 2025 && term >= 3);
 
   const termDates = {
@@ -92,7 +92,7 @@ const ParentResult = () => {
 
   const isJunior = result?.student?.className?.toUpperCase().includes("JSS");
 
-  // Old Configuration Layout (Used for 2025 Term 1 & 2)
+  // Old Configuration Layout (Used for Term 1 & Term 2 of 2025/2026 or earlier)
   const oldColumns = [
     { title: "SUBJECTS", dataIndex: "subjectName", key: "subjectName", align: "left", width: 180, render: (name) => <span className="font-medium">{name}</span> },
     { title: `1st Ass. ${isJunior ? 10 : 5}%`, dataIndex: "firstAssignment", key: "firstAssignment", align: "center", width: 70 },
@@ -108,9 +108,9 @@ const ParentResult = () => {
   // New Global Design Standard (2025 Term 3 + All Future Sessions)
   const newColumns = [
     { title: "SUBJECTS", dataIndex: "subjectName", key: "subjectName", align: "left", width: 180, render: (name) => <span className="font-medium">{name}</span> },
-    { title: "Attendance. 5%", dataIndex: "attendance", key: "attendance", align: "center", width: 70 },
+    { title: "Att. 5%", dataIndex: "attendance", key: "attendance", align: "center", width: 70 },
     { title: "Note. 5%", dataIndex: "note", key: "note", align: "center", width: 70 },
-    isJunior && { title: "1st Ass. 10%", dataIndex: "firstAssignment", key: "firstAssignment", align: "center", width: 70 },
+    isJunior && { title: "Assig. 10%", dataIndex: "assignment", key: "firstAssignment", align: "center", width: 70 },
     { title: `1st Test ${isJunior ? 20 : 10}%`, dataIndex: "firstCA", key: "firstCA", align: "center", width: 70 },
     { title: `2nd Test 20%`, dataIndex: "secondCA", key: "secondCA", align: "center", width: 80 },
     { title: `EXAM ${isJunior ? 40 : 60}%`, dataIndex: "exam", key: "exam", align: "center", width: 70 },
@@ -211,10 +211,14 @@ const ParentResult = () => {
           font-size: 8px !important;
           padding: 2px !important;
         }
-        .custom-result-table .ant-table-tbody > tr > td,
-        .custom-result-table .ant-table-thead > tr > th {
-          font-size: 8px !important;
+        .custom-result-table .ant-table-tbody > tr > td {
+          font-size: 12px !important;
           padding: 3px !important;
+        }
+        .custom-result-table .ant-table-thead > tr > th {
+          font-size: 10px !important;
+          padding: 3px !important;
+          font-weight: bold !important;
         }
       `}</style>
 
@@ -287,7 +291,7 @@ const ParentResult = () => {
                 </div>
 
                 <div className="flex-1 text-center">
-                  <h1 className="text-lg font-extrabold uppercase leading-tight">{result?.school}</h1>
+                  <h1 className="text-2xl font-extrabold uppercase leading-tight">{result?.school}</h1>
                   <p className="font-bold mt-1 text-[13px] leading-tight uppercase">{result?.address}</p>
                   <p className="font-extrabold text-[#990099] uppercase leading-tight">MOTTO: KNOWLEDGE AND DISCIPLINE</p>
                   <p className="font-extrabold mt-1 leading-tight">
@@ -341,7 +345,7 @@ const ParentResult = () => {
 
               {/* Summary and Grading/Rating */}
               <div className="grid grid-cols-12 gap-x-4 mt-2 text-xs">
-                <div className="col-span-5 grid grid-cols-2 gap-y-1 text-[8px]">
+                <div className="col-span-5 grid grid-cols-2 gap-y-1 text-[10px]">
                   <div className="col-span-2 font-bold underline">SUMMARY</div>
                   <div>NO. OF SUBJECTS OFFERED:</div>
                   <div className="font-bold">{result?.summary?.totalSubjects}</div>
@@ -370,7 +374,7 @@ const ParentResult = () => {
                       dataSource={gradeLegendData}
                       pagination={false}
                       bordered
-                      size="small"
+                      size="middle"
                       rowKey="key"
                     />
                   </div>
@@ -378,10 +382,10 @@ const ParentResult = () => {
 
                 <div className="col-span-7 grid grid-cols-2 gap-x-2">
                   <div>
-                    <Table columns={domainColumns} dataSource={affectiveDomainData} pagination={false} bordered size="small" rowKey="key" className="domain-table" />
+                    <Table columns={domainColumns} dataSource={affectiveDomainData} pagination={false} bordered size="middle" rowKey="key" className="domain-table" />
                   </div>
                   <div>
-                    <Table columns={domainColumns} dataSource={psychomotorDomainData} pagination={false} bordered size="small" rowKey="key" className="domain-table" />
+                    <Table columns={domainColumns} dataSource={psychomotorDomainData} pagination={false} bordered size="middle" rowKey="key" className="domain-table" />
                   </div>
 
                   <div className="col-span-2 mt-2">
@@ -394,7 +398,7 @@ const ParentResult = () => {
                       dataSource={ratingKeyData}
                       pagination={false}
                       bordered
-                      size="small"
+                      size="middle"
                       rowKey="key"
                     />
                   </div>
@@ -412,7 +416,7 @@ const ParentResult = () => {
                   <p className="uppercase font-semibold">PRINCIPAL'S COMMENT: {result?.principalRemark}</p>
                   <div className="my-2 flex items-center gap-2 relative h-[20px]">
                     <span>PRINCIPAL'S SIGNATURE:</span>
-                    <img src={principalSignature} alt="Signature" className="w-25 left-[150px] absolute -top-[5px]" />
+                    <img src={principalSignature} alt="Signature" className="w-25 left-[115px] absolute -top-[10px]" />
                   </div>
                   <p>DATE: <span className="font-bold">{date}</span></p>
                 </div>

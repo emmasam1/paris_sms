@@ -126,16 +126,28 @@ const ParentResult = () => {
     { title: "RATING", dataIndex: "rating", key: "rating", align: "center" },
   ];
 
-  const studentInfo = {
-    termStarted: schTerm === 1 ? "15TH JANUARY, 2025" : schTerm === 2 ? "12TH JANUARY, 2026" : "",
-    termEnded: schTerm === 1 ? "5TH DECEMBER 2025" : schTerm === 2 ? "27TH MARCH, 2026" : "",
-    nextTermBegins: schTerm === 1 ? "12TH JANUARY 2026" : schTerm === 2 ? "20TH APRIL, 2026" : "",
-    schoolOpened: result?.student?.opened,
-    present: result?.student?.present,
-    absent: result?.student?.absent,
-    totalNoInClass: result?.summary?.noInClass,
-    noOfArm: result?.student?.totalArmsInLevel,
-  };
+ const studentInfo = {
+  termStarted: 
+    schTerm === 1 ? "15TH JANUARY, 2025" : 
+    schTerm === 2 ? "12TH JANUARY, 2026" : 
+    schTerm === 3 ? "28TH APRIL, 2026" : "",
+
+  termEnded: 
+    schTerm === 1 ? "5TH DECEMBER, 2025" : 
+    schTerm === 2 ? "27TH MARCH, 2026" : 
+    schTerm === 3 ? "31ST JULY, 2026" : "",
+
+  nextTermBegins: 
+    schTerm === 1 ? "12TH JANUARY, 2026" : 
+    schTerm === 2 ? "20TH APRIL, 2026" : 
+    schTerm === 3 ? "14TH SEPTEMBER, 2026" : "",
+
+  schoolOpened: result?.student?.opened,
+  present: result?.student?.present,
+  absent: result?.student?.absent,
+  totalNoInClass: result?.summary?.noInClass,
+  noOfArm: result?.student?.totalArmsInLevel,
+};
 
   const affectiveDomainData = [
     { key: "1", domain: "ATTENTIVENESS", rating: result?.domains?.attentiveness || "" },

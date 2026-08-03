@@ -337,7 +337,7 @@ const ParentResult = () => {
                   <div className="text-[11px]">NO. OF TIMES ABSENT: <span className="font-extrabold">{studentInfo.absent}</span></div>
                 </div>
 
-                <div className="col-span-12 grid grid-cols-3 gap-x-2 border-t border-black pt-1 text-[12px]">
+                <div className="col-span-12 grid grid-cols-3 gap-x-2 border-t border-black pt-1 text-[11px]">
                   <div>TERM STARTED: <span className="font-extrabold">{studentInfo.termStarted}</span></div>
                   <div>TERM ENDED: <span className="font-extrabold">{studentInfo.termEnded}</span></div>
                   <div>NEXT TERM BEGINS: <span className="font-extrabold">{studentInfo.nextTermBegins}</span></div>

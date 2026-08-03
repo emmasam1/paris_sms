@@ -62,7 +62,7 @@ const ParentResult = () => {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      console.log(res);
+      // console.log(res);
       setSchTerm(res?.data?.term);
       setResult(res?.data || []);
     } catch (error) {

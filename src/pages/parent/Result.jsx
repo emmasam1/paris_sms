@@ -37,15 +37,18 @@ const ParentResult = () => {
   }
 
   // Parse session year (e.g., "2025/2026" -> 2025)
-  const currentSessionYear = result?.session ? parseInt(result.session.split('/')[0]) : 2025;
-  
+  const currentSessionYear = result?.session
+    ? parseInt(result.session.split("/")[0])
+    : 2025;
+
   // New template applies starting from 2025 Term 3 onwards, and ALL terms for future sessions (2026+)
-  const isNewTemplate = currentSessionYear > 2025 || (currentSessionYear === 2025 && term >= 3);
+  const isNewTemplate =
+    currentSessionYear > 2025 || (currentSessionYear === 2025 && term >= 3);
 
   const termDates = {
     1: "12th December, 2025",
     2: "30th March, 2026",
-    3: "", 
+    3: "",
   };
 
   const date = termDates[term] || "";
@@ -57,8 +60,9 @@ const ParentResult = () => {
         `${API_BASE_URL}/api/parent/results?term=${term}`,
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
+      console.log(res);
       setSchTerm(res?.data?.term);
       setResult(res?.data || []);
     } catch (error) {
@@ -68,6 +72,14 @@ const ParentResult = () => {
       setLoading(false);
     }
   };
+
+  const formattedDate = result?.createdAt
+    ? new Date(result.createdAt).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : date;
 
   const gradeLegendData = [
     { key: "1", grade: "A", rate: '80-100 "EXCELLENT"' },
@@ -94,77 +106,245 @@ const ParentResult = () => {
 
   // Old Configuration Layout (Used for Term 1 & Term 2 of 2025/2026 or earlier)
   const oldColumns = [
-    { title: "SUBJECTS", dataIndex: "subjectName", key: "subjectName", align: "left", width: 180, render: (name) => <span className="font-medium">{name}</span> },
-    { title: `1st Ass. ${isJunior ? 10 : 5}%`, dataIndex: "firstAssignment", key: "firstAssignment", align: "center", width: 70 },
-    { title: `2nd Ass. ${isJunior ? 10 : 5}%`, dataIndex: "secondAssignment", key: "secondAssignment", align: "center", width: 75 },
-    { title: `1st Test ${isJunior ? 20 : 10}%`, dataIndex: "firstCA", key: "firstCA", align: "center", width: 70 },
-    { title: `2nd Test ${isJunior ? 20 : 10}%`, dataIndex: "secondCA", key: "secondCA", align: "center", width: 80 },
-    { title: `EXAM ${isJunior ? 40 : 70}%`, dataIndex: "exam", key: "exam", align: "center", width: 70 },
-    { title: "TOTAL 100%", dataIndex: "total", key: "total", align: "center", width: 70, render: (v) => <span className="font-semibold">{v}</span> },
-    { title: "GRADE", dataIndex: "grade", key: "grade", align: "center", width: 40 },
-    { title: "REMARKS", dataIndex: "remark", key: "remark", align: "center", width: 80 },
+    {
+      title: "SUBJECTS",
+      dataIndex: "subjectName",
+      key: "subjectName",
+      align: "left",
+      width: 180,
+      render: (name) => <span className="font-medium">{name}</span>,
+    },
+    {
+      title: `1st Ass. ${isJunior ? 10 : 5}%`,
+      dataIndex: "firstAssignment",
+      key: "firstAssignment",
+      align: "center",
+      width: 70,
+    },
+    {
+      title: `2nd Ass. ${isJunior ? 10 : 5}%`,
+      dataIndex: "secondAssignment",
+      key: "secondAssignment",
+      align: "center",
+      width: 75,
+    },
+    {
+      title: `1st Test ${isJunior ? 20 : 10}%`,
+      dataIndex: "firstCA",
+      key: "firstCA",
+      align: "center",
+      width: 70,
+    },
+    {
+      title: `2nd Test ${isJunior ? 20 : 10}%`,
+      dataIndex: "secondCA",
+      key: "secondCA",
+      align: "center",
+      width: 80,
+    },
+    {
+      title: `EXAM ${isJunior ? 40 : 70}%`,
+      dataIndex: "exam",
+      key: "exam",
+      align: "center",
+      width: 70,
+    },
+    {
+      title: "TOTAL 100%",
+      dataIndex: "total",
+      key: "total",
+      align: "center",
+      width: 70,
+      render: (v) => <span className="font-semibold">{v}</span>,
+    },
+    {
+      title: "GRADE",
+      dataIndex: "grade",
+      key: "grade",
+      align: "center",
+      width: 40,
+    },
+    {
+      title: "REMARKS",
+      dataIndex: "remark",
+      key: "remark",
+      align: "center",
+      width: 80,
+    },
   ];
 
   // New Global Design Standard (2025 Term 3 + All Future Sessions)
   const newColumns = [
-    { title: "SUBJECTS", dataIndex: "subjectName", key: "subjectName", align: "left", width: 180, render: (name) => <span className="font-medium">{name}</span> },
-    { title: "Att. 5%", dataIndex: "attendance", key: "attendance", align: "center", width: 70 },
-    { title: "Note. 5%", dataIndex: "note", key: "note", align: "center", width: 70 },
-    isJunior && { title: "Assig. 10%", dataIndex: "assignment", key: "firstAssignment", align: "center", width: 70 },
-    { title: `1st Test ${isJunior ? 20 : 10}%`, dataIndex: "firstCA", key: "firstCA", align: "center", width: 70 },
-    { title: `2nd Test 20%`, dataIndex: "secondCA", key: "secondCA", align: "center", width: 80 },
-    { title: `EXAM ${isJunior ? 40 : 60}%`, dataIndex: "exam", key: "exam", align: "center", width: 70 },
-    { title: "TOTAL 100%", dataIndex: "total", key: "total", align: "center", width: 70, render: (v) => <span className="font-semibold">{v}</span> },
-    { title: "GRADE", dataIndex: "grade", key: "grade", align: "center", width: 40 },
-    { title: "REMARKS", dataIndex: "remark", key: "remark", align: "center", width: 80 },
+    {
+      title: "SUBJECTS",
+      dataIndex: "subjectName",
+      key: "subjectName",
+      align: "left",
+      width: 180,
+      render: (name) => <span className="font-medium">{name}</span>,
+    },
+    {
+      title: "Att. 5%",
+      dataIndex: "attendance",
+      key: "attendance",
+      align: "center",
+      width: 70,
+    },
+    {
+      title: "Note. 5%",
+      dataIndex: "note",
+      key: "note",
+      align: "center",
+      width: 70,
+    },
+    isJunior && {
+      title: "Assig. 10%",
+      dataIndex: "assignment",
+      key: "firstAssignment",
+      align: "center",
+      width: 70,
+    },
+    {
+      title: `1st Test ${isJunior ? 20 : 10}%`,
+      dataIndex: "firstCA",
+      key: "firstCA",
+      align: "center",
+      width: 70,
+    },
+    {
+      title: `2nd Test 20%`,
+      dataIndex: "secondCA",
+      key: "secondCA",
+      align: "center",
+      width: 80,
+    },
+    {
+      title: `EXAM ${isJunior ? 40 : 60}%`,
+      dataIndex: "exam",
+      key: "exam",
+      align: "center",
+      width: 70,
+    },
+    {
+      title: "TOTAL 100%",
+      dataIndex: "total",
+      key: "total",
+      align: "center",
+      width: 70,
+      render: (v) => <span className="font-semibold">{v}</span>,
+    },
+    {
+      title: "GRADE",
+      dataIndex: "grade",
+      key: "grade",
+      align: "center",
+      width: 40,
+    },
+    {
+      title: "REMARKS",
+      dataIndex: "remark",
+      key: "remark",
+      align: "center",
+      width: 80,
+    },
   ].filter(Boolean);
 
   const columns = isNewTemplate ? newColumns : oldColumns;
 
   const domainColumns = [
-    { title: "DOMAIN", dataIndex: "domain", key: "domain", align: "left", width: 180 },
+    {
+      title: "DOMAIN",
+      dataIndex: "domain",
+      key: "domain",
+      align: "left",
+      width: 180,
+    },
     { title: "RATING", dataIndex: "rating", key: "rating", align: "center" },
   ];
 
- const studentInfo = {
-  termStarted: 
-    schTerm === 1 ? "15TH JANUARY, 2025" : 
-    schTerm === 2 ? "12TH JANUARY, 2026" : 
-    schTerm === 3 ? "28TH APRIL, 2026" : "",
+  const studentInfo = {
+    termStarted:
+      schTerm === 1
+        ? "15TH JANUARY, 2025"
+        : schTerm === 2
+          ? "12TH JANUARY, 2026"
+          : schTerm === 3
+            ? "28TH APRIL, 2026"
+            : "",
 
-  termEnded: 
-    schTerm === 1 ? "5TH DECEMBER, 2025" : 
-    schTerm === 2 ? "27TH MARCH, 2026" : 
-    schTerm === 3 ? "31ST JULY, 2026" : "",
+    termEnded:
+      schTerm === 1
+        ? "5TH DECEMBER, 2025"
+        : schTerm === 2
+          ? "27TH MARCH, 2026"
+          : schTerm === 3
+            ? "31ST JULY, 2026"
+            : "",
 
-  nextTermBegins: 
-    schTerm === 1 ? "12TH JANUARY, 2026" : 
-    schTerm === 2 ? "20TH APRIL, 2026" : 
-    schTerm === 3 ? "14TH SEPTEMBER, 2026" : "",
+    nextTermBegins:
+      schTerm === 1
+        ? "12TH JANUARY, 2026"
+        : schTerm === 2
+          ? "20TH APRIL, 2026"
+          : schTerm === 3
+            ? "14TH SEPTEMBER, 2026"
+            : "",
 
-  schoolOpened: result?.student?.opened,
-  present: result?.student?.present,
-  absent: result?.student?.absent,
-  totalNoInClass: result?.summary?.noInClass,
-  noOfArm: result?.student?.totalArmsInLevel,
-};
+    schoolOpened: result?.student?.opened,
+    present: result?.student?.present,
+    absent: result?.student?.absent,
+    totalNoInClass: result?.summary?.noInClass,
+    noOfArm: result?.student?.totalArmsInLevel,
+  };
 
   const affectiveDomainData = [
-    { key: "1", domain: "ATTENTIVENESS", rating: result?.domains?.attentiveness || "" },
+    {
+      key: "1",
+      domain: "ATTENTIVENESS",
+      rating: result?.domains?.attentiveness || "",
+    },
     { key: "2", domain: "HONESTY", rating: result?.domains?.honesty || "" },
     { key: "3", domain: "NEATNESS", rating: result?.domains?.neatness || "" },
-    { key: "4", domain: "PUNCTUALITY", rating: result?.domains?.punctuality || "" },
-    { key: "5", domain: "RELATIONSHIP WITH OTHERS", rating: result?.domains?.relationshipWithOthers || "" },
-    { key: "6", domain: "LEADERSHIP TRAITS", rating: result?.domains?.leadershipTraits || "" },
+    {
+      key: "4",
+      domain: "PUNCTUALITY",
+      rating: result?.domains?.punctuality || "",
+    },
+    {
+      key: "5",
+      domain: "RELATIONSHIP WITH OTHERS",
+      rating: result?.domains?.relationshipWithOthers || "",
+    },
+    {
+      key: "6",
+      domain: "LEADERSHIP TRAITS",
+      rating: result?.domains?.leadershipTraits || "",
+    },
   ];
 
   const psychomotorDomainData = [
-    { key: "1", domain: "CLUB INTEREST/GAMES AND SPORTS", rating: result?.domains?.clubInterestsAndSports || "" },
-    { key: "2", domain: "HAND WRITING", rating: result?.domains?.handWriting || "" },
+    {
+      key: "1",
+      domain: "CLUB INTEREST/GAMES AND SPORTS",
+      rating: result?.domains?.clubInterestsAndSports || "",
+    },
+    {
+      key: "2",
+      domain: "HAND WRITING",
+      rating: result?.domains?.handWriting || "",
+    },
     { key: "3", domain: "AGILITY", rating: result?.domains?.agility || "" },
-    { key: "4", domain: "ORATORY SKILLS", rating: result?.domains?.organisationalSkills || "" },
+    {
+      key: "4",
+      domain: "ORATORY SKILLS",
+      rating: result?.domains?.organisationalSkills || "",
+    },
     { key: "5", domain: "SELF CARE", rating: result?.domains?.selfCare || "" },
-    { key: "6", domain: "ORGANISATIONAL SKILLS", rating: result?.domains?.organisationalSkills || "" },
+    {
+      key: "6",
+      domain: "ORGANISATIONAL SKILLS",
+      rating: result?.domains?.organisationalSkills || "",
+    },
   ];
 
   const handlePDF = async () => {
@@ -242,10 +422,16 @@ const ParentResult = () => {
           <Card
             title={
               <div className="flex items-center justify-between w-full">
-                <h2 className="text-lg font-bold uppercase">Student Result Sheet</h2>
+                <h2 className="text-lg font-bold uppercase">
+                  Student Result Sheet
+                </h2>
                 <div className="flex gap-2">
                   <Space>
-                    <Button danger icon={<CloseOutlined />} onClick={() => navigate("/home")}>
+                    <Button
+                      danger
+                      icon={<CloseOutlined />}
+                      onClick={() => navigate("/home")}
+                    >
                       Close
                     </Button>
                     <Button
@@ -287,7 +473,11 @@ const ParentResult = () => {
                 <img
                   src={logo}
                   alt="Watermark"
-                  style={{ width: "60%", maxWidth: 500, filter: "grayscale(100%)" }}
+                  style={{
+                    width: "60%",
+                    maxWidth: 500,
+                    filter: "grayscale(100%)",
+                  }}
                 />
               </div>
 
@@ -303,20 +493,38 @@ const ParentResult = () => {
                 </div>
 
                 <div className="flex-1 text-center">
-                  <h1 className="text-2xl font-extrabold uppercase leading-tight">{result?.school}</h1>
-                  <p className="font-bold mt-1 text-[13px] leading-tight uppercase">{result?.address}</p>
-                  <p className="font-extrabold text-[#990099] uppercase leading-tight">MOTTO: KNOWLEDGE AND DISCIPLINE</p>
+                  <h1 className="text-2xl font-extrabold uppercase leading-tight">
+                    {result?.school}
+                  </h1>
+                  <p className="font-bold mt-1 text-[13px] leading-tight uppercase">
+                    {result?.address}
+                  </p>
+                  <p className="font-extrabold text-[#990099] uppercase leading-tight">
+                    MOTTO: KNOWLEDGE AND DISCIPLINE
+                  </p>
                   <p className="font-extrabold mt-1 leading-tight">
-                    {result?.student?.className?.startsWith("JSS") ? "JUNIOR SECONDARY SCHOOL" : "SENIOR SECONDARY SCHOOL"}
+                    {result?.student?.className?.startsWith("JSS")
+                      ? "JUNIOR SECONDARY SCHOOL"
+                      : "SENIOR SECONDARY SCHOOL"}
                   </p>
                   <p className="font-bold mt-1 leading-tight">
-                    END OF {term === 1 ? "FIRST TERM" : term === 2 ? "SECOND TERM" : "THIRD TERM"} RESULT FOR {result?.session} ACADEMIC SESSION
+                    END OF{" "}
+                    {term === 1
+                      ? "FIRST TERM"
+                      : term === 2
+                        ? "SECOND TERM"
+                        : "THIRD TERM"}{" "}
+                    RESULT FOR {result?.session} ACADEMIC SESSION
                   </p>
                 </div>
 
                 {result?.student?.avatar && (
                   <div className="w-[100px] h-[100px] overflow-hidden">
-                    <img src={result.student.avatar} alt="Avatar" className="w-full object-contain" />
+                    <img
+                      src={result.student.avatar}
+                      alt="Avatar"
+                      className="w-full object-contain"
+                    />
                   </div>
                 )}
               </div>
@@ -324,23 +532,71 @@ const ParentResult = () => {
               {/* Student Info and Attendance */}
               <div className="grid grid-cols-12 gap-y-1 mb-3 text-xs font-semibold border border-black p-1">
                 <div className="col-span-8 grid grid-cols-1">
-                  <div className="text-[15px]">NAME: <span className="font-bold">{result?.student?.fullName || "--"}</span></div>
-                  <div>ADMISSION NO: <span className="font-bold">{result?.student?.admissionNumber}</span></div>
-                  <div>GENDER: <span className="font-bold capitalize">{result?.student?.gender}</span></div>
-                  <div>CLASS: <span className="font-bold uppercase">{result?.student?.className} {result?.student?.classArm}</span></div>
+                  <div className="text-[15px]">
+                    NAME:{" "}
+                    <span className="font-bold">
+                      {result?.student?.fullName || "--"}
+                    </span>
+                  </div>
+                  <div>
+                    ADMISSION NO:{" "}
+                    <span className="font-bold">
+                      {result?.student?.admissionNumber}
+                    </span>
+                  </div>
+                  <div>
+                    GENDER:{" "}
+                    <span className="font-bold capitalize">
+                      {result?.student?.gender}
+                    </span>
+                  </div>
+                  <div>
+                    CLASS:{" "}
+                    <span className="font-bold uppercase">
+                      {result?.student?.className} {result?.student?.classArm}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="col-span-4 grid grid-cols-1 gap-y-1 border-l border-black pl-2">
                   <div className="font-bold text-[13px] !mb-2">ATTENDANCE</div>
-                  <div className="text-[11px]">NO. OF TIMES SCHOOL OPENED: <span className="font-extrabold">{studentInfo.schoolOpened}</span></div>
-                  <div className="text-[11px]">NO. OF TIMES PRESENT: <span className="font-extrabold">{studentInfo.present}</span></div>
-                  <div className="text-[11px]">NO. OF TIMES ABSENT: <span className="font-extrabold">{studentInfo.absent}</span></div>
+                  <div className="text-[11px]">
+                    NO. OF TIMES SCHOOL OPENED:{" "}
+                    <span className="font-extrabold">
+                      {studentInfo.schoolOpened}
+                    </span>
+                  </div>
+                  <div className="text-[11px]">
+                    NO. OF TIMES PRESENT:{" "}
+                    <span className="font-extrabold">
+                      {studentInfo.present}
+                    </span>
+                  </div>
+                  <div className="text-[11px]">
+                    NO. OF TIMES ABSENT:{" "}
+                    <span className="font-extrabold">{studentInfo.absent}</span>
+                  </div>
                 </div>
 
                 <div className="col-span-12 grid grid-cols-3 gap-x-2 border-t border-black pt-1 text-[11px]">
-                  <div>TERM STARTED: <span className="font-extrabold">{studentInfo.termStarted}</span></div>
-                  <div>TERM ENDED: <span className="font-extrabold">{studentInfo.termEnded}</span></div>
-                  <div>NEXT TERM BEGINS: <span className="font-extrabold">{studentInfo.nextTermBegins}</span></div>
+                  <div>
+                    TERM STARTED:{" "}
+                    <span className="font-extrabold">
+                      {studentInfo.termStarted}
+                    </span>
+                  </div>
+                  <div>
+                    TERM ENDED:{" "}
+                    <span className="font-extrabold">
+                      {studentInfo.termEnded}
+                    </span>
+                  </div>
+                  <div>
+                    NEXT TERM BEGINS:{" "}
+                    <span className="font-extrabold">
+                      {studentInfo.nextTermBegins}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -360,17 +616,29 @@ const ParentResult = () => {
                 <div className="col-span-5 grid grid-cols-2 gap-y-1 text-[10px]">
                   <div className="col-span-2 font-bold underline">SUMMARY</div>
                   <div>NO. OF SUBJECTS OFFERED:</div>
-                  <div className="font-bold">{result?.summary?.totalSubjects}</div>
+                  <div className="font-bold">
+                    {result?.summary?.totalSubjects}
+                  </div>
                   <div>TOTAL SCORE OBTAINED:</div>
-                  <div className="font-bold">{result?.summary?.totalScoreObtained}</div>
+                  <div className="font-bold">
+                    {result?.summary?.totalScoreObtained}
+                  </div>
                   <div>TOTAL SCORE OBTAINABLE:</div>
-                  <div className="font-bold">{result?.summary?.totalScoreObtainable}</div>
+                  <div className="font-bold">
+                    {result?.summary?.totalScoreObtainable}
+                  </div>
                   <div>FINAL AVERAGE:</div>
-                  <div className="font-bold">{result?.summary?.finalAverage}</div>
+                  <div className="font-bold">
+                    {result?.summary?.finalAverage}
+                  </div>
                   <div>CLASS AVERAGE:</div>
-                  <div className="font-bold">{result?.summary?.classAverage}</div>
+                  <div className="font-bold">
+                    {result?.summary?.classAverage}
+                  </div>
                   <div>TOTAL GRADE:</div>
-                  <div className="font-bold">{result?.summary?.overallGrade}</div>
+                  <div className="font-bold">
+                    {result?.summary?.overallGrade}
+                  </div>
                   <div>NO. OF ARM:</div>
                   <div className="font-bold">{studentInfo.noOfArm}</div>
                   <div>TOTAL NO. IN CLASS:</div>
@@ -380,8 +648,20 @@ const ParentResult = () => {
                     <Table
                       className="domain-table"
                       columns={[
-                        { title: "GRADE", dataIndex: "grade", key: "grade", align: "center", width: 60, render: (g) => <b>{g}</b> },
-                        { title: "RATE", dataIndex: "rate", key: "rate", align: "center" },
+                        {
+                          title: "GRADE",
+                          dataIndex: "grade",
+                          key: "grade",
+                          align: "center",
+                          width: 60,
+                          render: (g) => <b>{g}</b>,
+                        },
+                        {
+                          title: "RATE",
+                          dataIndex: "rate",
+                          key: "rate",
+                          align: "center",
+                        },
                       ]}
                       dataSource={gradeLegendData}
                       pagination={false}
@@ -394,18 +674,46 @@ const ParentResult = () => {
 
                 <div className="col-span-7 grid grid-cols-2 gap-x-2">
                   <div>
-                    <Table columns={domainColumns} dataSource={affectiveDomainData} pagination={false} bordered size="middle" rowKey="key" className="domain-table" />
+                    <Table
+                      columns={domainColumns}
+                      dataSource={affectiveDomainData}
+                      pagination={false}
+                      bordered
+                      size="middle"
+                      rowKey="key"
+                      className="domain-table"
+                    />
                   </div>
                   <div>
-                    <Table columns={domainColumns} dataSource={psychomotorDomainData} pagination={false} bordered size="middle" rowKey="key" className="domain-table" />
+                    <Table
+                      columns={domainColumns}
+                      dataSource={psychomotorDomainData}
+                      pagination={false}
+                      bordered
+                      size="middle"
+                      rowKey="key"
+                      className="domain-table"
+                    />
                   </div>
 
                   <div className="col-span-2 mt-2">
                     <Table
                       className="domain-table"
                       columns={[
-                        { title: "RATING", dataIndex: "rating", key: "rating", align: "center", width: 80, render: (t) => <b>{t}</b> },
-                        { title: "REMARK", dataIndex: "remark", key: "remark", align: "center" },
+                        {
+                          title: "RATING",
+                          dataIndex: "rating",
+                          key: "rating",
+                          align: "center",
+                          width: 80,
+                          render: (t) => <b>{t}</b>,
+                        },
+                        {
+                          title: "REMARK",
+                          dataIndex: "remark",
+                          key: "remark",
+                          align: "center",
+                        },
                       ]}
                       dataSource={ratingKeyData}
                       pagination={false}
@@ -420,17 +728,34 @@ const ParentResult = () => {
               {/* Signatures */}
               <div className="mt-4 text-xs font-semibold grid grid-cols-2 gap-x-8 text-[10px]">
                 <div>
-                  <p className="uppercase font-semibold">FORM TEACHER'S COMMENT: {result?.teacherRemark}.</p>
-                  <p className="my-2">FORM TEACHER'S NAME: <span className="font-semibold uppercase">{result?.student?.FormTeacher}</span></p>
-                  <p>DATE: <span className="font-bold">{date}</span></p>
+                  <p className="uppercase font-semibold">
+                    FORM TEACHER'S COMMENT: {result?.teacherRemark}.
+                  </p>
+                  <p className="my-2">
+                    FORM TEACHER'S NAME:{" "}
+                    <span className="font-semibold uppercase">
+                      {result?.student?.FormTeacher}
+                    </span>
+                  </p>
+                  <p>
+                    DATE: <span className="font-bold">{formattedDate}</span>
+                  </p>
                 </div>
                 <div>
-                  <p className="uppercase font-semibold">PRINCIPAL'S COMMENT: {result?.principalRemark}</p>
+                  <p className="uppercase font-semibold">
+                    PRINCIPAL'S COMMENT: {result?.principalRemark}
+                  </p>
                   <div className="my-2 flex items-center gap-2 relative h-[20px]">
                     <span>PRINCIPAL'S SIGNATURE:</span>
-                    <img src={principalSignature} alt="Signature" className="w-25 left-[115px] absolute -top-[10px]" />
+                    <img
+                      src={principalSignature}
+                      alt="Signature"
+                      className="w-25 left-[115px] absolute -top-[10px]"
+                    />
                   </div>
-                  <p>DATE: <span className="font-bold">{date}</span></p>
+                  <p>
+                    DATE: <span className="font-bold">{formattedDate}</span>
+                  </p>
                 </div>
               </div>
             </div>

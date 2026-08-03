@@ -263,7 +263,7 @@ const Attendance = ({ className }) => {
 
 
   const saveDomain = async (values) => {
-    // console.log(stdResultId)
+    console.log(stdResultId)
     try {
       setDomainLoading(true);
       const res = await axios.patch(
@@ -273,6 +273,8 @@ const Attendance = ({ className }) => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      console.log(res)
 
       messageApi.success(res.data.message || "Domain Entered Successfully");
       setDomainModalOpen(false);

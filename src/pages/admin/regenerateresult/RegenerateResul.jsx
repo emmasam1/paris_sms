@@ -37,13 +37,15 @@ const RegenerateResults = () => {
   const [hasError, setHasError] = useState(false);
 
   const [progress, setProgress] = useState(0);
-  const [statusText, setStatusText] = useState("");
+  const [statusText, setStatusText] = useState(
+    "Ready to regenerate results.",
+  );
   const [logs, setLogs] = useState([]);
 
   const addLog = (text) => {
     const time = new Date().toLocaleTimeString();
 
-    console.log(`[RegenerateResults ${time}]`, text);
+    console.log(`[RegenerateResults ${time}] ${text}`);
 
     setLogs((previousLogs) => [
       `[${time}] ${text}`,
@@ -65,33 +67,22 @@ const RegenerateResults = () => {
   };
 
   const runRegeneration = async () => {
-    console.log("runRegeneration was called");
-
-    addLog("Confirmation accepted.");
+    console.log("runRegeneration called");
 
     if (!token) {
-      console.error("No token found:", token);
-
-      addLog("Request stopped because authentication token is missing.");
+      addLog("Request stopped: authentication token is missing.");
       messageApi.error("Authentication token is missing.");
       return;
     }
 
     if (!API_BASE_URL) {
-      console.error("API_BASE_URL is missing:", API_BASE_URL);
-
-      addLog("Request stopped because API base URL is missing.");
+      addLog("Request stopped: API base URL is missing.");
       messageApi.error("API base URL is missing.");
       return;
     }
 
     if (!session || !term) {
-      console.error("Session or term missing:", {
-        session,
-        term,
-      });
-
-      addLog("Request stopped because session or term is missing.");
+      addLog("Request stopped: session or term is missing.");
       messageApi.error("Select a session and term.");
       return;
     }
@@ -103,29 +94,32 @@ const RegenerateResults = () => {
       term,
     };
 
-    console.log("Regeneration request information:", {
-      requestUrl,
-      requestBody,
-      tokenAvailable: Boolean(token),
+    console.log("Regeneration request:", {
+      url: requestUrl,
+      body: requestBody,
+      hasToken: Boolean(token),
     });
 
     try {
       setIsRegenerating(true);
       setIsCompleted(false);
       setHasError(false);
-      setProgress(10);
-      setStatusText("Preparing regeneration request...");
+      setProgress(15);
       setLogs([]);
+      setStatusText("Preparing regeneration request...");
 
-      addLog("Starting result regeneration.");
-      addLog(`Selected session: ${session}`);
-      addLog(`Selected term: ${term}`);
-      // addLog(`Request URL: ${requestUrl}`);
+      addLog("Regeneration process started.");
+      addLog(`Session selected: ${session}`);
+      addLog(`Term selected: ${term}`);
+      addLog(`Request URL: ${requestUrl}`);
 
-      setProgress(30);
-      setStatusText("Sending request to server...");
+      setProgress(35);
+      setStatusText(
+        "The server is regenerating results. This may take several minutes.",
+      );
 
-      addLog("Sending POST request.");
+      addLog("Sending POST request to the server.");
+      addLog("Waiting for the server to finish. No client timeout is set.");
 
       const response = await axios.post(
         requestUrl,
@@ -136,14 +130,17 @@ const RegenerateResults = () => {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          timeout: 300000,
+
+          // No timeout.
+          // Axios will wait until the backend responds.
+          timeout: 0,
         },
       );
 
-      console.log("Regeneration API response:", response);
-      console.log("Regeneration response data:", response.data);
+      console.log("Regeneration response:", response);
+      console.log("Response data:", response.data);
 
-      setProgress(80);
+      setProgress(85);
       setStatusText("Processing server response...");
 
       addLog(`Server responded with status ${response.status}.`);
@@ -152,7 +149,7 @@ const RegenerateResults = () => {
 
       if (responseData?.success === false) {
         throw new Error(
-          responseData.message ||
+          responseData?.message ||
             "The server reported that regeneration failed.",
         );
       }
@@ -172,6 +169,12 @@ const RegenerateResults = () => {
       if (responseData?.classesProcessed !== undefined) {
         addLog(
           `${responseData.classesProcessed} classes processed.`,
+        );
+      }
+
+      if (responseData?.studentsProcessed !== undefined) {
+        addLog(
+          `${responseData.studentsProcessed} students processed.`,
         );
       }
 
@@ -200,18 +203,19 @@ const RegenerateResults = () => {
           `Server returned status ${error.response.status}.`,
         );
 
-        console.log(
-          "Server error response data:",
+        console.error(
+          "Server response data:",
           error.response.data,
         );
       } else if (error.request) {
         addLog(
           "The request was sent, but no response was received.",
         );
-      } else {
         addLog(
-          "The request could not be created or sent.",
+          "Check whether the backend server is running and whether CORS is configured.",
         );
+      } else {
+        addLog("The request could not be created.");
       }
 
       addLog(`Error: ${errorMessage}`);
@@ -219,7 +223,7 @@ const RegenerateResults = () => {
     } finally {
       console.log("Regeneration request finished");
 
-      addLog("Regeneration process finished.");
+      addLog("Regeneration request finished.");
       setIsRegenerating(false);
     }
   };
@@ -227,22 +231,13 @@ const RegenerateResults = () => {
   const handleRegenerate = () => {
     console.log("Start Regeneration button clicked");
 
-    console.log("Current values:", {
-      session,
-      term,
-      API_BASE_URL,
-      tokenAvailable: Boolean(token),
-    });
-
     addLog("Start Regeneration button clicked.");
 
     if (!session || !term) {
-      addLog("Modal was not opened because filters are incomplete.");
+      addLog("Select a session and term before continuing.");
       messageApi.error("Select a session and term.");
       return;
     }
-
-    console.log("Opening confirmation modal");
 
     modalApi.confirm({
       title: "Regenerate all results?",
@@ -279,14 +274,14 @@ const RegenerateResults = () => {
       cancelText: "Cancel",
 
       onOk: async () => {
-        console.log("Modal Yes button clicked");
-        addLog("Yes, Regenerate button clicked.");
+        console.log("Confirmation accepted");
+        addLog("Confirmation accepted.");
 
         await runRegeneration();
       },
 
       onCancel: () => {
-        console.log("Modal cancelled");
+        console.log("Regeneration cancelled");
         addLog("Regeneration cancelled.");
       },
     });
@@ -320,7 +315,7 @@ const RegenerateResults = () => {
           showIcon
           className="mb-6"
           message="Attention Required"
-          description="Run this after updating scores, exam marks, grading scales, subjects, or result settings."
+          description="This process may take several minutes. Do not close or refresh the page until it finishes."
         />
 
         <div className="mt-5 mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -335,7 +330,6 @@ const RegenerateResults = () => {
               value={session}
               disabled={isRegenerating}
               onChange={(value) => {
-                console.log("Session changed:", value);
                 setSession(value);
                 addLog(`Session changed to ${value}.`);
               }}
@@ -367,7 +361,6 @@ const RegenerateResults = () => {
               value={term}
               disabled={isRegenerating}
               onChange={(value) => {
-                console.log("Term changed:", value);
                 setTerm(value);
                 addLog(`Term changed to ${value}.`);
               }}
@@ -407,9 +400,7 @@ const RegenerateResults = () => {
                 <CloseCircleOutlined className="mt-0.5 text-base text-red-500" />
               )}
 
-              <span>
-                {statusText || "Ready to regenerate results."}
-              </span>
+              <span>{statusText}</span>
             </div>
 
             <span className="shrink-0 text-xs font-bold text-slate-500">
@@ -460,15 +451,10 @@ const RegenerateResults = () => {
             type="primary"
             danger
             size="large"
-            icon={
-              <ReloadOutlined spin={isRegenerating} />
-            }
+            icon={<ReloadOutlined spin={isRegenerating} />}
             loading={isRegenerating}
-            disabled={!session || !term}
-            onClick={() => {
-              // console.log("Button onClick fired");
-              handleRegenerate();
-            }}
+            disabled={!session || !term || isRegenerating}
+            onClick={handleRegenerate}
           >
             {isRegenerating
               ? "Regenerating Results..."

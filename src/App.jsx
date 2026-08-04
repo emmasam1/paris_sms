@@ -32,6 +32,7 @@ import QuestionBank from "./pages/admin/cbt/QuestionBank";
 import AssessmentCreator from "./pages/admin/cbt/AssessmentCreator";
 import InstallPWA from "./components/pwaInstaller/InstallPWA";
 import SupportWidget from "./components/support/SupportWidget";
+import RegenerateResults from "./pages/admin/regenerateresult/RegenerateResul"
 
 const App = () => {
   return (
@@ -76,6 +77,7 @@ const App = () => {
 
         {/* Principal-only route */}
         <Route element={<PrivateRoute allowedRoles={["principal"]} />}>
+        <Route path="regenerate-results" element={<RegenerateResults />} />
           <Route path="progress" element={<StudentProgress />} />
           <Route path="pin-management" element={<PinManagement />} />
           <Route path="result-broadsheet" element={<BroadSheet />} />

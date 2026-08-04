@@ -15,6 +15,7 @@ import {
   FileDoneOutlined, // Exams
   DatabaseOutlined, // Question Bank
   BarChartOutlined, // CBT Results
+  ReloadOutlined,
 } from "@ant-design/icons";
 import {
   RiArrowLeftLine, // Added for PWA
@@ -105,6 +106,11 @@ const DashboardLayout = () => {
     ...(user?.role === "principal"
       ? [
           getItem(
+            "Regenerate Results",
+            "/admin/dashboard/regenerate-results",
+            <ReloadOutlined />,
+          ),
+          getItem(
             "Progress",
             "/admin/dashboard/progress",
             <LineChartOutlined />,
@@ -155,6 +161,7 @@ const DashboardLayout = () => {
     "/admin/dashboard/teachers": "Teacher Management",
     "/admin/dashboard/class-management": "Class Management",
     "/admin/dashboard/subject-management": "Subject Management",
+    "/admin/dashboard/regenerate-results": "Regenerate Results",
     "/admin/dashboard/progress": "Student Progress",
     "/admin/dashboard/message": "Message",
     "/admin/dashboard/pin-management": "PIN Management",

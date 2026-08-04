@@ -72,7 +72,6 @@ const ParentResult = () => {
       setLoading(false);
     }
   };
-
   const formattedDate = result?.createdAt
     ? new Date(result.createdAt).toLocaleDateString("en-GB", {
         day: "numeric",
